@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import numpy as np
 
 from .utils import timeit
-from . import layout, circular_layout, gui, clayout, links
+from . import layout, circular_layout, gui, links
 from .common import *
 
 import math

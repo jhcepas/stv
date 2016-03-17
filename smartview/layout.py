@@ -3,8 +3,8 @@ from collections import defaultdict
 
 import numpy as np
 
-from utils import timeit
-from common import *
+from .utils import timeit
+from .common import *
     
 def get_empty_matrix(nnodes):
     '''Returns an empty matrix prepared to allocated all data for a tree image of
