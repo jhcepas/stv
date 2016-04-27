@@ -59,11 +59,11 @@ try:
         maintainer_email = "huerta@embl.de",
         platforms = "OS Independent",
         license = "GPLv3",
-        description = "A Python Environment for (phylogenetic) Tree Exploration",
+        description = "Smartview",
         long_description = "",
         classifiers = CLASSIFIERS,
         provides = ["smartview"],
-        keywords = "tree, tree reconstruction, tree visualization, tree comparison, phylogeny, phylogenetics, phylogenomics",
+        keywords = "tree visualization",
         url = "http://etetoolkit.org",
         download_url = "http://etetoolkit.org/static/releases/ete3/",
 
