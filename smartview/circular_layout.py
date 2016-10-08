@@ -10,7 +10,7 @@ def iter_prepostorder(prepostorder):
         postorder = nid < 0 or nid == 0 and root_visited
         if nid == 0: root_visited = True
         yield postorder, nid
-        
+
 def get_min_radius(rect_width, rect_height, parent_radius, radians):
     radius = math.hypot(parent_radius+rect_width, rect_height)        
     if radians < R90:
@@ -50,7 +50,7 @@ def get_optimal_circular_scale_GOOD(tree_image, optimization_level="med", root_o
 
     rad_start = len(tree_image.cached_leaves)/(2*math.pi)
     scaled_nodes = []
-    
+
     levelnodes = [tree_image.root_node]
     nextlevelnodes = []
     level_counter = 0
@@ -60,21 +60,20 @@ def get_optimal_circular_scale_GOOD(tree_image, optimization_level="med", root_o
             scaled_nodes.extend(levelnodes)
             for n in levelnodes:
                 cdist[n] = cdist[n.up] if n.up else 0
-                cdist[n] += n.dist                    
+                cdist[n] += n.dist
         else:
             break
-           
+
         for n in levelnodes:
             nextlevelnodes.extend(n.children)
         levelnodes = nextlevelnodes
         nextlevelnodes = []
         level_counter += 1
-    
+
     root_scale = rad_start / max(cdist.values())
     for n in scaled_nodes:
         imgdata[n._id][_blen] *= root_scale
-       
-    
+
     print "ROOT OPEN ----------------------", rad_start, "root_opening"
 
 
@@ -83,23 +82,23 @@ def get_optimal_circular_scale_GOOD(tree_image, optimization_level="med", root_o
         parent_radius = n2minradius[dim[_parent]] if nid > 0 else 0
 
         radius, node_width, node_height_top, node_height_bot = get_node_end_radius(parent_radius, dim, scale=None)
-        
+
         n2minradius[nid] = radius
         # versed sine: the little extra line needed to complete the
         # radius.
         #vs = radius - (parent_radius + xoffset + node_width)
 
-        
+
         n2sumwidth[nid] = n2sumwidth.get(dim[_parent], 0) + node_width
         n2sumdist[nid] = n2sumdist.get(dim[_parent], 0) + dim[_blen]
-            
+
     most_distant = max(n2sumdist.values())
     if most_distant == 0:
         return 0.0
 
     root_opening = 0.0
     best_scale = None
-    max_rad = 0.0    
+    max_rad = 0.0
     for nid, dim in enumerate(imgdata):
         ndist = dim[_blen]
         if best_scale is None:
@@ -119,7 +118,7 @@ def get_optimal_circular_scale_GOOD(tree_image, optimization_level="med", root_o
                     root_opening = most_distant * best_scale * root_opening_factor
                 else:
                     best_scale = (n2minradius[nid] - (n2sumwidth[nid]) + root_opening) / n2sumdist[nid] if n2sumdist[nid] else 0.0
-                
+
             # If the width of branch top/bottom faces is not covered, we can
             # also increase the scale to adjust it. This may produce huge
             # scales, so let's keep it optional
@@ -129,7 +128,7 @@ def get_optimal_circular_scale_GOOD(tree_image, optimization_level="med", root_o
                     best_scale = min_w / ndist
 
         max_rad = max(max_rad, (n2sumdist[nid] * best_scale) + (n2sumwidth[nid] + root_opening))
-                    
+
     # Adjust scale for aligned faces
     print "Max rad,",  max_rad, root_opening
     if 0: 
@@ -143,7 +142,7 @@ def get_optimal_circular_scale_GOOD(tree_image, optimization_level="med", root_o
                     root_opening = most_distant * best_scale * root_opening_factor
                 else:
                     best_scale = (needed_rad - (n2sumwidth[nid]) + root_opening) / n2sumdist[nid]
-            
+
     # if not img.allow_face_overlap:
     #     aligned_h = [(n2i[node].heights[5], node) for node in visited_nodes]
     #     aligned_h.sort(reverse=True, key=lambda x: x[0])
@@ -163,7 +162,7 @@ def get_optimal_circular_scale_GOOD(tree_image, optimization_level="med", root_o
     #     n2i[root_node].fullRegion.adjust(root_opening, 0, root_opening, 0)
     #     n2i[root_node].xoff = root_opening
     #     #n2i[root_node].widths[0] += root_opening
-    
+
     return best_scale, rad_start, max_rad, most_distant
 
 def transform_by_level(tree_image):
@@ -201,7 +200,7 @@ def transform_by_level(tree_image):
             levelnodes = nextlevelnodes
             nextlevelnodes = []
             level_counter += 1
-            
+
         prev_rad += rad_start
         root_scale = rad_start / max(cdist.values())
         print "SCALED", len(scaled_nodes), root_scale, rad_start, max(cdist.values())
@@ -210,19 +209,19 @@ def transform_by_level(tree_image):
             for n in scaled_nodes:
                 n.img_style.hz_line_color = linecolor
                 imgdata[n._id][_blen] *= root_scale
-    
+
 def adjust_branch_lengths(tree_image):
     img_data = tree_image.img_data
     min_absolute_rad = (len(tree_image.cached_leaves))/(2*math.pi)
     root_node = tree_image.root_node
     n2leaves = {}
-    for n in root_node.traverse("postorder"):        
+    for n in root_node.traverse("postorder"):
         if n.children:
             n2leaves[n] = sum([n2leaves[ch] for ch in n.children])
         else:
             n2leaves[n] = 1
         n.support = n2leaves[n]
-    
+
     starts = [root_node]
     breaks = [500]
     for stop in breaks: 
@@ -241,8 +240,8 @@ def adjust_branch_lengths(tree_image):
             print len(root)
             for n in root.iter_descendants(is_leaf_fn=is_leaf):
                 if is_leaf(n):
-                    new_starts.append(n)                    
-                cdist[n] = cdist.get(n, 0.0) 
+                    new_starts.append(n)
+                cdist[n] = cdist.get(n, 0.0)
                 cdist[n] += n.dist
             if cdist:
                 expected_rad = ((n2leaves[root] / angle_span) / len(breaks))
@@ -261,16 +260,16 @@ def adjust_branch_lengths2(tree_image):
     img_data = tree_image.img_data
     root = tree_image.root_node
     n2leaves = {}
-    for n in root.traverse("postorder"):        
+    for n in root.traverse("postorder"):
         if n.children:
             n2leaves[n] = sum([n2leaves[ch] for ch in n.children])
         else:
             n2leaves[n] = 1
         n.support = n2leaves[n]
-    
+
     stop = 100
     #colors = random_color(num=len(starts))
-    
+
     def is_leaf(_node):
         if n2leaves[_node] <= stop or len(_node.children) > 50:
             return True

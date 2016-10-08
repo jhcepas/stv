@@ -5,7 +5,7 @@ import numpy as np
 
 from .utils import timeit
 from .common import *
-    
+
 def get_empty_matrix(nnodes):
     '''Returns an empty matrix prepared to allocated all data for a tree image of
     "nnodes"
@@ -26,7 +26,7 @@ def update_node_dimensions(img_data, cached_prepostorder, cached_preorder,
         if postorder:
             # leaves are never visited in postorder, so enything here is an internal node
             dim = img_data[abs(nid)]
-            dim[_is_leaf] = 0 
+            dim[_is_leaf] = 0
             dim[_max_leaf_idx] = prev_id
         else:
             dim = img_data[nid]
@@ -39,7 +39,7 @@ def update_node_dimensions(img_data, cached_prepostorder, cached_preorder,
             dim[_is_leaf] = 1 # assume leaf, fixed in postorder
             dim[_max_leaf_idx] = nid
             prev_id = nid
-            
+
 def compute_face_dimensions(node, facegrid):
     if facegrid is None:
         facegrid = []
