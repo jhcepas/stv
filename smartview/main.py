@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import numpy as np
 
 from .utils import timeit
-from . import layout, circular_layout, gui, links
+from . import layout, circular_layout, gui, links, rect_layout
 from .common import *
 
 import math
@@ -25,13 +25,13 @@ class TreeImage(object):
         self.height = 0.0
         self.break_points = None
         # circ mode specific
-        self.circ_collistion_paths = None
-
+        self.circ_collission_paths = None
         self.initialize()
 
-        self.set_leaf_aperture()
+        #self.set_leaf_aperture()
         self.update_matrix()
-        print "min_rad", math.radians((self.img_data[:,_aend] - self.img_data[:,_astart]).min())
+
+        #print "min_rad", math.radians((self.img_data[:,_aend] - self.img_data[:,_astart]).min())
 
     def set_leaf_aperture(self, nodeid=None, factor=None):
         if self.leaf_apertures is None:
@@ -87,6 +87,8 @@ class TreeImage(object):
 
 
     def update_matrix(self):
+        '''update dimensions and coordinates of all nodes'''
+
         self.img_data = layout.get_empty_matrix(len(self.cached_preorder))
         printmem("matrix created")
 
@@ -97,41 +99,22 @@ class TreeImage(object):
                                       force_topology=self.tree_style.force_topology)
 
         printmem("after dimensions")
-        if self.tree_style.mode == "c":
+        if self.tree_style.mode == "r":
+            rect_layout.update_rect_coordinates(img_data=self.img_data,
+                                                cached_prepostorder=self.cached_prepostorder,
+                                                cached_preorder=self.cached_preorder,
+                                                leaf_apertures=self.leaf_apertures,
+                                                branch_scale = self.scale)
+            self.rect_collision_paths = rect_layout.get_rect_collision_paths(self)
+
+        elif self.tree_style.mode == "c":
             circular_layout.update_node_angles(img_data=self.img_data,
                                                cached_prepostorder=self.cached_prepostorder,
                                                cached_preorder=self.cached_preorder,
                                                leaf_apertures=self.leaf_apertures)
 
             printmem("after angle")
-
-            optimal_scale, estimated_max_rad, most_distant = circular_layout.get_optimal_circular_scale(self,
-                                                                                                        root_opening_factor=0.0)
-            # print "optimal scale, max rad: ", optimal_scale, estimated_max_rad
-            # self.scale = optimal_scale
-            # self.root_open = 0.0
-
-
-            # d = 0
-            # node2pdist = {}
-            # for post, node in self.root_node.iter_prepostorder():
-            #     if post:
-            #         d -= node.dist
-            #     else:
-            #         if node.dist == 0:
-            #             self.img_data[node._id][_blen] = 0.0
-            #         else:
-            #             a = d / (estimated_max_rad*4)
-            #             hyperd = math.cos(a) * estimated_max_rad
-            #             print node.dist, hyperd - d
-            #             self.img_data[node._id][_blen] = hyperd - d
-
-            #         if not node.is_leaf():
-            #             d += node.dist
-
-            # self.scale = 1.0
-
-            #circular_layout.adjust_branch_lengths2(self)
+            optimal_scale, estimated_max_rad, most_distant = circular_layout.get_optimal_circular_scale(self, root_opening_factor=0.0)
             self.scale = 1.0
             self.root_open = 0.0
 
@@ -152,17 +135,13 @@ class TreeImage(object):
 
             self.circ_collistion_paths = circular_layout.compute_circ_collision_paths(self)
 
-
-            a = self.root_node.children[0].children[0].get_leaves()[0].up.up
-            b = self.root_node.children[1].children[1].get_leaves()[0].up.up
-
-
-            print "Computeing link paths"
             self.link_paths = []#links.get_link_paths(self, [(a, b)])
 
-        # for r in self.img_data:
-        #     print r[_btw:_bah+1]
 
+
+        # For r in self.img_data:
+        #     print r[_btw:_bah+1]   
+ 
     @timeit
     def initialize(self):
         self.cached_prepostorder = []

@@ -20,7 +20,7 @@ class Face(object):
     def __repr__(self):
         print type(self.__hash__())
         return "'%s' (%s)" %(self.__class__, hex(int(self.__hash__())))
-    
+
     def __init__(self):
         self.only_if_leaf = None
         self.node = None
@@ -47,27 +47,27 @@ class Face(object):
         self.fill_color = None
         self.max_height = None
         self.max_width = None
-                    
+
     def _width(self):
         pass
-    
+
     def _height(self):
         pass
-    
+
     def _draw(self, painter, x, y, zoom_factor):
         pass
 
     def _pre_draw(self):
         pass
 
-    
+
 class RectFace(Face):
     __slots__ = ['rect_width', 'rect_height', 'rect_label', 'rect_fgcolor', 'rect_bgcolor', "fgcolor", 'bgcolor']
-    
+
     def __init__(self, width, height, label=None, fgcolor="steelblue",
                  bgcolor="steelblue"):
         Face.__init__(self)
-        
+
         self.rect_width = width
         self.rect_height = height
         self.rect_fgcolor = fgcolor
@@ -75,12 +75,12 @@ class RectFace(Face):
         self.rect_label = label
         self.fgcolor = fgcolor
         self.bgcolor = bgcolor
-                
+
     def _height(self):
         return self.rect_height
-        
+
     def _width(self):
-        return self.rect_width 
+        return self.rect_width
 
     def _draw(self, painter, x, y, zoom_factor):
         painter.setPen(QColor(self.fgcolor))
@@ -96,24 +96,24 @@ class TextFace(Face):
     #     return "Text Face [%s] (%s)" %(self.text, hex(self.__hash__()))
 
     courier = 72./96.
-    
+
     @property
     def text(self):
         return self._text
-    
+
     def __init__(self, text, ftype="Courier", fsize=10, fgcolor="black",
                  fstyle='normal', tight_text=False, min_fsize=4):
         """Static text Face object
-        
+
         .. currentmodule:: ete3
-        
+
         :param text:     Text to be drawn
         :param ftype:    Font type, e.g. Arial, Verdana, Courier
         :param fsize:    Font size, e.g. 10,12,6, (default=10)
         :param fgcolor:  Foreground font color. RGB code or color name in :data:`SVG_COLORS`
         :param penwidth: Penwdith used to draw the text.
         :param fstyle: "normal" or "italic"
-        
+
         :param False tight_text: When False, boundaries of the text are
         approximated according to general font metrics, producing slightly
         worse aligned text faces but improving the performance of tree
@@ -122,24 +122,24 @@ class TextFace(Face):
         Face.__init__(self)
         self._text = text
         self.ftype = ftype
-        self.fsize = fsize 
+        self.fsize = fsize
         self.fgcolor = fgcolor
         self.fstyle = fstyle
         self.tight_text = tight_text
         self._text_size = None
         self.rotable = True
         self.min_fsize = min_fsize
-        
+
     def _width(self):
         if self._text_size is None:
             self._update_text_size()
         return self._text_size[0]
-        
+
     def _height(self):
         if self._text_size is None:
             self._update_text_size()
         return self._text_size[1]
-           
+
     def _draw(self, painter, x, y, zoom_factor):
         if zoom_factor * self._height() < self.min_fsize * self.courier:
             r = QRectF(x, y, self._width(), self._height())
@@ -154,7 +154,7 @@ class TextFace(Face):
     def _get_font(self):
         italic = self.fstyle == "italic"
         return QFont(self.ftype, pointSize=self.fsize, italic=italic)
-                
+
     def _update_text_size(self):
         # fm = QFontMetrics(self._get_font())
         # tx_w = fm.width(self.text)
@@ -169,60 +169,60 @@ class AttrFace(TextFace):
     @property
     def text(self):
         return str(getattr(self.node, self._text))
-    
+
     def __init__(self, attribute, ftype="Courier", fsize=10, fgcolor="black", fstyle='normal', tight_text=False, min_fsize=4):
         Face.__init__(self)
         self._text = attribute
         self.ftype = ftype
-        self.fsize = fsize 
+        self.fsize = fsize
         self.fgcolor = fgcolor
         self.fstyle = fstyle
         self.tight_text = tight_text
-        self._text_size = None 
+        self._text_size = None
         self.rotable = True
         self.min_fsize = fsize
 
-       
+
 class LabelFace(Face):
     __slots__ = ["width"]
-    
+
     def __init__(self, width):
         Face.__init__(self)
-        self.width = width 
-        
+        self.width = width
+
     def _width(self):
         return self.width
-    
+
     def _height(self):
         return 0.0
-    
+
     def _draw(self, painter, x, y, zoom_factor):
         pass
-    
+
 class GradientFace(Face):
     __slots__ = ["width", "node_attr", "max_value", "min_value", "center_value"]
-    
+
     def __init__(self, width, node_attr):
         Face.__init__(self)
         self.width = width
         self.node_attr = node_attr
-        
+
     def _width(self):
         return self.width
-    
+
     def _height(self):
         return 0.0
-    
+
     def _pre_draw(self):
         value = getattr(self.node, self.node_attr)
         self.fill_color = random_color(h=0.3, s=0.5, l=value)
-        
+
     def _draw(self, painter, x, y, zoom_factor):
         pass
-        
+
 class CircleLabelFace(Face):
     __slots__ = ["size", "color", "solid", "value", "attr", "attr_transform"]
-    
+
     def __init__(self, attr, color=None, solid=None, size=None, attr_transform=None):
         Face.__init__(self)
         self.size = size
@@ -230,9 +230,9 @@ class CircleLabelFace(Face):
         self.attr = attr
         self.attr_transform = attr_transform
         self.solid = solid
-        
+
     def _width(self):
-        if self.size: 
+        if self.size:
             return self.size
         else:
             v = getattr(self.node, self.attr)
@@ -240,10 +240,10 @@ class CircleLabelFace(Face):
                 return self.attr_transform(v)
             else:
                 return v
-            
+
     def _height(self):
         return self._width()
-    
+
     def _draw(self, painter, x, y, zoom_factor):
 
         if self.solid:
@@ -252,9 +252,3 @@ class CircleLabelFace(Face):
         else:
             painter.setPen(QPen(QColor(self.color)))
             painter.drawEllipse(x, y, self._width(), self._height())
-
-
-
-    
-    
-    

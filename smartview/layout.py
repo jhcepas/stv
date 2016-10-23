@@ -34,6 +34,7 @@ def update_node_dimensions(img_data, cached_prepostorder, cached_preorder,
             face_pos_sizes = compute_face_dimensions(node, node._temp_faces)
             dim[_btw:_bah+1] = face_pos_sizes
             dim[_blen] = node.dist if not force_topology else 1.0
+            dim[_blen] *= scale
             dim[_bh] = max(node.img_style.hz_line_width, 1.0)
             dim[_parent] = node.up._id if nid > 0 else 0
             dim[_is_leaf] = 1 # assume leaf, fixed in postorder

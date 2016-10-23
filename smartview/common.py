@@ -29,9 +29,6 @@ import math
 MATRIX_FIELDS = 23
 
 # Other
-
-
-
 FACEPOS2CODE = {"branch-top":0,
                 "branch-bottom":1,
                 "branch-right":2,
@@ -39,8 +36,6 @@ FACEPOS2CODE = {"branch-top":0,
                 "aligned":4}
 FACE_POSITIONS = set(FACEPOS2CODE.keys())
 FACE_POS_INDEXES = sorted(FACEPOS2CODE.values())
-
-
 
 CONFIG = {
     "debug": False,
