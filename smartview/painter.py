@@ -34,36 +34,39 @@ class SmartPainter(object):
 
 
 class QETEPainter(object):
-    def __init__(self, surface, painter=None):
+    def __init__(self, painter=None, surface=None):
         if not painter:
-            self.p = QPainter(surface)
+            self.pp = QPainter(surface)
+        else:
+            self.pp = painter
 
     def save(self):
-        pass
+        self.pp.save()
 
     def restore(self):
-        pass
+        self.pp.restore()
 
     def set_pen(self, color, stroke, cap):
-        pass
+        self.pp.setPen(QColor(color))
 
     def set_brush(self, color, gradient=None):
-        pass
+        self.pp.setBrush(QColor(color))
 
     def draw_line(self, x1, y1, x2, y2):
-        self.p.drawLine(x1, y1, x2, y2)
+        self.pp.drawLine(x1, y1, x2, y2)
 
-    def draw_rect(self):
-        pass
+    def draw_rect(self, x1, y1, x2, y2):
+        self.pp.drawRect(x1, y1, w, h)
 
     def draw_arc(self):
         pass
 
-    def draw_ellipse(self):
-        pass
+    def draw_ellipse(self, cx, cy, r1, r2):
+        self.pp.drawEllipse(cx, cy, r1, r2)
 
-    def draw_text(self, text, fsize, fcolor='black', ftype=None, fstyle=None):
-        pass
+    def draw_text(self, x, y, text, fsize=8, fcolor='black', ftype=None, fstyle=None):
+        # set font, etc..
+        self.pp.drawText(x, y, text)
 
     def draw_path(self):
         pass

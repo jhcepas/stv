@@ -5,7 +5,7 @@ from .painter import SmartPainter, QETEPainter
 from PyQt4 import QtCore
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
-
+import base64
 
 # TODO: cover scenario where internal nodes are higher than all children
 @timeit
@@ -116,8 +116,21 @@ def draw_region_rect(tree_image, region, zoom_factor):
     ii = QImage(region[2], region[3], QImage.Format_RGB32)
     ii.fill(QColor("white"))
     pp = SmartPainter()
-    pp2 = QETEPainter(ii)
+    _pp = QPainter()
+    _pp.begin(ii)
+    _pp.setRenderHint(QPainter.Antialiasing)
+    _pp.setRenderHint(QPainter.TextAntialiasing)
+    _pp.setRenderHint(QPainter.SmoothPixmapTransform)
+    # Prevent drawing outside target_rect boundaries
+    _pp.setClipRect(0, 0, 1000, 10000)#, Qt.IntersectClip)
+    # Transform space of coordinates: I want source_rect.top_left() to be
+    # translated as 0,0
+    matrix = QTransform().translate(-region[0], -region[1])
+    matrix.scale(zoom_factor, zoom_factor)
+    _pp.setWorldTransform(matrix, True)
+    pp2 = QETEPainter(painter=_pp)
 
+    print region, zoom_factor
     scene_rect = QRectF(*region)
     curr = 0
     nid = curr
@@ -214,6 +227,11 @@ def draw_region_rect(tree_image, region, zoom_factor):
 
 
     print "NODES DRAWN", DRAWN, 'skipped', SKIPPED, 'too_small', TOO_SMALL, "collapsed", COLLAPSED, "iters", ITERS, "MULTI", MULTI
-    pp2.p.end()
-    ii.save("/Users/jhc/test.png")
-    return pp.lines
+
+    pp2.pp.end()
+    ba = QtCore.QByteArray()
+    buf = QtCore.QBuffer(ba)
+    buf.open(QtCore.QIODevice.WriteOnly)
+    ii.save(buf, "PNG")
+    #ii.save('/Users/jhc/testimg.png')
+    return base64.encodestring(ba.data())

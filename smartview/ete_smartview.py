@@ -25,11 +25,12 @@ def enable_cors():
     bottle.response.headers['Access-Control-Allow-Headers'] = 'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
 
 
-@bottle.route('/get_region')
-def get_region():
+@bottle.route('/get_region/<z:float>/<x:int>/<y:int>/<w:int>/<h:int>')
+def get_region(z, x, y, w, h):
     bottle.response.content_type = 'application/json'
-    lines = rect_layout.draw_region_rect(TREE, [0, 0, 1000, 1000], 1)
-    data = {"lines":lines}
+    img64 = rect_layout.draw_region_rect(TREE, [x, y, w, h], z)
+
+    data = {"img":img64}
     return json.dumps(data)
 
 
@@ -250,7 +251,7 @@ def run(args):
 
     if not args.nogui:
         gui.display(tree_image, zoom_factor=args.zoom_factor)
-        
+
     if args.profile:
         pr.disable()
         s = StringIO.StringIO()
