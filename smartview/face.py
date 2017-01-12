@@ -1,6 +1,3 @@
-from PyQt4.QtGui import QColor, QPen, QBrush, QFont
-from PyQt4.QtCore import QRectF
-
 from colors import random_color
 
 class Face(object):
@@ -15,7 +12,9 @@ class Face(object):
                  "fill_color",
                  "outter_border_top", "outter_border_bottom", "outter_border_left", "outter_border_right",
                  "max_height","max_width",
-                 "only_if_leaf",
+                 "only_if_leaf", # unsure this is needed... Prevents rendering in collapsed nodes
+                 "painter",
+                 "min_size",
     ]
     def __repr__(self):
         print type(self.__hash__())
@@ -24,6 +23,7 @@ class Face(object):
     def __init__(self):
         self.only_if_leaf = None
         self.node = None
+        self.painter = None
         self.type = None
         self.margin_top = 0
         self.margin_bottom = 0
@@ -55,6 +55,7 @@ class Face(object):
         pass
 
     def _draw(self, painter, x, y, zoom_factor):
+        """ x,y: left corner. zoom_factor = scaling factor under used"""
         pass
 
     def _pre_draw(self):
@@ -64,7 +65,7 @@ class Face(object):
 class RectFace(Face):
     __slots__ = ['rect_width', 'rect_height', 'rect_label', 'rect_fgcolor', 'rect_bgcolor', "fgcolor", 'bgcolor']
 
-    def __init__(self, width, height, label=None, fgcolor="steelblue",
+    def __init__(self, width, height, fgcolor="steelblue",
                  bgcolor="steelblue"):
         Face.__init__(self)
 
@@ -72,9 +73,6 @@ class RectFace(Face):
         self.rect_height = height
         self.rect_fgcolor = fgcolor
         self.rect_bgcolor = bgcolor
-        self.rect_label = label
-        self.fgcolor = fgcolor
-        self.bgcolor = bgcolor
 
     def _height(self):
         return self.rect_height
@@ -82,27 +80,57 @@ class RectFace(Face):
     def _width(self):
         return self.rect_width
 
+    def _draw(self, x, y, zoom_factor):
+        self.painter.draw_rect(x, y, self.rect_width, self.rect_height, self.rect_fgcolor, self.rect_bgcolor)
+        #painter.draw_text(self.rect_label, self.)
+
+class EllipseFace(Face):
+    __slots__ = ["x_radius", "y_radius"]
+
+    def __init__(self, x_radius, y_radius, color, bgcolor):
+        Face.__init__(self)
+        self.x_radius = x_radius
+        self.y_radius = y_radius
+        self.ellipse_fgcolor = color
+        self.ellipse_bgcolor = color
+
+    def _width(self):
+        return self.x_radius * 2.0
+
+    def _height(self):
+        return self.y_radius * 2.0
+
     def _draw(self, painter, x, y, zoom_factor):
-        painter.setPen(QColor(self.fgcolor))
-        if self.bgcolor:
-            painter.fillRect(QRectF(x, y, self.rect_width, self.rect_height), QColor(self.bgcolor))
-        else:
-            painter.drawRect(QRectF(x, y, self.rect_width, self.rect_height))
+        self.painter.draw_ellipse(x, y, self._width(), self._height())
+
+class DiamondFace(Face):
+    __slots__ = ["x_radius", "y_radius"]
+
+    def __init__(self, x_radius, y_radius, color, bgcolor):
+        Face.__init__(self)
+        self.x_radius = x_radius
+        self.y_radius = y_radius
+        self.ellipse_fgcolor = color
+        self.ellipse_bgcolor = color
+
+    def _width(self):
+        return self.x_radius * 2.0
+
+    def _height(self):
+        return self.y_radius * 2.0
+
+    def _draw(self, painter, x, y, zoom_factor):
+        self.painter.draw_ellipse(x, y, self._width(), self._height())
 
 class TextFace(Face):
-    __slots__ = ['_text', 'fsize', 'ftype', 'fgcolor', 'fstyle', 'tight_text', "_text_size", "min_fsize"]
-
-    # def __repr__(self):
-    #     return "Text Face [%s] (%s)" %(self.text, hex(self.__hash__()))
-
-    courier = 72./96.
+    __slots__ = ['_text', 'fsize', 'ftype', 'fgcolor', 'fstyle', 'tight_text', "_text_size"]
 
     @property
     def text(self):
         return self._text
 
     def __init__(self, text, ftype="Courier", fsize=10, fgcolor="black",
-                 fstyle='normal', tight_text=False, min_fsize=4):
+                 fstyle='normal', tight_text=False, min_size=(4,4)):
         """Static text Face object
 
         .. currentmodule:: ete3
@@ -128,49 +156,37 @@ class TextFace(Face):
         self.tight_text = tight_text
         self._text_size = None
         self.rotable = True
-        self.min_fsize = min_fsize
+        self.min_size = min_size
 
     def _width(self):
-        if self._text_size is None:
-            self._update_text_size()
+        self._update_text_size()
         return self._text_size[0]
 
     def _height(self):
-        if self._text_size is None:
-            self._update_text_size()
+        self._update_text_size()
         return self._text_size[1]
 
-    def _draw(self, painter, x, y, zoom_factor):
-        if zoom_factor * self._height() < self.min_fsize * self.courier:
-            r = QRectF(x, y, self._width(), self._height())
-            painter.setPen(QPen(QColor(self.fgcolor)))
-            painter.setOpacity(0.25)
-            painter.drawRect(r)
-        else:
-            painter.setFont(self._get_font())
-            r = QRectF(x, y, self._width(), self._height())
-            painter.drawText(r, self.text)
 
-    def _get_font(self):
-        italic = self.fstyle == "italic"
-        return QFont(self.ftype, pointSize=self.fsize, italic=italic)
+    def _draw(self, x, y, zoom_factor):
+        if zoom_factor * self._height() < self.min_size[1]:
+            self.painter.draw_rect(x, y, self._width(), self._height(), "grey", "white")
+        else:
+            self.painter.draw_rect(x, y, self._width(), self._height(), "grey", None)
+            self.painter.set_font(self.ftype, self.fsize)
+            self.painter.draw_text(x, y, self._width(), self._height(), self.text, self.ftype, self.fsize)
 
     def _update_text_size(self):
-        # fm = QFontMetrics(self._get_font())
-        # tx_w = fm.width(self.text)
-        # textr = fm.boundingRect(self.text)
-        # self._text_size = (tx_w, textr.height())
+        self._text_size = self.painter.get_text_size(self.text, self.ftype, self.fsize)
 
-        self._text_size = (self.fsize*len(self.text)*self.courier, self.fsize*self.courier)
 
 class AttrFace(TextFace):
-    __slots__ = ['_text', 'fsize', 'ftype', 'fgcolor', 'fstyle', 'tight_text', "_text_size", "min_fsize"]
+    __slots__ = ['_text', 'fsize', 'ftype', 'fgcolor', 'fstyle', 'tight_text', "_text_size"]
 
     @property
     def text(self):
-        return str(getattr(self.node, self._text))
+        return str(getattr(self.node, self._text)).strip()
 
-    def __init__(self, attribute, ftype="Courier", fsize=10, fgcolor="black", fstyle='normal', tight_text=False, min_fsize=4):
+    def __init__(self, attribute, ftype="Courier", fsize=10, fgcolor="black", fstyle='normal', tight_text=False, min_size=(4,4)):
         Face.__init__(self)
         self._text = attribute
         self.ftype = ftype
@@ -180,7 +196,7 @@ class AttrFace(TextFace):
         self.tight_text = tight_text
         self._text_size = None
         self.rotable = True
-        self.min_fsize = fsize
+        self.min_size = min_size
 
 
 class LabelFace(Face):
@@ -220,35 +236,3 @@ class GradientFace(Face):
     def _draw(self, painter, x, y, zoom_factor):
         pass
 
-class CircleLabelFace(Face):
-    __slots__ = ["size", "color", "solid", "value", "attr", "attr_transform"]
-
-    def __init__(self, attr, color=None, solid=None, size=None, attr_transform=None):
-        Face.__init__(self)
-        self.size = size
-        self.color = color
-        self.attr = attr
-        self.attr_transform = attr_transform
-        self.solid = solid
-
-    def _width(self):
-        if self.size:
-            return self.size
-        else:
-            v = getattr(self.node, self.attr)
-            if self.attr_transform:
-                return self.attr_transform(v)
-            else:
-                return v
-
-    def _height(self):
-        return self._width()
-
-    def _draw(self, painter, x, y, zoom_factor):
-
-        if self.solid:
-            painter.setBrush(QColor(self.color))
-            painter.drawEllipse(x, y, self._width(), self._height())
-        else:
-            painter.setPen(QPen(QColor(self.color)))
-            painter.drawEllipse(x, y, self._width(), self._height())

@@ -2,10 +2,6 @@
 import math
 from common import *
 
-from PyQt4 import QtCore
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
-
 
 def get_cart_coords(radius, radians, cx, cy):
     a = (2*math.pi)-radians;

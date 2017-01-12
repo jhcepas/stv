@@ -5,6 +5,7 @@ import numpy as np
 
 from .utils import timeit
 from .common import *
+from painter import QETEPainter
 
 def get_empty_matrix(nnodes):
     '''Returns an empty matrix prepared to allocated all data for a tree image of
@@ -20,19 +21,20 @@ def update_node_dimensions(img_data, cached_prepostorder, cached_preorder,
                            scale=1.0, force_topology=False):
     prev_id = 0
     root_visited = False
+    painter = QETEPainter() # Needed to compute text face dimensions
     for nid in cached_prepostorder:
         postorder = nid < 0 or nid == 0 and root_visited
         if nid == 0: root_visited = True
         if postorder:
-            # leaves are never visited in postorder, so enything here is an internal node
+            # leaves are never visited in postorder, so anything here is an internal node
             dim = img_data[abs(nid)]
             dim[_is_leaf] = 0
             dim[_max_leaf_idx] = prev_id
         else:
             dim = img_data[nid]
             node = cached_preorder[nid]
-            face_pos_sizes = compute_face_dimensions(node, node._temp_faces)
-            dim[_btw:_bah+1] = face_pos_sizes
+            face_pos_sizes = compute_face_dimensions(node, node._temp_faces, painter)
+            dim[_btw:_bah+1] = face_pos_sizes  # btw,bth,bbw,bbh,brw,brh,bfw,bfh,baw,bah
             dim[_blen] = node.dist if not force_topology else 1.0
             dim[_blen] *= scale
             dim[_bh] = max(node.img_style.hz_line_width, 1.0)
@@ -41,7 +43,14 @@ def update_node_dimensions(img_data, cached_prepostorder, cached_preorder,
             dim[_max_leaf_idx] = nid
             prev_id = nid
 
-def compute_face_dimensions(node, facegrid):
+            lw = dim[_bh] / 2.0
+            htop = max(dim[_bth]+lw, dim[_brh]/2.0)
+            hbot = max(dim[_bbh]+lw, dim[_brh]/2.0)
+            dim[_nht] = htop
+            dim[_nhb] = hbot
+
+
+def compute_face_dimensions(node, facegrid, painter):
     if facegrid is None:
         facegrid = []
     listdict = lambda: defaultdict(list)
@@ -49,6 +58,7 @@ def compute_face_dimensions(node, facegrid):
     cols_h = defaultdict(listdict)
     for index, (f, pos, row, col, _, _) in enumerate(facegrid):
         f.node = node
+        f.painter = painter
         fw = f._width() + f.margin_right + f.margin_left
         fh = f._height() + f.margin_top + f.margin_bottom
 
@@ -82,6 +92,7 @@ def compute_face_dimensions(node, facegrid):
         total_w = sum([max(v) for v in cols_w[fpos].values()]) if fpos in cols_w else 0.0
         total_h = max([sum(v) for v in cols_h[fpos].values()]) if fpos in cols_h else 0.0
         face_pos_sizes.extend((total_w, total_h))
+    # face dimension order: btw,bth,bbw,bbh,brw,brh,bfw,bfh,baw,bah
     return face_pos_sizes
 
 def compute_aligned_region_width(tree_image):

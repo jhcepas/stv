@@ -6,9 +6,9 @@ import signal
 import math
 from collections import defaultdict
 
-from PyQt4 import QtCore
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5 import QtCore
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 
 from .utils import timeit, debug
 from .common import *

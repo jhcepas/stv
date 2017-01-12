@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import numpy as np
 
 from .utils import timeit
-from . import layout, circular_layout, gui, links, rect_layout
+from . import layout, circular_layout, links, rect_layout
 from .common import *
 
 import math
@@ -100,13 +100,17 @@ class TreeImage(object):
 
         printmem("after dimensions")
         if self.tree_style.mode == "r":
-            rect_layout.update_rect_coordinates(img_data=self.img_data,
+            w, h = rect_layout.update_rect_coordinates(img_data=self.img_data,
                                                 cached_prepostorder=self.cached_prepostorder,
                                                 cached_preorder=self.cached_preorder,
                                                 leaf_apertures=self.leaf_apertures,
                                                 branch_scale = self.scale)
             self.rect_collision_paths = rect_layout.get_rect_collision_paths(self)
-
+            aligned_region_width = layout.compute_aligned_region_width(self)
+            self.width = w + aligned_region_width
+            self.height = h
+            self.radius = (w, w + aligned_region_width)
+            
         elif self.tree_style.mode == "c":
             circular_layout.update_node_angles(img_data=self.img_data,
                                                cached_prepostorder=self.cached_prepostorder,

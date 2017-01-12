@@ -20,7 +20,7 @@
 
       function writeMessage(canvas, message) {
         var context = canvas.getContext('2d');
-        context.clearRect(300, 10, 300, 25);
+        context.clearRect(300, 10, 1000, 25);
         context.font = '18pt Calibri';
         context.fillStyle = 'black';
         context.fillText(message, 300, 25);
@@ -38,6 +38,8 @@
       var img = new Image();
 
      img.onload = function(){
+         console.log('DRAWING');
+
          context.drawImage(img, 0, 0);
          }
     //context.drawImage(img, 40, 40);
@@ -67,14 +69,13 @@
      }
 
      function handleMouseUp(e){
-         
+
          if (isDragging){
              isDragging=false;
-
              new_pos = getMousePos(canvas, e);
              console.log(new_pos, drag_pos, current_x, drag_pos.x-new_pos.x)
-             current_x = Math.max(0, current_x+(drag_pos.x-new_pos.x));
-             current_y = Math.max(0, current_y+(drag_pos.y-new_pos.y));
+             current_x = Math.max(0, current_x + (drag_pos.x-new_pos.x)*current_zoom);
+             current_y = Math.max(0, current_y + (drag_pos.y-new_pos.y)*current_zoom);
              update();
          }
      }
@@ -89,10 +90,10 @@
          if(isDragging){
              new_pos = getMousePos(canvas, e);
 
-             writeMessage(canvas, [drag_pos.x-new_pos.x, '/', drag_pos.y-new_pos.y]);
+             writeMessage(canvas, [(drag_pos.x-new_pos.x)/current_zoom, '/', (drag_pos.y-new_pos.y)/current_zoom]);
          }else {
              p = getMousePos(canvas, e);
-             writeMessage(canvas,[p.x, p.y, current_x, current_y]);
+             writeMessage(canvas,[p.x, p.y, current_x, current_y, current_zoom]);
              }
      }
 
@@ -110,13 +111,27 @@
                                  e.preventDefault();
                                  e.returnValue = false;
                                  return false;
-                                     }
-                             var sc = e.originalEvent.wheelDelta /120;
-                             console.log(e.originalEvent.wheelDelta);
+                             }
 
-                             current_zoom += sc;
+                             if (e.originalEvent.wheelDelta > 0){
+                               var sc = 1.05;
+                             } else {
+                                 var sc = 0.95;
+                                 }
+
+                             var new_zoom = current_zoom * sc;
+                             pos = getMousePos(canvas, e);
+                             var zoom_change = new_zoom - current_zoom;
+                             var offsetX = (pos.x * zoom_change);
+                             var offsetY = (pos.y * zoom_change);
+
+
                              clearTimeout(last_timeout);
-                             last_timeout = window.setTimeout(function(){console.log('scrolling down !', sc); update();}, 50);
+                             last_timeout = window.setTimeout(function(){
+                                 current_x = Math.max(0, current_x + offsetX)
+                                 current_y = Math.max(0, current_y + offsetY)
+                                 current_zoom = new_zoom;
+                                 console.log('scrolling down !', sc, new_zoom); update();}, 25);
 
                              return prevent();
                          }

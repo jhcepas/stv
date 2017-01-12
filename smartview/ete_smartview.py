@@ -8,8 +8,8 @@ from argparse import ArgumentParser
 from .ctree import Tree
 #from .. import Tree
 from .style import TreeStyle, add_face_to_node
-from .face import  RectFace, TextFace, AttrFace, LabelFace, CircleLabelFace, GradientFace
-from .main import TreeImage, gui
+from .face import  RectFace, TextFace, AttrFace, LabelFace, GradientFace
+from .main import TreeImage
 from . import common
 from .common import *
 from . import rect_layout
@@ -25,13 +25,33 @@ def enable_cors():
     bottle.response.headers['Access-Control-Allow-Headers'] = 'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
 
 
-@bottle.route('/get_region/<z:float>/<x:int>/<y:int>/<w:int>/<h:int>')
+from PyQt5.Qt import QApplication
+QApp = QApplication(["ETE"])
+from .painter import QETEPainter
+
+@bottle.route('/get_region/<z:float>/<x:float>/<y:float>/<w:int>/<h:int>')
 def get_region(z, x, y, w, h):
     bottle.response.content_type = 'application/json'
     img64 = rect_layout.draw_region_rect(TREE, [x, y, w, h], z)
 
     data = {"img":img64}
     return json.dumps(data)
+
+@bottle.route('/get_region/<z:float>/<x:float>/<y:float>/<w:int>/<h:int>/tile.png')
+def get_region(z, x, y, w, h):
+    bottle.response.content_type = 'img/png'
+
+    base_scale = min(w/TREE.width, h/TREE.height)
+    x = w * x
+    y = h * y
+    img_size = (2 ** z) * w
+    z = min(img_size/TREE.width, img_size/TREE.height)
+
+    print ("current zoom scale", z, img_size, TREE.width, TREE.height) 
+    png = rect_layout.draw_region_rect(TREE, [x, y, w, h], z, pngreturn=True)
+    return png
+
+
 
 
 DESC = """
@@ -58,7 +78,7 @@ def populate_args(parser):
 
 
 nameF = AttrFace("name", fsize=10)
-nameF.margin_right = 10
+
 distF = AttrFace("dist", fsize=7)
 supportF = AttrFace("support", fsize=7)
 labelF = LabelFace(70)
@@ -66,12 +86,12 @@ labelF.fill_color = "thistle"
 labelF2 = LabelFace(70)
 labelF2.fill_color = "indianred"
 
-circleF = CircleLabelFace(attr="support", solid=True, color="blue")
+
 
 hola = TextFace("hola")
 mundo = TextFace("mundo", fsize=7, fgcolor="grey")
 ornot = TextFace("ornot", fsize=6, fgcolor="steelblue")
-rectF = RectFace(100, 100, bgcolor="indianred")
+rectF = RectFace(40, 10, bgcolor="indianred")
 f = RectFace(20, 10, bgcolor="pink")
 f2 = RectFace(120, 10, bgcolor="blue")
 f3 = RectFace(20, 10, bgcolor="green")
@@ -108,6 +128,7 @@ def real_layout(node):
 
         #add_face_to_node(circleF, node, column=5, position="branch-right")
     add_face_to_node(gradF, node, column=10, position="branch-right")
+
 def test_layout(node):
     node.img_style.size = 1
     #f.margin_left=20
@@ -141,7 +162,7 @@ def basic_layout(node):
         add_face_to_node(nameF, node, column=0, position="branch-right")
     else:
         if node.name:
-            add_face_to_node(nameF, node, column=0, position="branch-top")
+            add_face_to_node(TextFace(node.name), node, column=0, position="branch-top")
 
 def recta_layout(node):
     if node.is_leaf():
@@ -166,6 +187,8 @@ def run(args):
     if args.size:
         t = Tree()
         t.populate(args.size, random_branches=True)
+        for i, n in enumerate(t.traverse()):
+            n.name = 'y0000%s' %i
     elif args.src_trees:
         t = Tree(args.src_trees[0], format=args.nwformat)
 
@@ -244,9 +267,10 @@ def run(args):
 
     # serve
     TREE = tree_image
-    rect_layout.draw_region_rect(tree_image, [0, 0, 1000, 1000], 1)
+    #rect_layout.draw_region_rect(tree_image, [0, 0, 1000, 1000], 1)
 
-    bottle.run(host='localhost', port=8090)
+
+    bottle.run(host='localhost', port=8090, server="cherrypy")
 
 
     if not args.nogui:
