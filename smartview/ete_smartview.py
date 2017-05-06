@@ -161,7 +161,7 @@ def basic_layout(node):
     if node.is_leaf():
         add_face_to_node(nameF, node, column=0, position="branch-right")
     else:
-        if node.name:
+        if node.name and 0:
             add_face_to_node(TextFace(node.name), node, column=0, position="branch-top")
 
 def recta_layout(node):
@@ -270,7 +270,7 @@ def run(args):
     #rect_layout.draw_region_rect(tree_image, [0, 0, 1000, 1000], 1)
 
 
-    bottle.run(host='localhost', port=8090, server="cherrypy")
+    bottle.run(host='localhost', port=8090)#, server="cherrypy")
 
 
     if not args.nogui:

@@ -5,10 +5,10 @@ from ctypes import *
 from numpy.ctypeslib import ndpointer
 import numpy as np
 
-from PyQt4 import QtCore
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
-from PyQt4.QtSvg import *
+from PyQt5 import QtCore
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtSvg import *
 
 from .common import *
 from .utils import timeit, debug

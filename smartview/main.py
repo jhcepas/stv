@@ -105,7 +105,7 @@ class TreeImage(object):
                                                 cached_preorder=self.cached_preorder,
                                                 leaf_apertures=self.leaf_apertures,
                                                 branch_scale = self.scale)
-            self.rect_collision_paths = rect_layout.get_rect_collision_paths(self)
+            self.rect_collision_paths = None #rect_layout.get_rect_collision_paths(self)
             aligned_region_width = layout.compute_aligned_region_width(self)
             self.width = w + aligned_region_width
             self.height = h

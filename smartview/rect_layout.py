@@ -8,6 +8,7 @@ from PyQt5.QtCore import *
 from PyQt5 import QtGui
 import base64
 # TODO: cover scenario where internal nodes are higher than all children
+
 @timeit
 def update_rect_coordinates(img_data, cached_prepostorder,
                             cached_preorder,
@@ -73,23 +74,36 @@ def update_rect_coordinates(img_data, cached_prepostorder,
     return img_data[0][_fnw], img_data[0][_fnh]
 
 
-@timeit
-def get_rect_collision_paths(tree_image):
-    """ collision paths in the un-transformed scene"""
-    collistion_paths = []
-    img_data = tree_image.img_data
-    for nid, dim in enumerate(img_data):
-        node = tree_image.cached_preorder[nid]
-        ystart = dim[_ystart]
-        yend = dim[_yend]
-        xend = dim[_xend]
-        xstart = img_data[dim[_parent]][_xend]
-        path = QtGui.QPainterPath()
-        fpath= QtGui.QPainterPath()
-        path.addRect(xstart, ystart, xend-xstart, yend-ystart)
-        fpath.addRect(xstart, ystart, dim[_fnw], dim[_fnh])
-        collistion_paths.append([path, fpath])
-    return collistion_paths
+#@timeit
+# def get_rect_collision_paths(tree_image):
+#     """ collision paths in the un-transformed scene"""
+#     collistion_paths = []
+#     img_data = tree_image.img_data
+#     for nid, dim in enumerate(img_data):
+#         node = tree_image.cached_preorder[nid]
+#         ystart = dim[_ystart]
+#         yend = dim[_yend]
+#         xend = dim[_xend]
+#         xstart = img_data[dim[_parent]][_xend]
+#         path = QtGui.QPainterPath()
+#         fpath= QtGui.QPainterPath()
+#         path.addRect(xstart, ystart, xend-xstart, yend-ystart)
+#         fpath.addRect(xstart, ystart, dim[_fnw], dim[_fnh])
+#         collistion_paths.append([path, fpath])
+#     return collistion_paths
+
+def get_collision_path(dim, parentdim, zoom_factor):
+    ystart = dim[_ystart] * zoom_factor
+    yend = dim[_yend] * zoom_factor
+    xend = dim[_xend] * zoom_factor
+    xstart = parentdim[_xend] #* zoom_factor
+    path = QtGui.QPainterPath()
+    fpath= QtGui.QPainterPath()
+    path.addRect(xstart, ystart, xend-xstart, yend-ystart)
+    fpath.addRect(xstart, ystart,
+                  dim[_fnw] * zoom_factor,
+                  dim[_fnh] * zoom_factor)
+    return path, fpath
 
 
 @timeit
@@ -113,47 +127,59 @@ def draw_region_rect(tree_image, region, zoom_factor, pngreturn=False):
     # Transform space of coordinates: I want source_rect.top_left() to be
     # translated as 0,0
     matrix = QTransform().translate(-region[0], -region[1])
-    #matrix.scale(zoom_factor, zoom_factor)
     _pp.setWorldTransform(matrix, True)
 
     pp = QETEPainter(painter=_pp)
 
-    pp.zoom_factor = zoom_factor
-    scene_rect = QRectF(region[0]/zoom_factor, region[1]/zoom_factor,
-                        region[2]/zoom_factor, region[3]/zoom_factor)
+    #pp.zoom_factor = zoom_factor
+    pp.zoom_factor = 1
+    #scene_rect = QRectF(region[0]/zoom_factor, region[1]/zoom_factor,
+    #                    region[2]/zoom_factor, region[3]/zoom_factor)
+
+    scene_rect = QRectF(region[0], region[1], region[2], region[3])
 
     curr = 0
     nid = curr
     end = img_data[curr][_max_leaf_idx] + 1
+    y = 0
     while curr < end:
         ITERS += 1
         draw_collapsed = 0
         nid = curr
 
-        dim = img_data[nid]
+        dim = img_data[nid].copy()
 
-        path = coll_paths[nid][0]
-        fpath = coll_paths[nid][1]
+        #path = coll_paths[nid][0]
+        #fpath = coll_paths[nid][1]
 
-        if (dim[_fnh] * zoom_factor) < 0.25:
+        fnh = dim[_fnh] * zoom_factor
+
+        if fnh < 0.25:
             curr = int(dim[_max_leaf_idx] + 1)
             TOO_SMALL += 1
             continue
-
-        # if desdendant space is too small, draw the whole branch as a single
-        # simplified item
-        elif not dim[_is_leaf] and (dim[_fnh] * zoom_factor) < COLLAPSE_RESOLUTION:
-            curr = int(dim[_max_leaf_idx] + 1)
-            draw_collapsed = 2
-            path = fpath
-            COLLAPSED += 1
-        elif not dim[_is_leaf] and (dim[_max_leaf_idx] - curr) == len(tree_image.cached_preorder[curr].children) and \
-             (dim[_fnh] * zoom_factor)/len(tree_image.cached_preorder[curr].children) < 1:
-            curr = int(dim[_max_leaf_idx] + 1)
-            draw_collapsed = 3
-            MULTI += 1
         else:
-            curr += 1
+            # PREVENT X ZOOMING
+            for a in _blen, _btw, _bbw, _brw, _fnw, _xend:
+                dim[a] *= (1/zoom_factor)
+
+            
+            path, fpath = get_collision_path(dim, img_data[dim[_parent]], zoom_factor)
+
+            # if desdendant space is too small, draw the whole branch as a single
+            # simplified item
+            if not dim[_is_leaf] and fnh < COLLAPSE_RESOLUTION:
+                curr = int(dim[_max_leaf_idx] + 1)
+                draw_collapsed = 2
+                path = fpath
+                COLLAPSED += 1
+            elif not dim[_is_leaf] and (dim[_max_leaf_idx] - curr) == len(tree_image.cached_preorder[curr].children) and \
+                 fnh/len(tree_image.cached_preorder[curr].children) < 1:
+                curr = int(dim[_max_leaf_idx] + 1)
+                draw_collapsed = 3
+                MULTI += 1
+            else:
+                curr += 1
 
         # skip if node does not overlap with requested region
         if not path.intersects(scene_rect):
@@ -167,34 +193,39 @@ def draw_region_rect(tree_image, region, zoom_factor, pngreturn=False):
         # Draw the node
         DRAWN += 1
         node = tree_image.cached_preorder[nid]
+
         parent_radius = img_data[dim[_parent]][_xend] if nid else tree_image.root_open
-        branch_length = dim[_blen]
+        branch_length = dim[_blen] * zoom_factor
         nw = max(dim[_blen], dim[_btw], dim[_bbw]) + dim[_brw]
+        nw *= zoom_factor
         extra_length = max(dim[_btw], dim[_bbw]) - dim[_blen]
+        extra_length *= zoom_factor
+
+        ycenter = dim[_ycenter] * zoom_factor
 
         if draw_collapsed:
             # HZ line
-            pp.draw_line(parent_radius, dim[_ycenter],
-                         parent_radius + branch_length, dim[_ycenter])
+            pp.draw_line(parent_radius, ycenter,
+                         parent_radius + branch_length, ycenter)
 
-            pp.draw_line(parent_radius + branch_length, dim[_ycenter],
-                         parent_radius + branch_length + extra_length, dim[_ycenter], 'grey')
+            pp.draw_line(parent_radius + branch_length, ycenter,
+                         parent_radius + branch_length + extra_length, ycenter, 'grey')
 
         else:
             if not dim[_is_leaf] and len(node.children) > 1:
-                ycen_0 = tree_image.img_data[node.children[0]._id][_ycenter]
-                ycen_1 = tree_image.img_data[node.children[-1]._id][_ycenter]
+                ycen_0 = tree_image.img_data[node.children[0]._id][_ycenter] * zoom_factor
+                ycen_1 = tree_image.img_data[node.children[-1]._id][_ycenter] * zoom_factor
                 # VT line
                 pp.draw_line(parent_radius + nw, ycen_0,
                              parent_radius + nw, ycen_1)
             # HZ line
-            pp.draw_line(parent_radius, dim[_ycenter],
-                         parent_radius + branch_length, dim[_ycenter])
+            pp.draw_line(parent_radius, ycenter,
+                         parent_radius + branch_length, ycenter)
 
-            pp.draw_line(parent_radius + branch_length, dim[_ycenter],
-                         parent_radius + branch_length + extra_length, dim[_ycenter], 'grey')
+            pp.draw_line(parent_radius + branch_length, ycenter,
+                         parent_radius + branch_length + extra_length, ycenter, 'grey')
 
-            draw_faces(pp, parent_radius, dim[_ycenter]*zoom_factor, node, dim, zoom_factor, tree_image, is_collapsed=False)
+            draw_faces(pp, parent_radius, ycenter, node, dim, zoom_factor, tree_image, is_collapsed=False)
 
         # label_rect = path.boundingRect()
         # if dim[_fnh] *zoom_factor > 60 and (dim[_rad]-parent_radius) > 100:
@@ -219,7 +250,7 @@ def draw_region_rect(tree_image, region, zoom_factor, pngreturn=False):
         #     pp.restore()
 
 
-    print "NODES DRAWN:", DRAWN, 'skipped:', SKIPPED, 'too_small:', TOO_SMALL, "collapsed:", COLLAPSED, "iters:", ITERS, "MULTI:", MULTI
+    print "**** NODES DRAWN:", DRAWN, 'SKIPPED:', SKIPPED, 'TO_SMALL:', TOO_SMALL, "COLLAPSED:", COLLAPSED, "ITERS:", ITERS, "MULTI:", MULTI
 
     pp.pp.end()
     ba = QtCore.QByteArray()
@@ -298,7 +329,7 @@ def draw_faces(painter, x, y, node, dim, zoom_factor, tree_image, is_collapsed):
             start_x = x
         elif pos == 2: # bright
             available_pos_width = dim[_brw] * zoom_factor
-            start_x = x + max(dim[_btw], dim[_bbw], dim[_blen])
+            start_x = x + (max(dim[_btw], dim[_bbw], dim[_blen]) * zoom_factor)
         elif pos == 3: # float
            pass
         elif pos == 4: # aligned
@@ -307,7 +338,7 @@ def draw_faces(painter, x, y, node, dim, zoom_factor, tree_image, is_collapsed):
         else:
             continue
 
-        start_x *= zoom_factor
+        #start_x *= zoom_factor
 
         for col, faces in colfaces.iteritems():
             if available_pos_width <= 0:
