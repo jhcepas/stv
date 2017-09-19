@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Reusable Source</title>
+    <link rel="stylesheet" href="v4.3.3-dist/ol.css" type="text/css">
+    <!-- The line below is only needed for old environments like Internet Explorer and Android 4.x -->
+    <script src="v4.3.3-dist/ol.js"></script>
+  </head>
+  <body>
+    <div id="map" class="map"></div>
+    <script>
+var map = new ol.Map({
+        target: 'map',
+        layers: [
+          new ol.layer.Tile({
+            source: new ol.source.XYZ({
+              url: 'http://localhost:8090/get_region/{z}/{x}/{y}/256/256/tile.png' 
+            })
+          })
+        ],
+        view: new ol.View({
+          center: [0,0],
+          zoom: 1
+        })
+      });
+    </script>
+  </body>
+</html>

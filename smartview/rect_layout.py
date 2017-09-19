@@ -96,7 +96,7 @@ def get_collision_path(dim, parentdim, zoom_factor):
     ystart = dim[_ystart] * zoom_factor
     yend = dim[_yend] * zoom_factor
     xend = dim[_xend] * zoom_factor
-    xstart = parentdim[_xend] #* zoom_factor
+    xstart = parentdim[_xend] * zoom_factor
     path = QtGui.QPainterPath()
     fpath= QtGui.QPainterPath()
     path.addRect(xstart, ystart, xend-xstart, yend-ystart)
@@ -160,13 +160,12 @@ def draw_region_rect(tree_image, region, zoom_factor, pngreturn=False):
             continue
         else:
             # PREVENT X ZOOMING
-            for a in _blen, _btw, _bbw, _brw, _fnw, _xend:
-                dim[a] *= (1/zoom_factor)
+            #for a in _blen, _btw, _bbw, _brw, _fnw, _xend:
+            #    dim[a] *= (1/zoom_factor)
 
-            
             path, fpath = get_collision_path(dim, img_data[dim[_parent]], zoom_factor)
 
-            # if desdendant space is too small, draw the whole branch as a single
+            # if descendant space is too small, draw the whole branch as a single
             # simplified item
             if not dim[_is_leaf] and fnh < COLLAPSE_RESOLUTION:
                 curr = int(dim[_max_leaf_idx] + 1)
@@ -194,7 +193,7 @@ def draw_region_rect(tree_image, region, zoom_factor, pngreturn=False):
         DRAWN += 1
         node = tree_image.cached_preorder[nid]
 
-        parent_radius = img_data[dim[_parent]][_xend] if nid else tree_image.root_open
+        parent_radius = img_data[dim[_parent]][_xend] * zoom_factor if nid else tree_image.root_open
         branch_length = dim[_blen] * zoom_factor
         nw = max(dim[_blen], dim[_btw], dim[_bbw]) + dim[_brw]
         nw *= zoom_factor

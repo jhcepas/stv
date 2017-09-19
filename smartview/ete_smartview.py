@@ -41,10 +41,13 @@ def get_region(z, x, y, w, h):
 def get_region(z, x, y, w, h):
     bottle.response.content_type = 'img/png'
 
-    base_scale = min(w/TREE.width, h/TREE.height)
+    print ("requested:", z, x, y, w, h)
+    
+    #base_scale = min(w/TREE.width, h/TREE.height)
     x = w * x
     y = h * y
     img_size = (2 ** z) * w
+    # ensure that z=1 shows the whole tree
     z = min(img_size/TREE.width, img_size/TREE.height)
 
     print ("current zoom scale", z, img_size, TREE.width, TREE.height) 
