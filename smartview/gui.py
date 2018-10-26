@@ -6,9 +6,10 @@ import signal
 import math
 from collections import defaultdict
 
-from PyQt4 import QtCore
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5 import QtCore
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
 
 from .utils import timeit, debug
 from .common import *
@@ -556,7 +557,7 @@ class TiledTreeView(QGraphicsView):
 
         
     def wheelEvent(self, e):
-        factor =  (-e.delta() / 360.0)
+        factor =  (-e.angleDelta().y() / 360.0)
         if abs(factor) >= 1:
             factor = 0.0
         
@@ -628,7 +629,7 @@ class TiledGUI(QMainWindow):
             zoom_factor = round(min(x_zoom_factor, y_zoom_factor), 6)
 
         view = TiledTreeView(self.tree_image, self.TILE_W, self.TILE_H, zoom_factor)
-        # from PyQt4 import QtOpenGL
+        # from PyQt5 import QtOpenGL
         # view.setViewport(QtOpenGL.QGLWidget())
  
         view.init()

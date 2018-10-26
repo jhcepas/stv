@@ -6,6 +6,13 @@ import os
 import ez_setup
 from Cython.Build import cythonize
 import numpy
+from glob import glob
+from setuptools import Extension
+
+sourcefiles = glob('smartview/*pyx')
+extensions = [Extension("smartview", sourcefiles)]
+              
+
 
 try:
     from setuptools import setup, find_packages
@@ -34,12 +41,12 @@ CLASSIFIERS= [
 try:
     _s = setup(
         include_package_data = True,
-        ext_modules = cythonize("smartview/*.pyx"),
+        ext_modules = cythonize(extensions),
         include_dirs=[numpy.get_include()],
 
         name = 'smartview',
         version = 0.1,
-        packages = find_packages(),
+        packages = ['smartview'], #find_packages(),
 
         entry_points = {"console_scripts":
                         ["smartview = smartview.ete_smartview:main"]},

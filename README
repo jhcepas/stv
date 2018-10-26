@@ -1,0 +1,42 @@
+main
+ TreeImage() instance should contain all information to render a tree image.
+ 
+layout.py
+ general functions to compute dimensions and coordinates
+layout_circular.py
+ functions to compute coordinates and dimensions of trees/nodes in circular mode
+layout_rect.py
+ functions to compute coordinates and dimensions of trees/nodes in circular mode
+
+drawer.py
+ general functions to draw trees based on TreeImage instances.
+ Generate complete images or tiles as needed
+
+gui.py
+ a graphical user interface to browse tree images
+
+no-overlap issue: in order to allocate space for faces, circular trees have to
+   expand their radius, and the way of doing this is by increases the branch
+   scale. This has an annoying effect on the actual size of faces when
+   visualizaing, as they look too small when the whole tree is fit on screen.
+
+   some faces could have an special flag that prevent the layout function to
+   allocate space for them, so they are only shown when the zoom allows it.
+   
+   branch-right positions, however, would complicate too much the visualization,
+   as it would break linear transformation of coordinates among zooming.
+
+   Could both types of faces coexist?
+  
+
+New Features:
+    - node labels (centeres on node region?)
+    - node links (like in circos)
+    - bands/ribbons/rings, also for internal nodes
+
+
+
+
+
+
+
