@@ -78,3 +78,7 @@ tk                        8.5.18                        0
 traitlets                 4.1.0                    py27_0  
 wheel                     0.26.0                   py27_1  
 zlib                      1.2.8                         0  
+
+
+pip install -e .
+smartview -t examples/aves.tree -s 600

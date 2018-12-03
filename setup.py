@@ -9,10 +9,11 @@ import numpy
 from glob import glob
 from setuptools import Extension
 
-sourcefiles = glob('smartview/*pyx')
-extensions = [Extension("smartview", sourcefiles)]
-              
-
+#sourcefiles = glob('smartview/*pyx')
+#extensions = [Extension("smartview", sourcefiles)]
+extensions = [Extension("smartview.ctree", ['smartview/ctree.pyx']),
+             Extension("smartview.cstyle", ['smartview/cstyle.pyx']),
+             Extension("smartview.clayout", ['smartview/clayout.pyx'])]
 
 try:
     from setuptools import setup, find_packages
