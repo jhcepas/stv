@@ -5,10 +5,10 @@ from ctypes import *
 from numpy.ctypeslib import ndpointer
 import numpy as np
 
-from PyQt4 import QtCore
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
-from PyQt4.QtSvg import *
+from PyQt5 import QtCore
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtSvg import *
 
 from .common import *
 from .utils import timeit, debug
@@ -192,7 +192,7 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
             node = tree_image.cached_preorder[nid]
             branch_length = dim[_blen] * tree_image.scale
             pp.setPen(QPen(QColor("#dddddd")))
-            parent_radius = img_data[dim[_parent]][_rad] if nid else tree_image.root_open
+            parent_radius = img_data[int(dim[_parent])][_rad] if nid else tree_image.root_open
             fpath = get_arc_path(parent_radius, dim[_fnw], [dim[_astart], dim[_aend]])
             pp.drawPath(M.map(fpath))
             new_rad, new_angle = get_qt_corrected_angle(dim[_rad], dim[_acenter])            
@@ -204,7 +204,7 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
         else:
             pp.setPen(QPen(QColor("black")))            
             node = tree_image.cached_preorder[nid]            
-            parent_radius = img_data[dim[_parent]][_rad] if nid else tree_image.root_open
+            parent_radius = img_data[int(dim[_parent])][_rad] if nid else tree_image.root_open
             
             if not dim[_is_leaf] and len(node.children) > 1:            
                 acen_0 = tree_image.img_data[node.children[0]._id][_acenter]

@@ -328,7 +328,7 @@ def draw_branch(pp, x, y, branch_length, extra_length, node, tree_style):
                     x + branch_length + extra_length, y)
 
 
-from PyQt4.QtOpenGL import *
+from PyQt5.QtOpenGL import *
 class test(QGLWidget):
     def __init__(self, tree_image, zoom_factor, treemode, tile_rect):
         super(test, self).__init__(QGLFormat(QGL.SampleBuffers))

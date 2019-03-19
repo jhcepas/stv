@@ -11,6 +11,7 @@ def get_empty_matrix(nnodes):
     "nnodes"
     '''
     #matrix = np.zeros(nnodes, dtype="int8,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,float64,float64,float64,float64,float64,float64,float64,float64")
+    #print 'SIZE', len(matrix[0]), MATRIX_FIELDS
     matrix = np.zeros((nnodes,MATRIX_FIELDS), dtype="float64")
     return matrix
     #return [[0.0]*MATRIX_FIELDS for n in xrange(nnodes)]

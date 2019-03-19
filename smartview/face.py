@@ -1,5 +1,5 @@
-from PyQt4.QtGui import QColor, QPen, QBrush, QFont
-from PyQt4.QtCore import QRectF
+from PyQt5.QtGui import QColor, QPen, QBrush, QFont
+from PyQt5.QtCore import QRectF
 
 from colors import random_color
 

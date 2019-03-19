@@ -490,11 +490,12 @@ def update_node_radius(imgdata, cached_prepostorder,
     for nid in cached_prepostorder:
         postorder = nid < 0 or nid == 0 and root_visited
         if nid == 0: root_visited = True
-        
+
         node = cached_preorder[abs(nid)]
         dim = imgdata[node._id]
+        print _parent, dim[_parent], 'OK'
         if not postorder:
-            parent_radius = imgdata[dim[_parent]][_rad] if node._id > 0 else root_opening
+            parent_radius = imgdata[int(dim[_parent])][_rad] if node._id > 0 else root_opening
             lw = dim[_bh] / 2.0
             htop = max(dim[_bth]+lw, dim[_brh]/2.0)
             hbot = max(dim[_bbh]+lw, dim[_brh]/2.0)
@@ -537,7 +538,7 @@ def compute_circ_collision_paths(tree_image):
         arc_start = dim[_astart]
         arc_end = dim[_aend]
         radius = dim[_rad]        
-        parent_radius = img_data[dim[_parent]][_rad]
+        parent_radius = img_data[int(dim[_parent])][_rad]
         angles = [arc_start]
         if not dim[_is_leaf]:
             for ch in node.children:
