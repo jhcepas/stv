@@ -34,8 +34,8 @@ def populate_args(parser):
     parser.add_argument("--polardist", dest="polardist", type=float, default=0)
     parser.add_argument("--scale", dest="scale", type=float, default=None)
     parser.add_argument("--newick_format", dest="nwformat", type=int, default=0)
-    
-        
+
+
 nameF = AttrFace("name", fsize=10)
 nameF.margin_right = 10
 distF = AttrFace("dist", fsize=7)
@@ -69,7 +69,7 @@ def real_layout(node):
         #add_face_to_node(labelF2, node, column=3, position="branch-right")
         #add_face_to_node(f5, node, column=1, position="aligned")
         #add_face_to_node(nameF, node, column=1, position="aligned")
-        
+
         # if random.random()>0.5:
         #     add_face_to_node(labelF, node, column=3, position="aligned")
         #     add_face_to_node(labelF2, node, column=4, position="aligned")
@@ -84,17 +84,17 @@ def real_layout(node):
             add_face_to_node(nameF, node, column=0, position="branch-top")
         #add_face_to_node(distF, node, column=0, position="branch-bottom")
         add_face_to_node(supportF, node, column=1, position="branch-bottom")
-        
+
         #add_face_to_node(circleF, node, column=5, position="branch-right")
     add_face_to_node(gradF, node, column=10, position="branch-right")
 def test_layout(node):
-    node.img_style.size = 1     
+    node.img_style.size = 1
     #f.margin_left=20
     add_face_to_node(f, node, column=0, position="branch-right")
     add_face_to_node(f, node, column=0, position="branch-right")
     add_face_to_node(rectF, node, column=1, position="branch-right")
     if node.is_leaf():
-        add_face_to_node(nameF, node, column=2, position="branch-right")        
+        add_face_to_node(nameF, node, column=2, position="branch-right")
     else:
         if node.name:
             add_face_to_node(nameF, node, column=0, position="branch-top")
@@ -109,12 +109,12 @@ def test_layout2(node):
     add_face_to_node(f, node, column=0, position="branch-right")
     add_face_to_node(f, node, column=0, position="branch-right")
     add_face_to_node(rectF, node, column=1, position="branch-right")
-    
+
     add_face_to_node(f, node, column=1, position="branch-top")
     add_face_to_node(f, node, column=1, position="branch-bottom")
     add_face_to_node(f2, node, column=2, position="branch-bottom")
     add_face_to_node(f3, node, column=1, position="branch-bottom")
-    
+
 def basic_layout(node):
     if node.is_leaf():
         add_face_to_node(nameF, node, column=0, position="branch-right")
@@ -126,7 +126,7 @@ def rect_layout(node):
     if node.is_leaf():
         add_face_to_node(rectF, node, column=0, position="branch-right")
 
-        
+
 def clean_layout(node):
     pass
 
@@ -135,13 +135,13 @@ def run(args):
     common.CONFIG["timeit"] = args.track_time
     common.CONFIG["C"] = args.cmode
     common.CONFIG["tilesize"] = args.tilesize
-    
+
     if args.track_mem:
         from guppy import hpy
         h = hpy()
         h.setref()
-   
-    if args.size: 
+
+    if args.size:
         t = Tree()
         t.populate(args.size, random_branches=True)
     elif args.src_trees:
@@ -149,12 +149,12 @@ def run(args):
 
     print ("annotating")
     n2leaves = {}
-    for n in t.traverse("postorder"):        
+    for n in t.traverse("postorder"):
         if n.children:
             n2leaves[n] = sum([n2leaves[ch] for ch in n.children])
         else:
             n2leaves[n] = 1
-        n.support = n2leaves[n]      
+        n.support = n2leaves[n]
 
     seed_start = None
     seed_node = None
@@ -170,17 +170,17 @@ def run(args):
                 seed_node = n
             if n.is_leaf():
                 n.custom = random.randint(seed_start[0], seed_start[1])/10.0
-            
+
     printmem("after tree load")
 
     if args.standardize:
         t.standardize()
-    
+
     if args.ultrametric:
         min_rad = len(t)/(2*math.pi)
         t.convert_to_ultrametric(tree_length=min_rad, strategy="log", logbase=1000)
-        
-    if args.polardist: 
+
+    if args.polardist:
         #node, mdist = t.get_farthest_leaf()
         d = 1
         node2pdist = {}
@@ -194,18 +194,18 @@ def run(args):
                     c = d * args.polardist
                     #print node.dist / c
                     node2pdist[node] = node.dist / c
-                    
+
                 if not node.is_leaf():
-                    d += node.dist                    
+                    d += node.dist
         for n in t.traverse():
             n.dist = node2pdist[n]
-            
-    for n in t.traverse():
-        n.support = random.randint(5,25)
+
+    # for n in t.traverse():
+    #     n.support = random.randint(5,25)
 
     ts = TreeStyle()
 
-    
+
     ts.layout_fn = globals()[args.layout]
     ts.mode = "c"
     ts.arc_span = 350
@@ -231,11 +231,11 @@ def run(args):
         ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
         ps.print_stats()
         print (s.getvalue())
-        
+
     if args.track_mem:
         print (repr(t))
         print (h.heap())
-    
+
 
 def main():
     parser = ArgumentParser()

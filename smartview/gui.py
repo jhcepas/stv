@@ -61,11 +61,11 @@ class TiledTreeView(QGraphicsView):
         self.current_mouse_pos = QPointF(0, 0)
         self._scene = QGraphicsScene()
         QGraphicsView.__init__(self, self._scene)
-        
+
         # This flag prevents updating tiles every single time that a
         # resize event is emitted. 
         self.NO_TILE_UPDATE = False
-        
+
         self.setMouseTracking(True)
         #self.setTransformationAnchor(self.AnchorUnderMouse)
         self.setDragMode(QGraphicsView.ScrollHandDrag)

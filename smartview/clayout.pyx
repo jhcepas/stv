@@ -13,7 +13,7 @@ ctypedef np.float64_t DTYPE_t
 
 cdef get_min_radius(double rect_width, double rect_height, double parent_radius, double radians):
     cdef double radius, adjacent, R90
-    radius = math.hypot(parent_radius+rect_width, rect_height)        
+    radius = math.hypot(parent_radius+rect_width, rect_height)
     if radians < R90:
         # converts to radians
         adjacent = rect_height / math.tan(radians)
@@ -23,7 +23,7 @@ cdef get_min_radius(double rect_width, double rect_height, double parent_radius,
 cdef get_node_end_radius(double parent_radius, dim, double scale):
     cdef htop, hbot, branch, wtop, wbot, aperture_top, aperture_bot, rad_top, rad_bot
 
-    
+
     htop = max(dim[_bth] + (dim[_bh]/2.0), dim[_brh]/2.0, dim[_bh]/2.0)
     hbot = max(dim[_bbh] + (dim[_bh]/2.0), dim[_brh]/2.0, dim[_bh]/2.0)
     if scale:
@@ -58,12 +58,12 @@ def adjust_branch_lengths(tree_image):
             return True
         else:
             return False
-        
+
     root.convert_to_ultrametric(tree_length=10, is_leaf_fn=is_leaf)
     cdist = {}
     angle_span = img_data[root._id][_aend]-img_data[root._id][_astart]
     for n in root.iter_descendants(is_leaf_fn=is_leaf):
-        cdist[n] = cdist.get(n, 0.0) 
+        cdist[n] = cdist.get(n, 0.0)
         cdist[n] += n.dist
     expected_rad = len(n2leaves[root]) / angle_span
     root_scale =  expected_rad / max(cdist.values())
@@ -79,7 +79,7 @@ def adjust_branch_lengths(tree_image):
 
 def get_optimal_circular_scale(tree_image, optimization_level="med", root_opening_factor=0.0):
     cdef int nid
-    
+
     t1 = time.time()
 
     adjust_branch_lengths(tree_image)
@@ -94,7 +94,7 @@ def get_optimal_circular_scale(tree_image, optimization_level="med", root_openin
     most_distant = 0
     for nid, dim in enumerate(imgdata):
         parent_radius = n2minradius[dim[_parent]] if nid > 0 else 0
-        radius, node_width, nht, nhb = get_node_end_radius(parent_radius, dim, scale=0.0)        
+        radius, node_width, nht, nhb = get_node_end_radius(parent_radius, dim, scale=0.0)
         n2minradius[nid] = radius
         n2sumwidth[nid] = n2sumwidth.get(dim[_parent], 0) + node_width
         n2sumdist[nid] = n2sumdist.get(dim[_parent], 0) + dim[_blen]
@@ -105,7 +105,7 @@ def get_optimal_circular_scale(tree_image, optimization_level="med", root_openin
 
     root_opening = 0.0
     best_scale = None
-    max_rad = 0.0    
+    max_rad = 0.0
     for nid, dim in enumerate(imgdata):
         ndist = dim[_blen]
         if best_scale is None:
@@ -125,7 +125,7 @@ def get_optimal_circular_scale(tree_image, optimization_level="med", root_openin
                     root_opening = most_distant * best_scale * root_opening_factor
                 else:
                     best_scale = (n2minradius[nid] - (n2sumwidth[nid]) + root_opening) / n2sumdist[nid] if n2sumdist[nid] else 0.0
-                
+
             # If the width of branch top/bottom faces is not covered, we can
             # also increase the scale to adjust it. This may produce huge
             # scales, so let's keep it optional
@@ -135,13 +135,13 @@ def get_optimal_circular_scale(tree_image, optimization_level="med", root_openin
                     best_scale = min_w / ndist
 
         max_rad = max(max_rad, (n2sumdist[nid] * best_scale) + (n2sumwidth[nid] + root_opening))
-                    
+
     # Adjust scale for aligned faces
     print "Max rad,",  max_rad, root_opening
-    if 0: 
+    if 0:
         for nid, dim in enumerate(imgdata):
             current_rad = (n2sumdist[nid] * best_scale) + (n2sumwidth[nid] + root_opening)
-            needed_rad = get_min_radius(dim[_baw], dim[_bah]/2, current_rad, (dim[_aend]-dim[_astart])/2) 
+            needed_rad = get_min_radius(dim[_baw], dim[_bah]/2, current_rad, (dim[_aend]-dim[_astart])/2)
             if needed_rad > current_rad:
 
                 if root_opening_factor:
@@ -149,7 +149,7 @@ def get_optimal_circular_scale(tree_image, optimization_level="med", root_openin
                     root_opening = most_distant * best_scale * root_opening_factor
                 else:
                     best_scale = (needed_rad - (n2sumwidth[nid]) + root_opening) / n2sumdist[nid]
-            
+
     print "                                   TIME optimal best scale", time.time()-t1
     return best_scale,  max_rad, most_distant
 
@@ -158,11 +158,11 @@ def update_node_radius(imgdata, cached_prepostorder,
                        cached_preorder,
                        scale, root_opening):
     max_radius = 0.0
-    root_visited = False 
+    root_visited = False
     for nid in cached_prepostorder:
         postorder = nid < 0 or nid == 0 and root_visited
         if nid == 0: root_visited = True
-        
+
         node = cached_preorder[abs(nid)]
         dim = imgdata[node._id]
         if not postorder:
@@ -177,9 +177,9 @@ def update_node_radius(imgdata, cached_prepostorder,
                 # dim[_fnh] = dim[_nht] + dim[_nhb]
                 angle =  (dim[_aend] - dim[_astart])
                 dim[_fnh] = dim[_fnw] * angle
-        
+
         else:
             dim[_fnw] = max([imgdata[ch._id][_fnw] for ch in node.children])
             dim[_fnh] = dim[_fnw] * (dim[_aend] - dim[_astart])
-            
+
     return max_radius
