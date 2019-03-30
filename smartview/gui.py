@@ -8,8 +8,11 @@ from collections import defaultdict
 
 from PyQt5 import QtCore
 from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+
+
 from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+
 
 from .utils import timeit, debug
 from .common import *
@@ -45,6 +48,7 @@ def display(tree_image, win_name="ETE", donotshow=False, zoom_factor=1):
    
     _QApp.exec_()
         
+    
 class TiledTreeView(QGraphicsView):
     """Fake Scene containing tiles corresponding to actual items at a
     given zoom size

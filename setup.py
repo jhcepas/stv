@@ -6,8 +6,16 @@ import os
 import ez_setup
 from Cython.Build import cythonize
 import numpy
-from setuptools import setup, Extension, Command
+
 from glob import glob
+from setuptools import Extension
+
+#sourcefiles = glob('smartview/*pyx')
+#extensions = [Extension("smartview", sourcefiles)]
+extensions = [Extension("smartview.ctree", ['smartview/ctree.pyx']),
+             Extension("smartview.cstyle", ['smartview/cstyle.pyx']),
+             Extension("smartview.clayout", ['smartview/clayout.pyx'])]
+
 
 try:
     from setuptools import setup, find_packages
@@ -46,7 +54,7 @@ try:
 
         name = 'smartview',
         version = 0.1,
-        packages = find_packages(),
+        packages = ['smartview'], #find_packages(),
 
         entry_points = {"console_scripts":
                         ["smartview = smartview.ete_smartview:main"]},
