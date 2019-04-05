@@ -25,7 +25,7 @@ def update_node_dimensions(img_data, cached_prepostorder, cached_preorder,
         postorder = nid < 0 or nid == 0 and root_visited
         if nid == 0: root_visited = True
         if postorder:
-            # leaves are never visited in postorder, so enything here is an internal node
+            # leaves are never visited in postorder, so anything here is an internal node
             dim = img_data[abs(nid)]
             dim[_is_leaf] = 0
             dim[_max_leaf_idx] = prev_id

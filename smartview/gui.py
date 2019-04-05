@@ -24,13 +24,20 @@ OPENGL = False # experimental
 
 def exit_gui(a,b):
     _QApp.exit(0)
+
+def start_app():
+    global _QApp
     
+    if not _QApp:
+        _QApp = QApplication(["ETE"])
+
+
 def display(tree_image, win_name="ETE", donotshow=False, zoom_factor=1):
     """ Interactively shows a tree."""
     global _QApp
     
     if not _QApp:
-        _QApp = QApplication(["ETE"])
+        _QApp = QApplication([win_name])
         
     mainapp = TiledGUI(tree_image, zoom_factor=zoom_factor)
     if donotshow:

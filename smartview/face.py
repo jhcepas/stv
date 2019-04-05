@@ -1,4 +1,4 @@
-from PyQt5.QtGui import QColor, QPen, QBrush, QFont
+from PyQt5.QtGui import QColor, QPen, QBrush, QFont, QFontMetrics
 from PyQt5.QtCore import QRectF
 
 from colors import random_color
@@ -94,8 +94,6 @@ class TextFace(Face):
 
     # def __repr__(self):
     #     return "Text Face [%s] (%s)" %(self.text, hex(self.__hash__()))
-
-    courier = 72./96.
     
     @property
     def text(self):
@@ -141,7 +139,7 @@ class TextFace(Face):
         return self._text_size[1]
            
     def _draw(self, painter, x, y, zoom_factor):
-        if zoom_factor * self._height() < self.min_fsize * self.courier:
+        if zoom_factor * self._height() < 4:
             r = QRectF(x, y, self._width(), self._height())
             painter.setPen(QPen(QColor(self.fgcolor)))
             painter.setOpacity(0.25)
@@ -156,12 +154,9 @@ class TextFace(Face):
         return QFont(self.ftype, pointSize=self.fsize, italic=italic)
                 
     def _update_text_size(self):
-        # fm = QFontMetrics(self._get_font())
-        # tx_w = fm.width(self.text)
-        # textr = fm.boundingRect(self.text)
-        # self._text_size = (tx_w, textr.height())
-
-        self._text_size = (self.fsize*len(self.text)*self.courier, self.fsize*self.courier)
+        fm = QFontMetrics(self._get_font())
+        text_rect = fm.boundingRect(self.text)
+        self._text_size = (text_rect.width(), text_rect.height())
 
 class AttrFace(TextFace):
     __slots__ = ['_text', 'fsize', 'ftype', 'fgcolor', 'fstyle', 'tight_text', "_text_size", "min_fsize"]

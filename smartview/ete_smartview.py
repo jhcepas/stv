@@ -212,7 +212,7 @@ def run(args):
     if args.scale:
         ts.scale = args.scale
 
-
+    gui.start_app()
     tree_image = TreeImage(t, ts)
 
     print("Tree image created", len(tree_image.cached_leaves))
