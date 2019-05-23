@@ -256,11 +256,167 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
     for path in tree_image.link_paths:
         pp.setOpacity(0.5)
         pp.fillPath(path, QColor("green"))
-
-
-
-        
+       
     debug("NODES DRAWN", DRAWN, 'skipped', SKIPPED, 'too_small', TOO_SMALL, "collapsed", COLLAPSED, "iters", ITERS, "MULTI", MULTI)
+
+
+@timeit
+def draw_region_rect(tree_image, region, zoom_factor, pngreturn=False):
+    COLLAPSE_RESOLUTION = 1
+    # DEBUGGING INFO
+    DRAWN, SKIPPED, TOO_SMALL, COLLAPSED, MULTI, ITERS = 0, 0, 0, 0, 0, 0
+    coll_paths = tree_image.rect_collision_paths
+    img_data = tree_image.img_data
+
+    ii = QImage(region[2], region[3], QImage.Format_RGB32)
+    ii.fill(QColor("white"))
+
+    _pp = QPainter()
+    _pp.begin(ii)
+    _pp.setRenderHint(QPainter.Antialiasing)
+    _pp.setRenderHint(QPainter.TextAntialiasing)
+    _pp.setRenderHint(QPainter.SmoothPixmapTransform)
+    # Prevent drawing outside target_rect boundaries
+    _pp.setClipRect(0, 0, region[2], region[3])#, Qt.IntersectClip)
+    # Transform space of coordinates: I want source_rect.top_left() to be
+    # translated as 0,0
+    matrix = QTransform().translate(-region[0], -region[1])
+    _pp.setWorldTransform(matrix, True)
+
+    pp = QETEPainter(painter=_pp)
+
+    #pp.zoom_factor = zoom_factor
+    pp.zoom_factor = 1
+    #scene_rect = QRectF(region[0]/zoom_factor, region[1]/zoom_factor,
+    #                    region[2]/zoom_factor, region[3]/zoom_factor)
+
+    scene_rect = QRectF(region[0], region[1], region[2], region[3])
+
+    curr = 0
+    nid = curr
+    end = img_data[curr][_max_leaf_idx] + 1
+    y = 0
+    while curr < end:
+        ITERS += 1
+        draw_collapsed = 0
+        nid = curr
+
+        dim = img_data[nid].copy()
+
+        #path = coll_paths[nid][0]
+        #fpath = coll_paths[nid][1]
+
+        fnh = dim[_fnh] * zoom_factor
+
+        if fnh < 0.25:
+            curr = int(dim[_max_leaf_idx] + 1)
+            TOO_SMALL += 1
+            continue
+        else:
+            # PREVENT X ZOOMING
+            #for a in _blen, _btw, _bbw, _brw, _fnw, _xend:
+            #    dim[a] *= (1/zoom_factor)
+
+            path, fpath = get_collision_path(dim, img_data[dim[_parent]], zoom_factor)
+
+            # if descendant space is too small, draw the whole branch as a single
+            # simplified item
+            if not dim[_is_leaf] and fnh < COLLAPSE_RESOLUTION:
+                curr = int(dim[_max_leaf_idx] + 1)
+                draw_collapsed = 2
+                path = fpath
+                COLLAPSED += 1
+            elif not dim[_is_leaf] and (dim[_max_leaf_idx] - curr) == len(tree_image.cached_preorder[curr].children) and \
+                 fnh/len(tree_image.cached_preorder[curr].children) < 1:
+                curr = int(dim[_max_leaf_idx] + 1)
+                draw_collapsed = 3
+                MULTI += 1
+            else:
+                curr += 1
+
+        # skip if node does not overlap with requested region
+        if not path.intersects(scene_rect):
+            # and skip all descendants in case none fits in region
+            if not fpath.intersects(scene_rect):
+                new_curr = max(int(dim[_max_leaf_idx]+1), curr)
+                SKIPPED += new_curr - curr
+                curr = new_curr
+            continue
+
+        # Draw the node
+        DRAWN += 1
+        node = tree_image.cached_preorder[nid]
+
+        parent_radius = img_data[dim[_parent]][_xend] * zoom_factor if nid else tree_image.root_open
+        branch_length = dim[_blen] * zoom_factor
+        nw = max(dim[_blen], dim[_btw], dim[_bbw]) + dim[_brw]
+        nw *= zoom_factor
+        extra_length = max(dim[_btw], dim[_bbw]) - dim[_blen]
+        extra_length *= zoom_factor
+
+        ycenter = dim[_ycenter] * zoom_factor
+
+        if draw_collapsed:
+            # HZ line
+            pp.draw_line(parent_radius, ycenter,
+                         parent_radius + branch_length, ycenter)
+
+            pp.draw_line(parent_radius + branch_length, ycenter,
+                         parent_radius + branch_length + extra_length, ycenter, 'grey')
+
+        else:
+            if not dim[_is_leaf] and len(node.children) > 1:
+                ycen_0 = tree_image.img_data[node.children[0]._id][_ycenter] * zoom_factor
+                ycen_1 = tree_image.img_data[node.children[-1]._id][_ycenter] * zoom_factor
+                # VT line
+                pp.draw_line(parent_radius + nw, ycen_0,
+                             parent_radius + nw, ycen_1)
+            # HZ line
+            pp.draw_line(parent_radius, ycenter,
+                         parent_radius + branch_length, ycenter)
+
+            pp.draw_line(parent_radius + branch_length, ycenter,
+                         parent_radius + branch_length + extra_length, ycenter, 'grey')
+
+            draw_faces(pp, parent_radius, ycenter, node, dim, zoom_factor, tree_image, is_collapsed=False)
+
+        # label_rect = path.boundingRect()
+        # if dim[_fnh] *zoom_factor > 60 and (dim[_rad]-parent_radius) > 100:
+        #     pp.save()
+        #     pp.setPen(QColor("white"))
+        #     pp.setBrush(QColor("royalBlue"))
+        #     qfont = QFont("Verdana",pointSize=16)
+        #     qfont.setWeight(QFont.Black)
+        #     fm = QFontMetrics(qfont)
+        #     text_w = fm.width(node.name)
+        #     pp.setFont(qfont)
+        #     pp.setOpacity(0.8)
+        #     new_rad, new_angle = get_qt_corrected_angle(parent_radius, dim[_acenter])
+        #     node_x, node_y = get_cart_coords((new_rad*zoom_factor), new_angle, cx*zoom_factor, cy*zoom_factor)
+        #     if dim[_acenter] <R90 or dim[_acenter] >R270:
+        #         node_x -= text_w
+
+        #     text_path = QPainterPath()
+        #     text_path.addText(node_x, node_y, qfont, node.name)
+        #     #pp.drawText(node_x, node_y, node.name)
+        #     pp.drawPath(text_path)
+        #     pp.restore()
+
+
+    print "**** NODES DRAWN:", DRAWN, 'SKIPPED:', SKIPPED, 'TO_SMALL:', TOO_SMALL, "COLLAPSED:", COLLAPSED, "ITERS:", ITERS, "MULTI:", MULTI
+
+    pp.pp.end()
+    ba = QtCore.QByteArray()
+    buf = QtCore.QBuffer(ba)
+    buf.open(QtCore.QIODevice.WriteOnly)
+    ii.save(buf, "PNG")
+    #ii.save('/Users/jhc/testimg.png')
+    if pngreturn:
+        return ba.data()
+    else:
+        return base64.encodestring(ba.data())
+
+
 
 def get_cart_coords(radius, radians, cx, cy):
     a = (2*math.pi)-radians;

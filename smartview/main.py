@@ -102,6 +102,7 @@ class TreeImage(object):
                                         cached_prepostorder=self.cached_prepostorder,
                                         cached_preorder=self.cached_preorder,
                                         leaf_apertures=self.leaf_apertures)
+
             
 
         elif self.tree_style.mode == "c":
