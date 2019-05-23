@@ -23,8 +23,8 @@ import math
 ) = range(19)
 
 # position
-(_rad, _acenter, _astart, _aend) = range(19, 23)
-(_xend, _ycenter, _ystart, _yend) = range(19, 23)
+(_rad, _acenter, _astart, _aend) = range(19, 23)  # for circular view
+(_xend, _ycenter, _ystart, _yend) = range(19, 23) # for rectangular view
 
 MATRIX_FIELDS = 23
 

@@ -80,7 +80,7 @@ class TiledTreeView(QGraphicsView):
         self.setMouseTracking(True)
         #self.setTransformationAnchor(self.AnchorUnderMouse)
         self.setDragMode(QGraphicsView.ScrollHandDrag)
-        self.setBackgroundBrush(QBrush(QColor("#333")))
+        self.setBackgroundBrush(QBrush(QColor("#FFFFFF")))
 
         self.highlighter = None
         self.selector = None 
@@ -88,6 +88,7 @@ class TiledTreeView(QGraphicsView):
     @timeit
     def init(self):
         #self.setViewportUpdateMode(QGraphicsView.SmartViewportUpdate)
+        print len(self._scene.items())
         map(lambda x: self._scene.removeItem(x), self._scene.items())
 
         self.highlighter = QGraphicsPathItem()
@@ -124,7 +125,7 @@ class TiledTreeView(QGraphicsView):
         self.max_cols = int(math.ceil(self.img_w / temp_tile_w))
 
     @timeit
-    def update_tile_view(self):
+    def update_tile_view_old(self):
         self.adjust_sceneRect()
         self.setFocus()
         self.widgets = []

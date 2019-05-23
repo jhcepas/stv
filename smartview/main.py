@@ -97,7 +97,14 @@ class TreeImage(object):
                                       force_topology=self.tree_style.force_topology)
 
         printmem("after dimensions")
-        if self.tree_style.mode == "c":
+        if self.tree_style.mode == 'r':
+            rect_layout.update_positions(img_data=self.img_data, 
+                                        cached_prepostorder=self.cached_prepostorder,
+                                        cached_preorder=self.cached_preorder,
+                                        leaf_apertures=self.leaf_apertures)
+            
+
+        elif self.tree_style.mode == "c":
             circular_layout.update_node_angles(img_data=self.img_data,
                                                cached_prepostorder=self.cached_prepostorder,
                                                cached_preorder=self.cached_preorder,
