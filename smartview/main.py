@@ -98,7 +98,7 @@ class TreeImage(object):
 
         printmem("after dimensions")
         if self.tree_style.mode == 'r':
-            rect_layout.update_positions(img_data=self.img_data, 
+            rect_layout.update_rect_positions(img_data=self.img_data, 
                                         cached_prepostorder=self.cached_prepostorder,
                                         cached_preorder=self.cached_preorder,
                                         leaf_apertures=self.leaf_apertures)

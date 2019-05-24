@@ -36,8 +36,8 @@ def populate_args(parser):
     parser.add_argument("--newick_format", dest="nwformat", type=int, default=0)
 
 
-nameF = AttrFace("name", fsize=10)
-nameF.margin_right = 10
+nameF = AttrFace("name", fsize=10, fgcolor='royalBlue', ftype='Courier')
+#nameF.margin_right = 10
 distF = AttrFace("dist", fsize=7)
 supportF = AttrFace("support", fsize=7)
 labelF = LabelFace(70)
@@ -87,6 +87,8 @@ def real_layout(node):
 
         #add_face_to_node(circleF, node, column=5, position="branch-right")
     add_face_to_node(gradF, node, column=10, position="branch-right")
+
+    
 def test_layout(node):
     node.img_style.size = 1
     #f.margin_left=20
