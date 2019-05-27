@@ -420,31 +420,38 @@ def draw_faces(pp, x, y, node, dim, branch_length, zoom_factor, tree_image, is_c
         for _f, fw, fh in faces:
             if not dim[_is_leaf] and _f.only_if_leaf and not is_collapsed:
                 continue
-            restore_painter = False
+            restore_rot_painter = False
             _f.node = node
             _f._pre_draw()
 
             if _f.fill_color:
                 pp.save()
-                pp.scale(1/face_zoom_factor,
-                         1/face_zoom_factor)
+                pp.scale(1.0/face_zoom_factor,
+                         1.0/face_zoom_factor)
                 
                 face_path = QTransform().translate(-_rad, 0).map(
-                    get_arc_path(_rad, _rad + _f._width()*face_zoom_factor, [-a_top, a_bot]))
+                    get_arc_path(_rad, _rad + fw*face_zoom_factor, [-a_top, a_bot]))
                 pp.fillPath(face_path, QColor(_f.fill_color))
                 pp.restore()
 
-            # if correct_rotation and _f.rotable:
-            #     restore_painter = True
-            #     pp.save()
-            #     zoom_half_fw = (fw * face_zoom_factor)/2
-            #     zoom_half_fh = (fh * face_zoom_factor)/2
-                
-            #     pp.setTransform(pp.transform().translate(_x+zoom_half_fw, _y+zoom_half_fh).rotate(180).translate(-(_x+zoom_half_fw), -(_y+zoom_half_fh)))
+            if correct_rotation and _f.rotable:
+                restore_rot_painter = True
+                pp.save()
+                zoom_half_fw = (fw * face_zoom_factor/2)
+                zoom_half_fh = (fh * face_zoom_factor/2)
+                pp.setTransform(pp.transform().translate(_x+zoom_half_fw, _y+zoom_half_fh).rotate(180).translate(-(_x+zoom_half_fw), -(_y+zoom_half_fh)))
 
             _f._draw(pp, (_x + _f.margin_left), (_y + _f.margin_top), face_zoom_factor)
 
-            if restore_painter:
+            # # Draw face border (DEBUG)
+            if 0:
+                pp.save()
+                pp.setPen(QColor('orange'))
+                pp.scale(face_zoom_factor, face_zoom_factor)
+                pp.drawRect(_x + _f.margin_left, _y + _f.margin_top, fw, fh)
+                pp.restore()
+
+            if restore_rot_painter:
                 pp.restore()
             _y += fh * zoom_factor
 

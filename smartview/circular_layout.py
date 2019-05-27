@@ -349,7 +349,7 @@ def optimize_scale(root, tree_image):
 
 def cannotbe(tree_image):
     n2leaves = {}
-    stop = 500
+    stop = 50
     root = tree_image.root_node
     for n in root.traverse("postorder"):
         if n.children:
@@ -357,9 +357,12 @@ def cannotbe(tree_image):
         else:
             n2leaves[n] = 1
         n.support = n2leaves[n]
+        n.dist *= 100
+        tree_image.img_data[n._id][_blen] = n.dist
+
 
     for n in root.traverse(is_leaf_fn=lambda x:n2leaves[x]<stop):
-        n.dist = n2leaves[n] + 10
+        n.dist = n2leaves[n] 
         tree_image.img_data[n._id][_blen] = n.dist
 
 def cannotbe2(tree_image):

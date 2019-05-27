@@ -49,10 +49,11 @@ def compute_face_dimensions(node, facegrid):
     cols_h = defaultdict(listdict)
     for index, (f, pos, row, col, _, _) in enumerate(facegrid):
         f.node = node
-        fw = f._width() + f.margin_right + f.margin_left
-        fh = f._height() + f.margin_top + f.margin_bottom
+        fw, fh = f._size()
+        fw += f.margin_right + f.margin_left
+        fh += f.margin_top + f.margin_bottom
 
-        # correct dimenstions in case face is rotated
+        # correct dimensions in case face is rotated
         if f.rotation:
             if f.rotation == 90 or f.rotation == 270:
                 fw, fh = fh, fw
@@ -75,7 +76,6 @@ def compute_face_dimensions(node, facegrid):
         # Update overal grid data
         cols_w[pos][col].append(fw)
         cols_h[pos][col].append(fh)
-
     # Calculate total facegrid size
     face_pos_sizes = []
     for fpos in FACE_POS_INDEXES:

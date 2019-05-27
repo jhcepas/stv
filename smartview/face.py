@@ -60,7 +60,10 @@ class Face(object):
     def _pre_draw(self):
         pass
 
+    def _size(self):
+        pass
 
+    
 class RectFace(Face):
     __slots__ = ['rect_width', 'rect_height', 'rect_label', 'rect_fgcolor', 'rect_bgcolor', "fgcolor", 'bgcolor']
 
@@ -82,6 +85,9 @@ class RectFace(Face):
     def _width(self):
         return self.rect_width
 
+    def _size(self):
+        return self.rect_width, self.rect_height
+    
     def _draw(self, painter, x, y, zoom_factor):
         painter.save()
         painter.scale(zoom_factor, zoom_factor)
@@ -134,14 +140,19 @@ class TextFace(Face):
         self.min_fsize = min_fsize
 
     def _width(self):
-        if self._text_size is None:
-            self._update_text_size()
-        return self._text_size[0]
+        fm = QFontMetrics(self._get_font())
+        text_rect = fm.boundingRect(self.text)
+        return text_rect.width()
 
     def _height(self):
-        if self._text_size is None:
-            self._update_text_size()
-        return self._text_size[1]
+        fm = QFontMetrics(self._get_font())
+        text_rect = fm.boundingRect(self.text)
+        return text_rect.height()
+
+    def _size(self):
+        fm = QFontMetrics(self._get_font())
+        text_rect = fm.boundingRect(self.text)
+        return text_rect.width(), text_rect.height()
 
     def _draw(self, painter, x, y, zoom_factor):
         painter.save()
@@ -153,17 +164,15 @@ class TextFace(Face):
             painter.drawRect(r)
         else:
             painter.setFont(self._get_font())
-            painter.drawText(x, y+self._height(), self.text)
+            painter.drawText(r, self.text)
+            #painter.drawText(x, y+self._height(), self.text)
         painter.restore()
 
     def _get_font(self):
         italic = (self.fstyle == "italic")
         return QFont(self.ftype, pointSize=self.fsize, italic=italic)
 
-    def _update_text_size(self):
-        fm = QFontMetrics(self._get_font())
-        text_rect = fm.boundingRect(self.text)
-        self._text_size = (text_rect.width(), text_rect.height())
+
 
 class AttrFace(TextFace):
     __slots__ = ['_text', 'fsize', 'ftype', 'fgcolor', 'fstyle', 'tight_text', "_text_size", "min_fsize"]
@@ -198,6 +207,9 @@ class LabelFace(Face):
     def _height(self):
         return 0.0
 
+    def _size(self):
+        return self.width, 0.0
+    
     def _draw(self, painter, x, y, zoom_factor):
         pass
 
@@ -215,6 +227,9 @@ class GradientFace(Face):
     def _height(self):
         return 0.0
 
+    def _size(self):
+        return self.width, 0.0
+    
     def _pre_draw(self):
         value = getattr(self.node, self.node_attr)
         self.fill_color = random_color(h=0.3, s=0.5, l=value)
@@ -244,7 +259,7 @@ class CircleLabelFace(Face):
                 return v
 
     def _height(self):
-        return self._width()
+        return 0.0
 
     def _draw(self, painter, x, y, zoom_factor):
 

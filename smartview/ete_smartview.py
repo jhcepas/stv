@@ -36,7 +36,7 @@ def populate_args(parser):
     parser.add_argument("--newick_format", dest="nwformat", type=int, default=0)
 
 
-nameF = AttrFace("name", fsize=10, fgcolor='royalBlue', ftype='Courier')
+nameF = AttrFace("name", fsize=10, fgcolor='royalBlue', ftype='Arial')
 #nameF.margin_right = 10
 distF = AttrFace("dist", fsize=7)
 supportF = AttrFace("support", fsize=7)
