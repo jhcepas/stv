@@ -454,7 +454,6 @@ def draw_faces(pp, x, y, node, dim, branch_length, zoom_factor, tree_image, is_c
     for face, pos, row, col, fw, fh in facegrid:
         if not dim[_is_leaf] and face.only_if_leaf and not is_collapsed:
             continue
-
         pos2colfaces.setdefault(pos, {}).setdefault(col, []).append([face, fw, fh])
         poscol2width[pos, col] = max(fw, poscol2width.get((pos, col), 0))
         poscol2height[pos, col] = poscol2height.get((pos, col), 0) + fh
@@ -504,10 +503,12 @@ def draw_faces(pp, x, y, node, dim, branch_length, zoom_factor, tree_image, is_c
             if aperture * zoom_factor < 1:
                 continue
 
-            y_face_zoom_factor = aperture / poscol2height[pos, col] if poscol2height[pos, col] else 0.0
-            x_face_zoom_factor = available_pos_width / poscol2width[pos, col] if poscol2width[pos, col] else 0.0
+            y_face_zoom_factor = aperture / poscol2height[pos, col] if poscol2height[pos, col] else 0
+            x_face_zoom_factor = available_pos_width / poscol2width[pos, col] if poscol2width[pos, col] else 0
+            #print ' zoom factors', x_face_zoom_factor, y_face_zoom_factor, aperture,  pos, col, poscol2height[pos, col], poscol2width[pos, col]
             face_zoom_factor = min(x_face_zoom_factor, y_face_zoom_factor)
 
+            
             if pos == 0:
                 start_y =  - (poscol2height[pos, col]) 
             elif pos == 1:
@@ -517,12 +518,14 @@ def draw_faces(pp, x, y, node, dim, branch_length, zoom_factor, tree_image, is_c
             elif pos == 3:
                 pass
 
-            pp.save()
-            pp.setOpacity(face.opacity)
-            pp.translate(start_x, start_y * face_zoom_factor)
-            print zoom_factor, face_zoom_factor
-            draw_face_column(faces, 0.0, 0.0, start_x, face_zoom_factor)
-            pp.restore()
+
+            if face_zoom_factor > 0:
+                pp.save()
+                pp.setOpacity(face.opacity)
+                pp.translate(start_x, start_y * face_zoom_factor)
+                print zoom_factor, face_zoom_factor
+                draw_face_column(faces, 0.0, 0.0, start_x, face_zoom_factor)
+                pp.restore()
 
             # continue with next column
             start_x += poscol2width[pos, col]

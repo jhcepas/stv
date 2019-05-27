@@ -94,7 +94,7 @@ def test_layout(node):
     #f.margin_left=20
     add_face_to_node(f, node, column=0, position="branch-right")
     add_face_to_node(f, node, column=0, position="branch-right")
-    add_face_to_node(rectF, node, column=1, position="branch-right")
+    #add_face_to_node(rectF, node, column=1, position="branch-right")
     if node.is_leaf():
         add_face_to_node(nameF, node, column=2, position="branch-right")
     else:
