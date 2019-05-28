@@ -383,8 +383,6 @@ def cannotbe2(tree_image):
             tree_image.img_data[n._id][_blen] = n.dist
 
 
-
-
 @timeit
 def get_optimal_circular_scale(tree_image, optimization_level="med", root_opening_factor=0.0):
     """ Returns the minimum branch scale necessary to display all faces avoiding extra (dashed) branche lines

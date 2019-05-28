@@ -158,7 +158,7 @@ class TextFace(Face):
         painter.save()
         painter.scale(zoom_factor, zoom_factor)
         painter.setPen(QPen(QColor(self.fgcolor)))
-        r = QRectF(0, 0, self._width(), self._height())
+        r = QRectF(x, y, self._width(), self._height())
         if zoom_factor * self._height() < 4:
             painter.setOpacity(0.25)
             painter.drawRect(r)

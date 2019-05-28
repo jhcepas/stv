@@ -416,7 +416,7 @@ def draw_faces(pp, x, y, node, dim, branch_length, zoom_factor, tree_image, is_c
     a_top = dim[_acenter] - dim[_astart]
     a_bot = dim[_aend] - dim[_acenter]
 
-    def draw_face_column(faces, _x, _y, _rad, face_zoom_factor):
+    def draw_face_column(faces, _x, _y, _rad, _face_zoom_factor):
         for _f, fw, fh in faces:
             if not dim[_is_leaf] and _f.only_if_leaf and not is_collapsed:
                 continue
@@ -426,35 +426,43 @@ def draw_faces(pp, x, y, node, dim, branch_length, zoom_factor, tree_image, is_c
 
             if _f.fill_color:
                 pp.save()
-                pp.scale(1.0/face_zoom_factor,
-                         1.0/face_zoom_factor)
+                pp.scale(1.0/_face_zoom_factor,
+                         1.0/_face_zoom_factor)
                 
                 face_path = QTransform().translate(-_rad, 0).map(
-                    get_arc_path(_rad, _rad + fw*face_zoom_factor, [-a_top, a_bot]))
+                    get_arc_path(_rad, _rad + fw*_face_zoom_factor, [-a_top, a_bot]))
                 pp.fillPath(face_path, QColor(_f.fill_color))
                 pp.restore()
 
             if correct_rotation and _f.rotable:
                 restore_rot_painter = True
                 pp.save()
-                zoom_half_fw = (fw * face_zoom_factor/2)
-                zoom_half_fh = (fh * face_zoom_factor/2)
-                pp.setTransform(pp.transform().translate(_x+zoom_half_fw, _y+zoom_half_fh).rotate(180).translate(-(_x+zoom_half_fw), -(_y+zoom_half_fh)))
+                zoom_half_fw = ((fw * _face_zoom_factor)/2)
+                zoom_half_fh = ((fh * _face_zoom_factor)/2)
+                pp.translate(zoom_half_fw, zoom_half_fh)
+                pp.rotate(180)
+                pp.translate(-(zoom_half_fw), -(zoom_half_fh))
 
-            _f._draw(pp, (_x + _f.margin_left), (_y + _f.margin_top), face_zoom_factor)
+            # Draw face
+            _f._draw(pp, _x, _y, _face_zoom_factor)
 
             # # Draw face border (DEBUG)
-            if 0:
+            if 1:
                 pp.save()
-                pp.setPen(QColor('orange'))
-                pp.scale(face_zoom_factor, face_zoom_factor)
-                pp.drawRect(_x + _f.margin_left, _y + _f.margin_top, fw, fh)
+                pp.setPen(QPen(QColor('orange'), ))
+                pp.scale(_face_zoom_factor, _face_zoom_factor)
+                pp.drawRect(_x, _y, fw, fh)
                 pp.restore()
+
 
             if restore_rot_painter:
                 pp.restore()
-            _y += fh * zoom_factor
+                _y -= fh
+            else:
+                _y += fh
 
+
+    # calculate width and height of each facegrid column
     pos2colfaces = {}
     poscol2width = {}
     poscol2height = {}
@@ -467,12 +475,22 @@ def draw_faces(pp, x, y, node, dim, branch_length, zoom_factor, tree_image, is_c
 
 
     for pos, colfaces in pos2colfaces.iteritems():
-        if pos == 0 or pos == 1: #btop or bbottom
-            available_pos_width = max(dim[_btw], dim[_bbw], branch_length) * zoom_factor
+        if pos == 0 or pos == 1: #btop
+            facegrid_width = dim[_btw]
+            facegrid_height = dim[_bth]
+            available_pos_width = max(dim[_btw], branch_length) * zoom_factor
+            start_x = x
+        elif pos == 1: #bbottom
+            facegrid_width = dim[_bbw]
+            facegrid_height = dim[_bbh]
+            available_pos_width = max(dim[_bbw], branch_length) * zoom_factor
             start_x = x
         elif pos == 2: #bright
+            facegrid_width = dim[_brw]
+            facegrid_height = dim[_brh]
             available_pos_width = dim[_brw] * zoom_factor
-            start_x = x + max(dim[_btw], dim[_bbw], branch_length)
+            start_x = x + branch_length
+
         elif pos == 3: #float
            pass
         elif pos == 4: #aligned
@@ -483,56 +501,52 @@ def draw_faces(pp, x, y, node, dim, branch_length, zoom_factor, tree_image, is_c
 
         start_x *= zoom_factor
 
+        # Calculate available angle aperture to draw face
+        if pos == 0:
+            aperture = get_aperture(start_x, a_top, 9999999999)
+        elif pos == 1:
+            aperture = get_aperture(start_x, a_bot, 9999999999)
+        elif pos == 2:
+            aperture = min(get_aperture(start_x, a_top, 99999999999) * 2,
+                               get_aperture(start_x, a_bot, 99999999999) * 2)
+        elif pos == 3:
+            pass
+        elif pos == 4:
+            aperture = min(get_aperture(start_x, a_top, 99999999999) * 2,
+                               get_aperture(start_x, a_bot, 99999999999) * 2)
+        else:
+            raise ValueError("not supported face position")
+
+        # skip if there is not enough height
+        if aperture < 1:
+            continue
+
         # skip if there is not enough width
         if available_pos_width < 1:
             continue
 
+        # Faces are scaled based on available space given current zoom factor
+        y_face_zoom_factor = aperture / facegrid_height
+        x_face_zoom_factor = available_pos_width / facegrid_width
+        face_zoom_factor = min(x_face_zoom_factor, y_face_zoom_factor)
 
         for col, faces in colfaces.iteritems():
-
-            # Calculate available angle aperture to draw face
             if pos == 0:
-                aperture = get_aperture(start_x, a_top, 9999999999)
+                start_y = y - (poscol2height[pos, col]) 
             elif pos == 1:
-                aperture = get_aperture(start_x, a_bot, 9999999999)
-            elif pos == 2:
-                aperture = min(get_aperture(start_x, a_top, 99999999999) * 2,
-                               get_aperture(start_x, a_bot, 99999999999) * 2)
-            elif pos == 3:
-                pass
-            elif pos == 4:
-                aperture = min(get_aperture(start_x, a_top, 99999999999) * 2,
-                               get_aperture(start_x, a_bot, 99999999999) * 2)
-            else:
-                raise ValueError("not supported face position")
-
-            # skip if there is not enough height
-            if aperture * zoom_factor < 1:
-                continue
-
-            y_face_zoom_factor = aperture / poscol2height[pos, col] if poscol2height[pos, col] else 0
-            x_face_zoom_factor = available_pos_width / poscol2width[pos, col] if poscol2width[pos, col] else 0
-            #print ' zoom factors', x_face_zoom_factor, y_face_zoom_factor, aperture,  pos, col, poscol2height[pos, col], poscol2width[pos, col]
-            face_zoom_factor = min(x_face_zoom_factor, y_face_zoom_factor)
-
-            
-            if pos == 0:
-                start_y =  - (poscol2height[pos, col]) 
-            elif pos == 1:
-                start_y =  0
+                start_y = y
             elif pos == 2 or pos == 4:
-                start_y = - (poscol2height[pos, col]/2.0)
+                start_y = y - (poscol2height[pos, col]/2.0)
             elif pos == 3:
                 pass
 
 
-            if face_zoom_factor > 0:
+            if zoom_factor > 0:
                 pp.save()
                 pp.setOpacity(face.opacity)
                 pp.translate(start_x, start_y * face_zoom_factor)
-                print zoom_factor, face_zoom_factor
                 draw_face_column(faces, 0.0, 0.0, start_x, face_zoom_factor)
                 pp.restore()
 
             # continue with next column
-            start_x += poscol2width[pos, col]
+            start_x += poscol2width[pos, col] * face_zoom_factor

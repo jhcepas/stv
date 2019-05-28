@@ -37,6 +37,8 @@ def populate_args(parser):
 
 
 nameF = AttrFace("name", fsize=10, fgcolor='royalBlue', ftype='Arial')
+nameF2 = AttrFace("name", fsize=16, fgcolor='indianred', ftype='Arial')
+nameF3 = AttrFace("name", fsize=8, fgcolor='grey', ftype='Arial')
 #nameF.margin_right = 10
 distF = AttrFace("dist", fsize=7)
 supportF = AttrFace("support", fsize=7)
@@ -124,6 +126,16 @@ def basic_layout(node):
         if node.name:
             add_face_to_node(nameF, node, column=0, position="branch-top")
 
+def stacked_layout(node):
+    if node.is_leaf():
+        add_face_to_node(nameF, node, column=0, position="branch-right")
+        add_face_to_node(nameF2, node, column=0, position="branch-right")
+        add_face_to_node(nameF3, node, column=1, position="branch-right")
+    else:
+        if node.name:
+            add_face_to_node(nameF, node, column=0, position="branch-top")
+
+            
 def rect_layout(node):
     if node.is_leaf():
         add_face_to_node(rectF, node, column=0, position="branch-right")
