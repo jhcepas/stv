@@ -43,10 +43,11 @@ CLASSIFIERS= [
 
 try:
 
-    sourcefiles = glob('smartview/*pyx') 
+    extensions = [Extension('ctree', ['smartview/ctree.pyx']),
+                  Extension('clayout', ['smartview/clayout.pyx']),
+                  Extension('cstyle', ['smartview/cstyle.pyx']),
+    ]
 
-    extensions = [Extension("smartview", sourcefiles)]
-    
     _s = setup(
         include_package_data = True,
         ext_modules = cythonize(extensions),
@@ -54,7 +55,7 @@ try:
 
         name = 'smartview',
         version = 0.1,
-        packages = ['smartview'], #find_packages(),
+        packages = ['smartview'], 
 
         entry_points = {"console_scripts":
                         ["smartview = smartview.ete_smartview:main"]},
@@ -67,8 +68,8 @@ try:
 
         },
 
-        # metadata for upload to PyPI
-        author = "Jaime Huerta-Cepas",
+        # metadata for upload to PyPI 
+       author = "Jaime Huerta-Cepas",
         author_email = "jhcepas@gmail.com",
         maintainer = "Jaime Huerta-Cepas",
         maintainer_email = "huerta@embl.de",

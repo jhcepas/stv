@@ -122,8 +122,6 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
     #c1 = (tree_image.radius[-1] -  tree_image.radius[-0]) * zoom_factor
     #pp.drawEllipse(c1, c1, aligned_circ_diam, aligned_circ_diam)
 
-
-
     # DEBUG INFO
     DRAWN, SKIPPED, TOO_SMALL, COLLAPSED, MULTI, ITERS = 0, 0, 0, 0, 0, 0
 
@@ -147,19 +145,6 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
             curr = int(dim[_max_leaf_idx] + 1)
             TOO_SMALL += 1
             continue
-
-        # elif not dim[_is_leaf]:
-        #     for ch in tree_image.cached_preorder[curr].children:
-        #         if img_data[ch._id][_fnh] * zoom_factor < 1:
-        #             curr = int(dim[_max_leaf_idx] + 1)
-        #             draw_collapsed = 3
-        #             COLLAPSED += 1
-        #             break
-        #     if draw_collapsed:
-        #         pass
-        #     else:
-        #         curr += 1
-
         # if desdendant space is too small, draw the whole branch as a single
         # simplified item
         elif not dim[_is_leaf] and (dim[_fnh] * zoom_factor) < COLLAPSE_RESOLUTION:
@@ -198,7 +183,6 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
             new_rad, new_angle = get_qt_corrected_angle(dim[_rad], dim[_acenter])
             pp.translate(cx*zoom_factor, cy*zoom_factor)
             pp.rotate(math.degrees(new_angle))
-
             #draw_faces(pp, new_rad, 0, node, dim, branch_length, zoom_factor, tree_image, is_collapsed=True)
 
         else:
@@ -206,10 +190,19 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
             node = tree_image.cached_preorder[nid]
             parent_radius = img_data[int(dim[_parent])][_rad] if nid else tree_image.root_open
 
+            # if dim[_is_leaf]:
+            #     pp.setPen(QColor("green"))
+            #     pp.setBrush(QColor("indianred"))
+            #     bkg_arc = get_arc_path(parent_radius, tree_image.radius[0], [dim[_astart], dim[_aend]])
+            #     pp.drawPath(M.map(bkg_arc))
+            #     pp.setBrush(Qt.NoBrush)
+
+            # Draw arc line connecting children
             if not dim[_is_leaf] and len(node.children) > 1:
                 acen_0 = tree_image.img_data[node.children[0]._id][_acenter]
                 acen_1 = tree_image.img_data[node.children[-1]._id][_acenter]
                 vLinePath = get_arc_path(dim[_rad], dim[_rad], [acen_0, acen_1])
+                pp.setPen(QColor(node.img_style.vt_line_color))
                 pp.drawPath(M.map(vLinePath))
 
             branch_length = dim[_blen] * tree_image.scale
@@ -277,130 +270,6 @@ def get_aperture(radius, angle, default):
     else:
         return math.tan(angle) * radius
 
-# def draw_faces2(pp, x, y, node, dim, branch_length, zoom_factor, tree_image, is_collapsed):
-#     facegrid = node._temp_faces
-#     if not facegrid:
-#         return
-
-#     correct_rotation = True if tree_image.tree_style.mode == 'c' and \
-#                        dim[_acenter] > R90 and dim[_acenter] < R270 \
-#                        else False
-
-#     aligned_faces_start = tree_image.radius[0]
-
-#     a_top = dim[_acenter]-dim[_astart]
-#     a_bot = dim[_aend]-dim[_acenter]
-
-#     def draw_face_column(faces, _x, _y, _rad, face_zoom_factor):
-#         for _f, fw, fh in faces:
-#             if not dim[_is_leaf] and _f.only_if_leaf and not is_collapsed:
-#                 continue
-#             restore_painter = False
-#             _f.node = node
-#             _f._pre_draw()
-
-#             if _f.fill_color:
-#                 pp.save()
-#                 pp.scale(1/face_zoom_factor, 1/face_zoom_factor)
-#                 face_path = QTransform().translate(-_rad, 0).map(
-#                     get_arc_path(_rad, _rad + _f._width()*face_zoom_factor, [-a_top, a_bot]))
-#                 pp.fillPath(face_path, QColor(_f.fill_color))
-#                 pp.restore()
-
-#             if correct_rotation and _f.rotable:
-#                 restore_painter = True
-#                 pp.save()
-#                 pp.setTransform(pp.transform().translate(_x+(fw/2), _y+(fh/2)).rotate(180).translate(-(_x+(fw/2)), -(_y+(fh/2))))
-
-#             _f._draw(pp, (_x + _f.margin_left), (_y + _f.margin_top), face_zoom_factor)
-
-#             if restore_painter:
-#                 pp.restore()
-#             _y += fh
-
-#     pos2colfaces = {}
-#     poscol2width = {}
-#     poscol2height = {}
-#     for face, pos, row, col, fw, fh in facegrid:
-#         if not dim[_is_leaf] and face.only_if_leaf and not is_collapsed:
-#             continue
-
-#         pos2colfaces.setdefault(pos, {}).setdefault(col, []).append([face, fw, fh])
-#         poscol2width[pos, col] = max(fw, poscol2width.get((pos, col), 0))
-#         poscol2height[pos, col] = poscol2height.get((pos, col), 0) + fh
-
-#     for pos, colfaces in pos2colfaces.iteritems():
-#         if pos == 0 or pos == 1: #btop or bbottom
-#             available_pos_width = max(dim[_btw], dim[_bbw], branch_length) * zoom_factor
-#             start_x = x
-#         elif pos == 2: #bright
-#             available_pos_width = dim[_brw] * zoom_factor
-#             start_x = x + max(dim[_btw], dim[_bbw], branch_length)
-#         elif pos == 3: #float
-#            pass
-#         elif pos == 4: #aligned
-#             available_pos_width = (tree_image.radius[-1] - tree_image.radius[0]) * zoom_factor
-#             start_x = aligned_faces_start
-#         else:
-#             continue
-
-#         start_x *= zoom_factor
-
-#         for col, faces in colfaces.iteritems():
-#             if pos == 0:
-#                 aperture = get_aperture(start_x, a_top, 9999999999)
-#             elif pos == 1:
-#                 aperture = get_aperture(start_x, a_bot, 9999999999)
-#             elif pos == 2:
-#                 aperture = min(get_aperture(start_x, a_top, 99999999999) * 2,
-#                                get_aperture(start_x, a_bot, 99999999999) * 2)
-#             elif pos == 3:
-#                 pass
-#             elif pos == 4:
-#                 aperture = min(get_aperture(start_x, a_top, 99999999999) * 2,
-#                                get_aperture(start_x, a_bot, 99999999999) * 2)
-#             else:
-#                 raise ValueError("not supported face position")
-
-
-#             if available_pos_width <= 0:
-#                 continue
-
-
-#             y_face_zoom_factor = aperture / poscol2height[pos, col] if poscol2height[pos, col] else 0.0
-#             x_face_zoom_factor = available_pos_width / poscol2width[pos, col] if poscol2width[pos, col] else 0.0
-#             face_zoom_factor = max(zoom_factor, min(3, x_face_zoom_factor/2, y_face_zoom_factor/2))
-
-
-#             drawing_w = poscol2width[pos, col] * face_zoom_factor
-#             drawing_h = poscol2height[pos, col] * face_zoom_factor
-#             available_pos_width -= drawing_w
-
-#             if drawing_w < 1 and drawing_h < 1:
-#                 continue
-
-#             if pos == 0:
-#                 start_y = y - drawing_h
-#             elif pos == 1:
-#                 start_y = y
-#             elif pos == 2 or pos == 4:
-#                 start_y = y - drawing_h/2.0
-#             elif pos == 3:
-#                 pass
-
-#             pp.save()
-#             pp.setOpacity(face.opacity)
-#             pp.translate(start_x, start_y)
-#             pp.scale(face_zoom_factor, face_zoom_factor)
-#             draw_face_column(faces, 0.0, 0.0, start_x, face_zoom_factor)
-#             pp.restore()
-
-#             # continue with next column
-#             start_x += drawing_w
-
-
-
-
 def draw_faces(pp, x, y, node, dim, branch_length, zoom_factor, tree_image, is_collapsed):
     facegrid = node._temp_faces
     if not facegrid:
@@ -428,7 +297,7 @@ def draw_faces(pp, x, y, node, dim, branch_length, zoom_factor, tree_image, is_c
                 pp.save()
                 pp.scale(1.0/_face_zoom_factor,
                          1.0/_face_zoom_factor)
-                
+
                 face_path = QTransform().translate(-_rad, 0).map(
                     get_arc_path(_rad, _rad + fw*_face_zoom_factor, [-a_top, a_bot]))
                 pp.fillPath(face_path, QColor(_f.fill_color))

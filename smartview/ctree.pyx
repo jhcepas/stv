@@ -56,7 +56,7 @@ import numpy
 
 # the following imports are necessary to set fixed styles and faces
 from .cstyle import NodeStyle
-       
+
 __all__ = ["Tree", "TreeNode"]
 
 DEFAULT_COMPACT = False
@@ -83,16 +83,16 @@ cdef class cTreeNode:
     cdef public object _img_style
     cdef public object _temp_faces
     cdef public unsigned int  _id
-    
-    def __cinit__(self):        
+
+    def __cinit__(self):
         self.dist = DEFAULT_DIST
         self.support = DEFAULT_SUPPORT
         self.name = DEFAULT_NAME
         self.children = []
         self.up = None
         self.img_style = None
- 
-    
+
+
     # def _get_dist(self):
     #     return self._dist
     # def _set_dist(self, value):
@@ -150,7 +150,7 @@ cdef class cTreeNode:
 
     # property children:
     #   def __get__(self):
-    #       return self._children 
+    #       return self._children
     #   def __set__(self, value):
     #       if type(value) != list:
     #           raise ValueError("Invalid type for children attribute. Expected list of node instances")
@@ -201,7 +201,7 @@ class TreeNode(cTreeNode):
         if support is not None:
             self.support = support
         if name is not None:
-            self._name = name 
+            self._name = name
 
         # Initialize tree
         if newick is not None:
@@ -2049,7 +2049,7 @@ class TreeNode(cTreeNode):
         #    leaf.dist += (tree_length - d)
         #return
 
-        
+
         # pre-calculate how many splits remain under each node
         node2max_depth = {}
         for node in self.traverse("postorder", is_leaf_fn=is_leaf_fn):
@@ -2064,7 +2064,7 @@ class TreeNode(cTreeNode):
         else:
             tree_length = float(tree_length)
 
-        node2dist = {}            
+        node2dist = {}
         step = tree_length / node2max_depth[self]
 
         if strategy=="log":
@@ -2073,7 +2073,7 @@ class TreeNode(cTreeNode):
             logbranches.extend([logpoints[i]-logpoints[i-1] for i in xrange(1, len(logpoints))])
             logbranches.reverse()
             scale = tree_length / sum(logbranches)
-            
+
         for node in self.iter_descendants("levelorder", is_leaf_fn=is_leaf_fn):
             if strategy == "balanced":
                 node.dist = (tree_length - node2dist.get(node.up, 0)) / node2max_depth[node]
@@ -2084,14 +2084,14 @@ class TreeNode(cTreeNode):
                     node.dist = sum(logbranches[node2dist[node]:])*scale
                 else:
                     node.dist = logbranches[node2dist[node]]*scale
-                node2dist[node] += 1 
+                node2dist[node] += 1
             elif strategy == "fixed":
                 if (is_leaf_fn and not is_leaf_fn(node)) or (not is_leaf_fn and not node.is_leaf()):
                     node.dist = step
                 else:
                     node.dist = tree_length - ((node2dist[node.up]) * step)
                 node2dist[node] = node2dist[node.up] + 1
-            
+
 
     def check_monophyly(self, values, target_attr, ignore_missing=False,
                         unrooted=False):
@@ -2364,7 +2364,7 @@ class TreeNode(cTreeNode):
     def phonehome(self):
         from .. import _ph
         _ph.call()
-        
+
 
 def _translate_nodes(root, *nodes):
     name2node = dict([ [n, None] for n in nodes if type(n) is str])
@@ -2396,8 +2396,3 @@ def _translate_nodes(root, *nodes):
 # Alias
 #: .. currentmodule:: ete3
 Tree = TreeNode
-
-
-
-
-

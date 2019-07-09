@@ -134,12 +134,11 @@ def stacked_layout(node):
     else:
         if node.name:
             add_face_to_node(nameF, node, column=0, position="branch-top")
+#            add_face_to_node(nameF, node, column=0, position="aligned")
 
-            
 def rect_layout(node):
     if node.is_leaf():
         add_face_to_node(rectF, node, column=0, position="branch-right")
-
 
 def clean_layout(node):
     pass
@@ -191,9 +190,11 @@ def run(args):
         t.standardize()
 
     if args.ultrametric:
-        min_rad = len(t)/(2*math.pi)
-        t.convert_to_ultrametric(tree_length=min_rad, strategy="log", logbase=1000)
+        #min_rad = len(t)/(2*math.pi)
+        #t.convert_to_ultrametric(tree_length=min_rad, strategy="log", logbase=1000)
+        t.convert_to_ultrametric(strategy='balanced')
 
+        
     if args.polardist:
         #node, mdist = t.get_farthest_leaf()
         d = 1
@@ -222,11 +223,13 @@ def run(args):
 
     ts.layout_fn = globals()[args.layout]
     ts.mode = "c"
-    ts.arc_span = 350
+    ts.arc_span = 270
+    ts.arc_start = 90
     if args.scale:
         ts.scale = args.scale
 
-    gui.start_app()
+    gui.start_app() # need to have a QtApp initiated for some operations
+
     tree_image = TreeImage(t, ts)
 
     print("Tree image created", len(tree_image.cached_leaves))

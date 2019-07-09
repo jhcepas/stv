@@ -11,10 +11,9 @@ def get_empty_matrix(nnodes):
     "nnodes"
     '''
     #matrix = np.zeros(nnodes, dtype="int8,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,float64,float64,float64,float64,float64,float64,float64,float64")
-    #print 'SIZE', len(matrix[0]), MATRIX_FIELDS
     matrix = np.zeros((nnodes,MATRIX_FIELDS), dtype="float64")
     return matrix
-    #return [[0.0]*MATRIX_FIELDS for n in xrange(nnodes)]
+
 
 @timeit
 def update_node_dimensions(img_data, cached_prepostorder, cached_preorder,
@@ -90,7 +89,8 @@ def compute_aligned_region_width(tree_image):
     root_visited = False
     for nid in tree_image.cached_prepostorder:
         postorder = nid < 0 or nid == 0 and root_visited
-        if nid == 0: root_visited = True
+        if nid == 0:
+            root_visited = True
         dim = tree_image.img_data[abs(nid)]
         if postorder:
             current_w -= dim[_baw]
@@ -101,5 +101,57 @@ def compute_aligned_region_width(tree_image):
                 current_w += dim[_baw]
     return max_w
 
+def adjust_branch_lengths_by_size1(tree_image, stop=200):
+    n2leaves = {}
+    root = tree_image.root_node
+    for n in root.traverse("postorder"):
+        if n.children:
+            n2leaves[n] = sum([n2leaves[ch] for ch in n.children])
+        else:
+            n2leaves[n] = 1
+
+        if n2leaves[n] >= stop:
+            tree_image.img_data[n._id][_blen] = n.dist * 1000
+        else:
+            tree_image.img_data[n._id][_blen] =  n.dist * 1.5
 
 
+def adjust_branch_lengths_by_size(tree_image, stop=4):
+    n2level = {}
+    root = tree_image.root_node
+    for n in root.traverse("preorder"):
+        if n.up:
+            n2level[n] = n2level[n.up] + 1
+        else:
+            n2level[n] = 0
+
+        if n2level[n] <= stop:
+            tree_image.img_data[n._id][_blen] = n.dist * 1000
+            print n2level[n], stop, n.dist
+        else:
+            tree_image.img_data[n._id][_blen] =  n.dist * 1.5
+
+
+        
+def adjust_branch_lengths_by_size2(tree_image, stop=20):
+    n2dist = {}
+
+    root = tree_image.root_node
+    for n in root.traverse("preorder"):
+        if n.up:
+            fbranch = n.dist
+            parent_branch = n2dist[n.up]
+            n2dist[n] = parent_branch + fbranch
+            if parent_branch >= stop:
+                scale1 = 0
+                scale2 = fbranch
+            else:
+                scale1 =  max(0.0,  fbranch - (stop - parent_branch))
+                scale2 = fbranch - scale1
+            blen = (scale1 * 1000) + (scale2 * 1)
+            if len(n) > 500:
+                print n2dist[n], scale1, scale2, blen, len(n)
+            tree_image.img_data[n._id][_blen] = blen
+        else:
+            tree_image.img_data[n._id][_blen] = 20
+            n2dist[n] = 0
