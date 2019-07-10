@@ -177,13 +177,13 @@ def update_node_radius(imgdata, cached_prepostorder,
             dim[_nht] = htop
             dim[_nhb] = hbot
 
-            branch = dim[_blen] * scale
+            branch = dim[_blen] #* scale
             wtop = max(branch, dim[_btw]) + dim[_brw]
             wbot = max(branch, dim[_bbw]) + dim[_brw]
             node_width = max(wtop, wbot)
 
+            node_width = branch # ojo
             node_end_radius = parent_radius + node_width
-            #node_end_radius = math.hypot(node_end_radius, 0.5)
 
             dim[_rad] = node_end_radius
             if node_end_radius > max_radius:
@@ -191,7 +191,8 @@ def update_node_radius(imgdata, cached_prepostorder,
 
             max_radius = max(max_radius, node_end_radius)
             if dim[_is_leaf]:
-                dim[_fnw] = node_end_radius
+                print parent_radius, dim[_rad], branch, node_width
+                dim[_fnw] = node_end_radius 
                 angle = (dim[_aend] - dim[_astart])
                 dim[_fnh] = dim[_fnw] * angle
 

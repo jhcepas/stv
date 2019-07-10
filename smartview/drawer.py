@@ -178,11 +178,17 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
             branch_length = dim[_blen] * tree_image.scale
             pp.setPen(QPen(QColor("#dddddd")))
             parent_radius = img_data[int(dim[_parent])][_rad] if nid else tree_image.root_open
-            fpath = get_arc_path(parent_radius, dim[_fnw], [dim[_astart], dim[_aend]])
+            #fpath = get_arc_path(parent_radius, dim[_fnw], [dim[_astart], dim[_aend]])
             pp.drawPath(M.map(fpath))
-            new_rad, new_angle = get_qt_corrected_angle(dim[_rad], dim[_acenter])
-            pp.translate(cx*zoom_factor, cy*zoom_factor)
-            pp.rotate(math.degrees(new_angle))
+
+            linew = max(branch_length, dim[_btw], dim[_bbw])
+            hLinePath = get_arc_path(parent_radius, dim[_fnw], [dim[_acenter]])
+            pp.setPen(QColor(node.img_style.hz_line_color))
+            pp.drawPath(M.map(hLinePath))
+
+            #new_rad, new_angle = get_qt_corrected_angle(dim[_rad], dim[_acenter])
+            #pp.translate(cx*zoom_factor, cy*zoom_factor)
+            #pp.rotate(math.degrees(new_angle))
             #draw_faces(pp, new_rad, 0, node, dim, branch_length, zoom_factor, tree_image, is_collapsed=True)
 
         else:

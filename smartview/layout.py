@@ -101,7 +101,9 @@ def compute_aligned_region_width(tree_image):
                 current_w += dim[_baw]
     return max_w
 
-def adjust_branch_lengths_by_size1(tree_image, stop=200):
+def adjust_branch_lengths_by_size(tree_image, stop=None):
+    if stop is None:
+        stop = 100
     n2leaves = {}
     root = tree_image.root_node
     for n in root.traverse("postorder"):
@@ -110,13 +112,21 @@ def adjust_branch_lengths_by_size1(tree_image, stop=200):
         else:
             n2leaves[n] = 1
 
-        if n2leaves[n] >= stop:
-            tree_image.img_data[n._id][_blen] = n.dist * 1000
+        if n2leaves[n] >= stop*3:
+            for ch in n.children: 
+                tree_image.img_data[ch._id][_blen] = n.dist * 1000
+        elif n2leaves[n] >= stop*2:
+            for ch in n.children: 
+                tree_image.img_data[ch._id][_blen] = n.dist * 500
+        elif n2leaves[n] >= stop:
+            for ch in n.children: 
+                tree_image.img_data[ch._id][_blen] = n.dist * 250
         else:
-            tree_image.img_data[n._id][_blen] =  n.dist * 1.5
+            for ch in n.children: 
+                tree_image.img_data[n._id][_blen] =  n.dist * 1.5
 
 
-def adjust_branch_lengths_by_size(tree_image, stop=4):
+def adjust_branch_lengths_by_size2(tree_image, stop=4):
     n2level = {}
     root = tree_image.root_node
     for n in root.traverse("preorder"):
@@ -133,20 +143,24 @@ def adjust_branch_lengths_by_size(tree_image, stop=4):
 
 
         
-def adjust_branch_lengths_by_size2(tree_image, stop=20):
+def adjust_branch_lengths_by_size3(tree_image, stop=20, sca=2):
     n2dist = {}
-
+    
     root = tree_image.root_node
+    leaf, maxd = root.get_farthest_leaf()
+    distances = [n.dist for n in root.iter_descendants()]
+    print maxd, min(distances), max(distances), '-----------------------'
     for n in root.traverse("preorder"):
+    
         if n.up:
             fbranch = n.dist
             parent_branch = n2dist[n.up]
             n2dist[n] = parent_branch + fbranch
-            if parent_branch >= stop:
+            if parent_branch >= sca:
                 scale1 = 0
                 scale2 = fbranch
             else:
-                scale1 =  max(0.0,  fbranch - (stop - parent_branch))
+                scale1 =  max(0.0,  fbranch - (sca - parent_branch))
                 scale2 = fbranch - scale1
             blen = (scale1 * 1000) + (scale2 * 1)
             if len(n) > 500:

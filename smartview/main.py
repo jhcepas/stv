@@ -103,8 +103,8 @@ class TreeImage(object):
                                                cached_preorder=self.cached_preorder,
                                                leaf_apertures=self.leaf_apertures)
 
-    def adjust_branch_lengths(self, stop=50):
-        layout.adjust_branch_lengths_by_size(self, stop=stop)
+    def adjust_branch_lengths(self, stop=None):
+        layout.adjust_branch_lengths_by_size(self)
 
         self.scale = 1.0
         self.root_open = 0.0

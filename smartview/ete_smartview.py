@@ -157,6 +157,8 @@ def run(args):
     if args.size:
         t = Tree()
         t.populate(args.size, random_branches=True)
+        for n in t.traverse():
+            n.dist = random.randint(1, 999)/1000.0
     elif args.src_trees:
         t = Tree(args.src_trees[0], format=args.nwformat)
 
