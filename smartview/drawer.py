@@ -13,7 +13,25 @@ from PyQt5.QtSvg import *
 from .common import *
 from .utils import timeit, debug
 
-COLLAPSE_RESOLUTION = 20
+COLLAPSE_RESOLUTION = 5
+
+
+def get_node_paths(tree_image, nid):
+    dim = tree_image.img_data[nid]
+    node = tree_image.cached_preorder[nid]
+    arc_start = dim[_astart]
+    arc_end = dim[_aend]
+    radius = dim[_rad]
+    parent_radius = tree_image.img_data[int(dim[_parent])][_rad]
+    angles = [arc_start]
+    if not dim[_is_leaf]:
+        for ch in node.children:
+            angles.append(tree_image.img_data[ch._id][_acenter])
+    angles.append(arc_end)
+    path = get_arc_path(parent_radius, radius, angles)
+    full_path = get_arc_path(parent_radius, tree_image.radius[-1], angles)
+
+    return path, full_path
 
 def get_qt_corrected_angle(rad, angle):
     path = QPainterPath()
@@ -141,6 +159,8 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
         path = arc_paths[nid][0]
         fpath = arc_paths[nid][1]
 
+        #path, fpath = get_node_paths(tree_image, nid)
+        
         if (dim[_fnh] * zoom_factor) < 1:
             curr = int(dim[_max_leaf_idx] + 1)
             TOO_SMALL += 1
@@ -176,15 +196,14 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
         if draw_collapsed:
             node = tree_image.cached_preorder[nid]
             branch_length = dim[_blen] * tree_image.scale
-            pp.setPen(QPen(QColor("#dddddd")))
+            pp.setPen(QPen(QColor("#999999")))
             parent_radius = img_data[int(dim[_parent])][_rad] if nid else tree_image.root_open
-            #fpath = get_arc_path(parent_radius, dim[_fnw], [dim[_astart], dim[_aend]])
             pp.drawPath(M.map(fpath))
 
-            linew = max(branch_length, dim[_btw], dim[_bbw])
-            hLinePath = get_arc_path(parent_radius, dim[_fnw], [dim[_acenter]])
-            pp.setPen(QColor(node.img_style.hz_line_color))
-            pp.drawPath(M.map(hLinePath))
+            # linew = max(branch_length, dim[_btw], dim[_bbw])
+            # hLinePath = get_arc_path(parent_radius, parent_radius+dim[_blen], [dim[_acenter]])
+            # pp.setPen(QColor(node.img_style.hz_line_color))
+            # pp.drawPath(M.map(hLinePath))
 
             #new_rad, new_angle = get_qt_corrected_angle(dim[_rad], dim[_acenter])
             #pp.translate(cx*zoom_factor, cy*zoom_factor)
@@ -212,7 +231,8 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
                 pp.drawPath(M.map(vLinePath))
 
             branch_length = dim[_blen] * tree_image.scale
-            linew = max(branch_length, dim[_btw], dim[_bbw])
+            #linew = max(branch_length, dim[_btw], dim[_bbw])
+            linew = branch_length
             hLinePath = get_arc_path(parent_radius, parent_radius+linew, [dim[_acenter]])
             pp.setPen(QColor(node.img_style.hz_line_color))
             pp.drawPath(M.map(hLinePath))
@@ -350,15 +370,17 @@ def draw_faces(pp, x, y, node, dim, branch_length, zoom_factor, tree_image, is_c
 
 
     for pos, colfaces in pos2colfaces.iteritems():
-        if pos == 0 or pos == 1: #btop
+        if pos == 0:
             facegrid_width = dim[_btw]
             facegrid_height = dim[_bth]
-            available_pos_width = max(dim[_btw], branch_length) * zoom_factor
+            #available_pos_width = max(dim[_btw], branch_length) * zoom_factor
+            available_pos_width = branch_length * zoom_factor
             start_x = x
         elif pos == 1: #bbottom
             facegrid_width = dim[_bbw]
             facegrid_height = dim[_bbh]
-            available_pos_width = max(dim[_bbw], branch_length) * zoom_factor
+            #available_pos_width = max(dim[_bbw], branch_length) * zoom_factor
+            available_pos_width = branch_length * zoom_factor
             start_x = x
         elif pos == 2: #bright
             facegrid_width = dim[_brw]
@@ -403,7 +425,8 @@ def draw_faces(pp, x, y, node, dim, branch_length, zoom_factor, tree_image, is_c
         # Faces are scaled based on available space given current zoom factor
         y_face_zoom_factor = aperture / facegrid_height
         x_face_zoom_factor = available_pos_width / facegrid_width
-        face_zoom_factor = min(x_face_zoom_factor, y_face_zoom_factor)
+
+        face_zoom_factor = min(x_face_zoom_factor, y_face_zoom_factor, 1)
 
         for col, faces in colfaces.iteritems():
             if pos == 0:

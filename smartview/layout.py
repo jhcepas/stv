@@ -101,7 +101,9 @@ def compute_aligned_region_width(tree_image):
                 current_w += dim[_baw]
     return max_w
 
-def adjust_branch_lengths_by_size(tree_image, stop=None):
+
+
+def by_size2(tree_image, stop=None):
     if stop is None:
         stop = 100
     n2leaves = {}
@@ -113,22 +115,70 @@ def adjust_branch_lengths_by_size(tree_image, stop=None):
             n2leaves[n] = 1
 
         if n2leaves[n] >= stop*3:
-            for ch in n.children: 
+            for ch in n.children:
                 tree_image.img_data[ch._id][_blen] = n.dist * 1000
         elif n2leaves[n] >= stop*2:
-            for ch in n.children: 
-                tree_image.img_data[ch._id][_blen] = n.dist * 500
+            for ch in n.children:
+                tree_image.img_data[ch._id][_blen] = n.dist * 20
         elif n2leaves[n] >= stop:
-            for ch in n.children: 
-                tree_image.img_data[ch._id][_blen] = n.dist * 250
+            for ch in n.children:
+                tree_image.img_data[ch._id][_blen] = n.dist * 10
         else:
-            for ch in n.children: 
-                tree_image.img_data[n._id][_blen] =  n.dist * 1.5
+            for ch in n.children:
+                tree_image.img_data[n._id][_blen] =  n.dist * 3
 
 
-def adjust_branch_lengths_by_size2(tree_image, stop=4):
-    n2level = {}
+def by_size(tree_image, stop=None):
+    if stop is None:
+        stop = 100
+    n2leaves = {}
     root = tree_image.root_node
+    leaf, maxd = root.get_farthest_leaf()
+    distances= [n.dist for n in root.traverse()]
+    median_dist = np.median(distances)
+    min_dist = np.median(distances)
+
+    scale1 = 100.0 / min_dist 
+
+    nleaves = float(len(root))
+    angle = tree_image.tree_style.arc_span / nleaves
+
+    theta = (angle * math.pi) / 180
+    min_sep = 3 / math.sin(theta)
+    
+    
+    print min_sep, "min_sep............................."
+
+    for n in root.traverse("postorder"):
+        if n.children:
+            n2leaves[n] = sum([n2leaves[ch] for ch in n.children])
+        else:
+            n2leaves[n] = 1
+
+        if n2leaves[n] >= stop*3:
+            for ch in n.children:
+                tree_image.img_data[ch._id][_blen] = n.dist * scale1 * 20
+        elif n2leaves[n] >= stop*2:
+            for ch in n.children:
+                tree_image.img_data[ch._id][_blen] = n.dist * scale1 * 10
+        elif n2leaves[n] >= stop:
+            for ch in n.children:
+                tree_image.img_data[ch._id][_blen] = n.dist * scale1 * 5
+        else:
+            for ch in n.children:
+                tree_image.img_data[n._id][_blen] =  n.dist * scale1
+
+
+
+                
+def by_level(tree_image, stop=None):
+    if stop is None:
+        stop = 4
+
+    n2level = {}
+
+    root = tree_image.root_node
+    n2leaves = root.get_cached_content()
     for n in root.traverse("preorder"):
         if n.up:
             n2level[n] = n2level[n.up] + 1
@@ -137,35 +187,37 @@ def adjust_branch_lengths_by_size2(tree_image, stop=4):
 
         if n2level[n] <= stop:
             tree_image.img_data[n._id][_blen] = n.dist * 1000
-            print n2level[n], stop, n.dist
         else:
             tree_image.img_data[n._id][_blen] =  n.dist * 1.5
 
-
-        
-def adjust_branch_lengths_by_size3(tree_image, stop=20, sca=2):
+def by_scale(tree_image, stop=20, sca=10):
     n2dist = {}
-    
+
     root = tree_image.root_node
     leaf, maxd = root.get_farthest_leaf()
     distances = [n.dist for n in root.iter_descendants()]
+
+    scale_ranges = [(maxd/4, 1000), (maxd/3, 500), (maxd/2, 10), (maxd**maxd, 1)]
+    
     print maxd, min(distances), max(distances), '-----------------------'
     for n in root.traverse("preorder"):
-    
         if n.up:
             fbranch = n.dist
             parent_branch = n2dist[n.up]
             n2dist[n] = parent_branch + fbranch
-            if parent_branch >= sca:
-                scale1 = 0
-                scale2 = fbranch
-            else:
-                scale1 =  max(0.0,  fbranch - (sca - parent_branch))
-                scale2 = fbranch - scale1
-            blen = (scale1 * 1000) + (scale2 * 1)
-            if len(n) > 500:
-                print n2dist[n], scale1, scale2, blen, len(n)
+            blen = 0
+            current_pos = parent_branch
+            for scamax, sca in scale_ranges:
+                if current_pos <= scamax:
+                    offset = min(scamax, current_pos + fbranch)
+                    current_pos += offset 
+                    blen += offset * sca
+
             tree_image.img_data[n._id][_blen] = blen
         else:
-            tree_image.img_data[n._id][_blen] = 20
+            tree_image.img_data[n._id][_blen] = maxd/2
             n2dist[n] = 0
+
+
+
+adjust_branch_lengths_by_size=by_scale

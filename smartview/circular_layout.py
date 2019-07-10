@@ -178,11 +178,10 @@ def update_node_radius(imgdata, cached_prepostorder,
             dim[_nhb] = hbot
 
             branch = dim[_blen] #* scale
-            wtop = max(branch, dim[_btw]) + dim[_brw]
-            wbot = max(branch, dim[_bbw]) + dim[_brw]
-            node_width = max(wtop, wbot)
-
-            node_width = branch # ojo
+            # wtop = max(branch, dim[_btw]) + dim[_brw]
+            # wbot = max(branch, dim[_bbw]) + dim[_brw]
+            # node_width = max(wtop, wbot)
+            node_width = branch #+ dim[_brw]
             node_end_radius = parent_radius + node_width
 
             dim[_rad] = node_end_radius
@@ -191,11 +190,9 @@ def update_node_radius(imgdata, cached_prepostorder,
 
             max_radius = max(max_radius, node_end_radius)
             if dim[_is_leaf]:
-                print parent_radius, dim[_rad], branch, node_width
-                dim[_fnw] = node_end_radius 
+                dim[_fnw] = node_end_radius
                 angle = (dim[_aend] - dim[_astart])
                 dim[_fnh] = dim[_fnw] * angle
-
         else:
             dim[_fnw] = max([imgdata[ch._id][_fnw] for ch in node.children])
             dim[_fnh] = dim[_fnw] * (dim[_aend] - dim[_astart])
@@ -221,11 +218,13 @@ def compute_circ_collision_paths(tree_image):
                 angles.append(tree_image.img_data[ch._id][_acenter])
         angles.append(arc_end)
         path = get_arc_path(parent_radius, radius, angles)
-        full_path = get_arc_path(parent_radius, tree_image.radius[-1], angles)
+        #full_path = get_arc_path(parent_radius, tree_image.radius[-1], angles)
+        full_path = get_arc_path(parent_radius, dim[_fnw], angles)
 
         collistion_paths.append((path, full_path))
 
     return collistion_paths
+
 
 @timeit
 def update_node_angles(img_data, cached_prepostorder,
@@ -273,118 +272,3 @@ def update_node_angles(img_data, cached_prepostorder,
                 dim[_acenter] = current_angle + (angle_step/2.0)
                 current_angle += angle_step
 
-# -------------------------------------------
-# ###########################################
-
-def adjust_branch_lengths(tree_image):
-    img_data = tree_image.img_data
-    min_absolute_rad = (len(tree_image.cached_leaves))/(2*math.pi)
-    root_node = tree_image.root_node
-    n2leaves = {}
-    for n in root_node.traverse("postorder"):
-        if n.children:
-            n2leaves[n] = sum([n2leaves[ch] for ch in n.children])
-        else:
-            n2leaves[n] = 1
-        n.support = n2leaves[n]
-
-    starts = [root_node]
-    breaks = [500]
-    for stop in breaks:
-        new_starts = []
-        for root in starts:
-            colors = random_color(num=len(starts))
-            def is_leaf(_node):
-                if n2leaves[_node] <= stop or len(_node.children) > 1000:
-                    return True
-                else:
-                    return False
-
-            root.convert_to_ultrametric(tree_length=10, is_leaf_fn=is_leaf, strategy="log", logbase=10)
-            cdist = {}
-            angle_span = img_data[root._id][_aend]-img_data[root._id][_astart]
-            print len(root)
-            for n in root.iter_descendants(is_leaf_fn=is_leaf):
-                if is_leaf(n):
-                    new_starts.append(n)
-                cdist[n] = cdist.get(n, 0.0)
-                cdist[n] += n.dist
-            if cdist:
-                expected_rad = ((n2leaves[root] / angle_span) / len(breaks))
-                root_scale =  expected_rad / max(cdist.values())
-                if root_scale > 1:
-                    linecolor = colors.pop()
-                    for n in cdist:
-                        n.img_style.hz_line_color = linecolor
-                        img_data[n._id][_blen] = n.dist * root_scale
-                        n.dist = n2leaves[n]
-                print "SCALED", len(cdist), "nodes, using scale", root_scale
-        starts = new_starts
-
-
-
-
-        
-def cannotbe2(tree_image):
-    n2leaves = {}
-    stop = 1
-    root = tree_image.root_node
-    for n in root.traverse("postorder"):
-        if n.children:
-            n2leaves[n] = sum([n2leaves[ch] for ch in n.children])
-        else:
-            n2leaves[n] = 1
-        n.support = n2leaves[n]
-
-    for n in root.traverse():
-        if n2leaves[n] >500:
-            tree_image.img_data[n._id][_blen] = n.dist * 100
-        else:
-            tree_image.img_data[n._id][_blen] = n.dist
-
-
-
-def transform_by_level(tree_image):
-    imgdata = tree_image.img_data
-    min_absolute_rad = (len(tree_image.cached_leaves))/(2*math.pi)
-    _, max_levels =  tree_image.root_node.get_farthest_leaf(topology_only=True)
-
-    levelnodes = [tree_image.root_node]
-    prev_rad = 0.0
-    level_counter = 0
-
-    correct_levels = max_levels/2
-    radinc = min_absolute_rad/correct_levels
-    steps = []
-    for stop in xrange(1, int(correct_levels)):
-        steps.append([stop, radinc])
-    print steps
-    colors = random_color(num=len(steps))
-    for stop, rad_start in steps:
-        scaled_nodes = []
-        nextlevelnodes = []
-
-        cdist = {}
-        while levelnodes:
-            if level_counter <= stop:
-                scaled_nodes.extend(levelnodes)
-                for n in levelnodes:
-                    cdist[n] = cdist.get(n, 0.0)
-                    cdist[n] += imgdata[n._id][_blen]
-            else:
-                break
-
-            for n in levelnodes:
-                nextlevelnodes.extend(n.children)
-            levelnodes = nextlevelnodes
-            nextlevelnodes = []
-            level_counter += 1
-
-        prev_rad += rad_start
-        root_scale = rad_start / max(cdist.values())
-        print "SCALED", len(scaled_nodes), root_scale, rad_start, max(cdist.values())
-        if root_scale > 1:
-            linecolor = colors.pop()
-            for n in scaled_nodes:
-                n.img_style.hz_line_color = linecolor
-                imgdata[n._id][_blen] *= root_scale

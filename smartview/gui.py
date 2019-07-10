@@ -563,8 +563,10 @@ class TiledTreeView(QGraphicsView):
         else:
             nid, path, fpath = self._get_node_under_mouse()
             if nid is not None:
-                self.highlighter.setPath(path)
+                self.highlighter.setPath(fpath)
                 self.highlighter.show()
+            else:
+                self.highlighter.hide()
         QGraphicsView.mouseMoveEvent(self, e)
 
     def mousePressEvent(self,e):

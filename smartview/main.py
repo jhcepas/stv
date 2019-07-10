@@ -13,7 +13,7 @@ class TreeImage(object):
         self.tree_style = tree_style
         self.root_node = root_node
         self.scale = tree_style.scale
-        self.root_open = 0
+        self.root_open = 1000
 
         self.cached_prepostorder = None
         self.cached_preorder = None
@@ -107,7 +107,7 @@ class TreeImage(object):
         layout.adjust_branch_lengths_by_size(self)
 
         self.scale = 1.0
-        self.root_open = 0.0
+
 
         aligned_region_width = layout.compute_aligned_region_width(self)
 

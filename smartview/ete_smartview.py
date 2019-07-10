@@ -134,6 +134,8 @@ def stacked_layout(node):
     else:
         if node.name:
             add_face_to_node(nameF, node, column=0, position="branch-top")
+        add_face_to_node(distF, node, column=0, position="branch-bottom")
+        add_face_to_node(TextFace(str(len(node)), fsize=6), node, column=0, position="branch-bottom")
 #            add_face_to_node(nameF, node, column=0, position="aligned")
 
 def rect_layout(node):
@@ -158,7 +160,7 @@ def run(args):
         t = Tree()
         t.populate(args.size, random_branches=True)
         for n in t.traverse():
-            n.dist = random.randint(1, 999)/1000.0
+            n.dist = random.randint(1, 999)/100.0
     elif args.src_trees:
         t = Tree(args.src_trees[0], format=args.nwformat)
 
