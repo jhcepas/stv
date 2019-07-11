@@ -40,8 +40,8 @@ nameF = AttrFace("name", fsize=10, fgcolor='royalBlue', ftype='Arial')
 nameF2 = AttrFace("name", fsize=16, fgcolor='indianred', ftype='Arial')
 nameF3 = AttrFace("name", fsize=8, fgcolor='grey', ftype='Arial')
 #nameF.margin_right = 10
-distF = AttrFace("dist", fsize=7)
-supportF = AttrFace("support", fsize=7)
+distF = AttrFace("dist", fsize=12)
+supportF = AttrFace("support", fsize=12)
 labelF = LabelFace(70)
 labelF.fill_color = "thistle"
 labelF2 = LabelFace(70)
@@ -135,7 +135,7 @@ def stacked_layout(node):
         if node.name:
             add_face_to_node(nameF, node, column=0, position="branch-top")
         add_face_to_node(distF, node, column=0, position="branch-bottom")
-        add_face_to_node(TextFace(str(len(node)), fsize=6), node, column=0, position="branch-bottom")
+        add_face_to_node(TextFace(str(len(node)), fsize=13), node, column=0, position="branch-bottom")
 #            add_face_to_node(nameF, node, column=0, position="aligned")
 
 def rect_layout(node):
@@ -161,6 +161,7 @@ def run(args):
         t.populate(args.size, random_branches=True)
         for n in t.traverse():
             n.dist = random.randint(1, 999)/100.0
+            n.dist = 1.0
     elif args.src_trees:
         t = Tree(args.src_trees[0], format=args.nwformat)
 

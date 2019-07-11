@@ -138,39 +138,69 @@ def by_size(tree_image, stop=None):
     median_dist = np.median(distances)
     min_dist = np.median(distances)
 
-    scale1 = 100.0 / min_dist 
+    scale1 = 20.0 / min_dist 
 
     nleaves = float(len(root))
     angle = tree_image.tree_style.arc_span / nleaves
 
     theta = (angle * math.pi) / 180
     min_sep = 3 / math.sin(theta)
-    
-    
-    print min_sep, "min_sep............................."
 
+    tree_size = len(root)
+    remain = (float(tree_size) / stop)
+    iters = [stop]
+    scales = [scale1]
+    print remain, stop
+    while remain >= stop:
+        new_size = stop*len(iters)
+        iters.append(new_size)
+        remain = (tree_size / stop)
+        print remain, "remain"
+        
+    for ite, s in enumerate(iters[1:]):
+        scales.append((min_sep/(len(iters)-ite)) / median_dist)
+
+    print min_sep, "min_sep............................."
+    print iters
+    print scales
     for n in root.traverse("postorder"):
         if n.children:
             n2leaves[n] = sum([n2leaves[ch] for ch in n.children])
         else:
             n2leaves[n] = 1
 
-        if n2leaves[n] >= stop*3:
-            for ch in n.children:
-                tree_image.img_data[ch._id][_blen] = n.dist * scale1 * 20
-        elif n2leaves[n] >= stop*2:
-            for ch in n.children:
-                tree_image.img_data[ch._id][_blen] = n.dist * scale1 * 10
-        elif n2leaves[n] >= stop:
-            for ch in n.children:
-                tree_image.img_data[ch._id][_blen] = n.dist * scale1 * 5
-        else:
-            for ch in n.children:
-                tree_image.img_data[n._id][_blen] =  n.dist * scale1
+        for csize, scale in zip(iters, scales):
+            if n2leaves[n] <= csize:
+                for ch in n.children:
+                    tree_image.img_data[ch._id][_blen] = n.dist * scale
+                break
 
+def by_size(tree_image, stop=None):
+    if stop is None:
+        stop = 100
 
+    root = tree_image.root_node.copy('newick')
+    for count, n in enumerate(root.traverse('preorder')):
+        n._id = count
+    print len(root)
+    
+    scale = 10
+    while True:
+        n2leaves = root.get_cached_content()
+        print scale, len(n2leaves[root])
 
-                
+        if len(n2leaves[root]) < stop:
+            print 'break'
+            break
+        for nleaves, leaf in enumerate(root.get_leaves(is_leaf_fn=lambda x: len(n2leaves[x])<=stop)):
+            for ch in leaf.get_children():
+                for n in ch.traverse():
+                    tree_image.img_data[n._id][_blen] = n.dist * scale
+                ch.detach()
+        print scale, nleaves
+        scale = scale * 100
+
+        
 def by_level(tree_image, stop=None):
     if stop is None:
         stop = 4
@@ -197,8 +227,8 @@ def by_scale(tree_image, stop=20, sca=10):
     leaf, maxd = root.get_farthest_leaf()
     distances = [n.dist for n in root.iter_descendants()]
 
-    scale_ranges = [(maxd/4, 1000), (maxd/3, 500), (maxd/2, 10), (maxd**maxd, 1)]
-    
+    scale_ranges = [(maxd/4, 100), (maxd/3, 16), (maxd/2, 16), (maxd**maxd, 1)]
+    print scale_ranges
     print maxd, min(distances), max(distances), '-----------------------'
     for n in root.traverse("preorder"):
         if n.up:
@@ -220,4 +250,4 @@ def by_scale(tree_image, stop=20, sca=10):
 
 
 
-adjust_branch_lengths_by_size=by_scale
+adjust_branch_lengths_by_size=by_size
