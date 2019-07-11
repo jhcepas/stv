@@ -128,9 +128,9 @@ def by_size2(tree_image, stop=None):
                 tree_image.img_data[n._id][_blen] =  n.dist * 3
 
 
-def by_size(tree_image, stop=None):
+def by_size_old(tree_image, stop=None):
     if stop is None:
-        stop = 100
+        stop = 200
     n2leaves = {}
     root = tree_image.root_node
     leaf, maxd = root.get_farthest_leaf()
@@ -140,12 +140,16 @@ def by_size(tree_image, stop=None):
 
     scale1 = 20.0 / min_dist 
 
+    # minimum distance to allocate 3 pixels per terminal node
     nleaves = float(len(root))
     angle = tree_image.tree_style.arc_span / nleaves
-
     theta = (angle * math.pi) / 180
     min_sep = 3 / math.sin(theta)
 
+    init_zoom_factor = min_sep / 1080
+    print "INIT ZOOM FACTOR", init_zoom_factor
+    
+    
     tree_size = len(root)
     remain = (float(tree_size) / stop)
     iters = [stop]
@@ -174,33 +178,63 @@ def by_size(tree_image, stop=None):
                 for ch in n.children:
                     tree_image.img_data[ch._id][_blen] = n.dist * scale
                 break
-
+@timeit
 def by_size(tree_image, stop=None):
     if stop is None:
         stop = 100
 
     root = tree_image.root_node.copy('newick')
+    distances = []
+    nleaves = 0
     for count, n in enumerate(root.traverse('preorder')):
+        distances.append(n.dist)
+        if not n.children:
+            nleaves += 1
         n._id = count
-    print len(root)
-    
-    scale = 10
-    while True:
-        n2leaves = root.get_cached_content()
-        print scale, len(n2leaves[root])
 
-        if len(n2leaves[root]) < stop:
-            print 'break'
-            break
+    print nleaves
+    median_dist = np.median(distances)
+    min_dist = np.median(distances)
+    scale = 10.0 / min_dist 
+
+    # minimum distance to allocate 3 pixels per terminal node
+    angle = tree_image.tree_style.arc_span / float(nleaves)
+    theta = math.radians(angle/2.0)
+    print theta
+    min_sep = 3.0 / math.sin(theta)
+
+    init_zoom_factor = min_sep / 1080
+    print "INIT ZOOM FACTOR", init_zoom_factor
+
+    
+    # angle = tree_image.tree_style.arc_span / nleaves
+    # theta = (angle * math.pi) / 180
+    # min_sep = 3 / math.sin(theta)
+
+    n2leaves = root.get_cached_content()
+    while True:
         for nleaves, leaf in enumerate(root.get_leaves(is_leaf_fn=lambda x: len(n2leaves[x])<=stop)):
             for ch in leaf.get_children():
                 for n in ch.traverse():
                     tree_image.img_data[n._id][_blen] = n.dist * scale
                 ch.detach()
-        print scale, nleaves
-        scale = scale * 100
+        print "scale used:", scale
+        print "leaves processed:", nleaves
+        print "new size of tree:", len(root)
+        print "----------------"
+        scale = scale * 10
+        n2leaves = root.get_cached_content()
+        if len(n2leaves[root]) < stop:
+            print 'break'
+            break
+    for nleaves, n in enumerate(root.traverse()):
+        tree_image.img_data[n._id][_blen] = n.dist * scale
+    print "scale used:", scale
+    print "leaves processed:", nleaves
+    print "new size of tree:", len(root)
+    print "----------------"
 
-        
+
 def by_level(tree_image, stop=None):
     if stop is None:
         stop = 4
@@ -248,6 +282,37 @@ def by_scale(tree_image, stop=20, sca=10):
             tree_image.img_data[n._id][_blen] = maxd/2
             n2dist[n] = 0
 
+def by_islands(tree_image, stop=None):
+    if stop is None:
+        stop = 150
+        
+    n2leaves = {}
+    root = tree_image.root_node
+    for n in root.traverse("postorder"):
+        if n.children:
+            n2leaves[n] = sum([n2leaves[ch] for ch in n.children])
+        else:
+            n2leaves[n] = 1
 
+        if n2leaves[n] >= stop*3:
+            for ch in n.children:
+                tree_image.img_data[ch._id][_blen] = n.dist * 1000
+        elif n2leaves[n] >= stop*2:
+            for ch in n.children:
+                tree_image.img_data[ch._id][_blen] = n.dist * 20
+        elif n2leaves[n] >= stop:
+            for ch in n.children:
+                tree_image.img_data[ch._id][_blen] = n.dist * 10
+        else:
+            for ch in n.children:
+                tree_image.img_data[n._id][_blen] =  n.dist * 3
 
-adjust_branch_lengths_by_size=by_size
+def real(tree_image, stop=None):
+    root = tree_image.root_node
+    distances = [n.dist for n in root.iter_descendants()]
+    scale = 10 / min(distances)
+    
+    for n in root.traverse("preorder"):
+        tree_image.img_data[n._id][_blen] =  n.dist * scale
+
+default_adjust_branch=by_size

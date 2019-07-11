@@ -135,7 +135,8 @@ def stacked_layout(node):
         if node.name:
             add_face_to_node(nameF, node, column=0, position="branch-top")
         add_face_to_node(distF, node, column=0, position="branch-bottom")
-        add_face_to_node(TextFace(str(len(node)), fsize=13), node, column=0, position="branch-bottom")
+        add_face_to_node(TextFace(str(n2leaves[node]), fsize=13), node, column=0, position="branch-top")
+#        add_face_to_node(TextFace("%0.2f" % n2dist[n], fsize=13), node, column=0, position="branch-top")
 #            add_face_to_node(nameF, node, column=0, position="aligned")
 
 def rect_layout(node):
@@ -146,6 +147,7 @@ def clean_layout(node):
     pass
 
 def run(args):
+    global n2leaves
     common.CONFIG["debug"] = args.debug
     common.CONFIG["timeit"] = args.track_time
     common.CONFIG["C"] = args.cmode
@@ -157,11 +159,17 @@ def run(args):
         h.setref()
 
     if args.size:
-        t = Tree()
-        t.populate(args.size, random_branches=True)
-        for n in t.traverse():
-            n.dist = random.randint(1, 999)/100.0
+        t1 = Tree()
+        t1.populate(args.size, random_branches=True)
+        for n in t1.traverse():
+            n.dist = random.randint(1, 99)/100.0
             n.dist = 1.0
+        t2 = Tree()
+        t2.populate(args.size, random_branches=True)
+        for n in t2.traverse():
+            n.dist = random.randint(1, 15)/100.0
+        t = t1 + t2
+            
     elif args.src_trees:
         t = Tree(args.src_trees[0], format=args.nwformat)
 

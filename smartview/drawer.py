@@ -13,8 +13,7 @@ from PyQt5.QtSvg import *
 from .common import *
 from .utils import timeit, debug
 
-COLLAPSE_RESOLUTION = 5
-
+COLLAPSE_RESOLUTION = 10
 
 def get_node_paths(tree_image, nid):
     dim = tree_image.img_data[nid]
@@ -149,7 +148,7 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
 
     while curr < end:
         ITERS += 1
-        draw_collapsed = 0
+        draw_collapsed = False
         nid = curr
 
         dim = img_data[nid]
@@ -160,23 +159,24 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
         fpath = arc_paths[nid][1]
 
         #path, fpath = get_node_paths(tree_image, nid)
-        
-        if (dim[_fnh] * zoom_factor) < 1:
+
+        if dim[_fnh] > R180:
+            node_height = 999999999
+        else:
+            node_height = ((math.sin(dim[_fnh]/2.0) * dim[_fnw]) * 2) * zoom_factor
+
+        # if node smaller than a pixel
+        if (node_height) < 1:
             curr = int(dim[_max_leaf_idx] + 1)
             TOO_SMALL += 1
             continue
-        # if desdendant space is too small, draw the whole branch as a single
+        # if descendant space is too small, draw the whole branch as a single
         # simplified item
-        elif not dim[_is_leaf] and (dim[_fnh] * zoom_factor) < COLLAPSE_RESOLUTION:
+        elif not dim[_is_leaf] and (node_height) < COLLAPSE_RESOLUTION:
             curr = int(dim[_max_leaf_idx] + 1)
-            draw_collapsed = 2
+            draw_collapsed = True
             path = fpath
             COLLAPSED += 1
-        elif not dim[_is_leaf] and (dim[_max_leaf_idx] - curr) == len(tree_image.cached_preorder[curr].children) and \
-             (dim[_fnh] * zoom_factor)/len(tree_image.cached_preorder[curr].children) < 3:
-            curr = int(dim[_max_leaf_idx] + 1)
-            draw_collapsed = 2
-            MULTI += 1
         else:
             curr += 1
 

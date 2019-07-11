@@ -172,10 +172,13 @@ def update_node_radius(imgdata, cached_prepostorder,
         if not postorder:
             parent_radius = imgdata[int(dim[_parent])][_rad] if node._id > 0 else root_opening
             lw = dim[_bh] / 2.0
-            htop = max(dim[_bth]+lw, dim[_brh]/2.0)
-            hbot = max(dim[_bbh]+lw, dim[_brh]/2.0)
-            dim[_nht] = htop
-            dim[_nhb] = hbot
+            #htop = max(dim[_bth]+lw, dim[_brh]/2.0)
+            #hbot = max(dim[_bbh]+lw, dim[_brh]/2.0)
+            #dim[_nht] = htop
+            #dim[_nhb] = hbot
+
+            dim[_nht] = lw
+            dim[_nhb] = lw
 
             branch = dim[_blen] #* scale
             # wtop = max(branch, dim[_btw]) + dim[_brw]
@@ -192,11 +195,10 @@ def update_node_radius(imgdata, cached_prepostorder,
             if dim[_is_leaf]:
                 dim[_fnw] = node_end_radius
                 angle = (dim[_aend] - dim[_astart])
-                dim[_fnh] = dim[_fnw] * angle
+                dim[_fnh] = angle
         else:
             dim[_fnw] = max([imgdata[ch._id][_fnw] for ch in node.children])
-            dim[_fnh] = dim[_fnw] * (dim[_aend] - dim[_astart])
-
+            dim[_fnh] = dim[_aend] - dim[_astart]
     return max_radius
 
 @timeit

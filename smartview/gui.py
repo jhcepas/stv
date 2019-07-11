@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import *
 
 from .utils import timeit, debug
 from .common import *
+from . import layout 
 from . import drawer
 
 _QApp = None
@@ -96,6 +97,7 @@ class TiledTreeView(QGraphicsView):
 
         self.highlighter = QGraphicsPathItem()
         self.highlighter.setZValue(100)
+        self.highlighter.setPen(QColor("tomato"))
         self.highlighter.setBrush(QBrush(QColor("#dddddd")))
         self.highlighter.setOpacity(0.4)
         self._scene.addItem(self.highlighter)
@@ -516,20 +518,27 @@ class TiledTreeView(QGraphicsView):
 
         # 1
         elif key == 49:
-            self.stop -= 1
-            print self.stop
-            self.tree_image.adjust_branch_lengths(stop=self.stop)
+            self.tree_image.adjust_branch_lengths(layout.real)
+            self.tree_image.update_collision_paths()
             self.update_tile_view()
             self._fit_to_window()
 
         # 2
         elif key == 50:
-            self.stop += 1
-            print self.stop
-            self.tree_image.adjust_branch_lengths(stop=self.stop)
+            self.tree_image.adjust_branch_lengths(layout.by_size)
+            self.tree_image.update_collision_paths()
             self.update_tile_view()
             self._fit_to_window()
 
+        # 3
+        elif key == 51:
+            self.tree_image.adjust_branch_lengths(layout.by_level)
+            self.tree_image.update_collision_paths()
+            self.update_tile_view()
+            self._fit_to_window()
+
+
+            
         debug("PRESSED", key)
         QGraphicsView.keyReleaseEvent(self,e)
 
@@ -565,6 +574,9 @@ class TiledTreeView(QGraphicsView):
             if nid is not None:
                 self.highlighter.setPath(fpath)
                 self.highlighter.show()
+                # print path.boundingRect().height()*self.zoom_factor
+                # print fpath.boundingRect().height()*self.zoom_factor, fpath.boundingRect().height()  
+                # print "--"
             else:
                 self.highlighter.hide()
         QGraphicsView.mouseMoveEvent(self, e)
