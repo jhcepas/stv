@@ -12,6 +12,7 @@ from PyQt5.QtSvg import *
 
 from .common import *
 from .utils import timeit, debug
+from . import layout
 
 COLLAPSE_RESOLUTION = 10
 
@@ -28,7 +29,7 @@ def get_node_paths(tree_image, nid):
             angles.append(tree_image.img_data[ch._id][_acenter])
     angles.append(arc_end)
     path = get_arc_path(parent_radius, radius, angles)
-    full_path = get_arc_path(parent_radius, tree_image.radius[-1], angles)
+    full_path = get_arc_path(parent_radius, dim[_fnw], angles)
 
     return path, full_path
 
@@ -158,8 +159,10 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
         path = arc_paths[nid][0]
         fpath = arc_paths[nid][1]
 
-        #path, fpath = get_node_paths(tree_image, nid)
+        path, fpath = get_node_paths(tree_image, nid)
+        arc_paths[nid] = [path, fpath]
 
+        
         if dim[_fnh] >= R180:
             node_height = 999999999
         else:
@@ -247,6 +250,10 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
 
             pp.translate(cx*zoom_factor, cy*zoom_factor)
             pp.rotate(math.degrees(new_angle))
+            # if node was not visited yet, compute face dimensions
+            if not np.any(dim[_btw:_bah+1]):
+                face_pos_sizes = layout.compute_face_dimensions(node, node._temp_faces)
+                dim[_btw:_bah+1] = face_pos_sizes
             draw_faces(pp, new_rad, 0, node, dim, branch_length, zoom_factor, tree_image, is_collapsed=False)
 
         pp.restore()

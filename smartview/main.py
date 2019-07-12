@@ -97,6 +97,7 @@ class TreeImage(object):
 
         elif self.tree_style.mode == "c":
             circular_layout.update_node_angles(img_data=self.img_data,
+                                               arc_start=self.tree_style.arc_start,
                                                cached_prepostorder=self.cached_prepostorder,
                                                cached_preorder=self.cached_preorder,
                                                leaf_apertures=self.leaf_apertures)

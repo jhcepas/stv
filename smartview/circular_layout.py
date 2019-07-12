@@ -1,6 +1,6 @@
 import math
 from utils import timeit
-
+from collections import defaultdict
 from common import *
 from colors import *
 
@@ -205,7 +205,9 @@ def update_node_radius(imgdata, cached_prepostorder,
 def compute_circ_collision_paths(tree_image):
     from .drawer import get_arc_path
     """ collision paths in the un-transformed scene"""
-    collistion_paths = []
+    collision_paths = defaultdict(lambda: [None, None])
+    return collision_paths
+
     img_data = tree_image.img_data
 
     for nid, dim in enumerate(img_data):
@@ -223,20 +225,20 @@ def compute_circ_collision_paths(tree_image):
         #full_path = get_arc_path(parent_radius, tree_image.radius[-1], angles)
         full_path = get_arc_path(parent_radius, dim[_fnw], angles)
 
-        collistion_paths.append((path, full_path))
+        collision_paths.append((path, full_path))
 
-    return collistion_paths
+    return collision_paths
 
 
 @timeit
-def update_node_angles(img_data, cached_prepostorder,
+def update_node_angles(img_data, arc_start, cached_prepostorder,
                        cached_preorder,
                        leaf_apertures):
     # angles in Qt are clockwise. 3 o'clock is 0
     #     270
     #180      0
     #     90
-    current_angle = 0.0
+    current_angle = math.radians(arc_start)
     current_leaf_index = 0
     root_visited = False
 

@@ -1,0 +1,7 @@
+1 No need to precompute face dimensions
+2 No need to precumpute collision paths
+3 update node under mouse
+4. option to precompute faces and calculate optimial scale/corrections
+5. Think on lack of precalculation of aligned faces startx
+6. modify apertures
+7. click to group nodes
