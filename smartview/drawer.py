@@ -160,17 +160,17 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
 
         #path, fpath = get_node_paths(tree_image, nid)
 
-        if dim[_fnh] > R180:
+        if dim[_fnh] >= R180:
             node_height = 999999999
         else:
             node_height = ((math.sin(dim[_fnh]/2.0) * dim[_fnw]) * 2) * zoom_factor
 
-        # if node smaller than a pixel
-        if (node_height) < 1:
+        # if node looks smaller than a pixel
+        if node_height < 1.0:
             curr = int(dim[_max_leaf_idx] + 1)
             TOO_SMALL += 1
             continue
-        # if descendant space is too small, draw the whole branch as a single
+        # if descendants are too small, draw the whole partition as a single
         # simplified item
         elif not dim[_is_leaf] and (node_height) < COLLAPSE_RESOLUTION:
             curr = int(dim[_max_leaf_idx] + 1)
