@@ -14,7 +14,7 @@ from .common import *
 from .utils import timeit, debug
 from . import layout
 
-COLLAPSE_RESOLUTION = 10
+COLLAPSE_RESOLUTION = 25
 
 def get_node_paths(tree_image, nid):
     dim = tree_image.img_data[nid]
@@ -140,7 +140,6 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
     m_scene_rect = m.mapRect(scene_rect)
 
     M = QTransform()
-    print type(zoom_factor)
     M.scale(zoom_factor, zoom_factor)
     M.translate(cx, cy)
 
@@ -159,37 +158,34 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
         ITERS += 1
         draw_collapsed = False
         nid = curr
-
+        node = tree_image.cached_preorder[nid]
         dim = img_data[nid]
         #path = M.map(arc_paths[nid][0])
         #fpath = M.map(arc_paths[nid][1])
 
-        path = arc_paths[nid][0]
-        fpath = arc_paths[nid][1]
+        #path = arc_paths[nid][0]
+        #fpath = arc_paths[nid][1]
 
-        path, fpath = get_node_paths(tree_image, nid)
-        arc_paths[nid] = [path, fpath]
-
-        
         if dim[_fnh] >= R180:
             node_height = 999999999
         else:
             node_height = ((math.sin(dim[_fnh]/2.0) * dim[_fnw]) * 2) * zoom_factor
 
         # if node looks smaller than a pixel
-        if node_height < 1.0:
+        if node_height < 3:
             curr = int(dim[_max_leaf_idx] + 1)
             TOO_SMALL += 1
             continue
         # if descendants are too small, draw the whole partition as a single
         # simplified item
-        elif not dim[_is_leaf] and (node_height) < COLLAPSE_RESOLUTION:
+        elif not dim[_is_leaf] and (node_height < COLLAPSE_RESOLUTION or node_height/len(node.children) < 3):
             curr = int(dim[_max_leaf_idx] + 1)
             draw_collapsed = True
-            path = fpath
             COLLAPSED += 1
         else:
             curr += 1
+
+        path, fpath = get_node_paths(tree_image, nid)
 
         # skip if node does not overlap with requested region
         if not path.intersects(m_scene_rect):
@@ -199,13 +195,14 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
                 SKIPPED += new_curr - curr
                 curr = new_curr
             continue
-
+        
+        arc_paths[nid] = [path, fpath]
         # Draw the node
         DRAWN += 1
 
         pp.save()
         if draw_collapsed:
-            node = tree_image.cached_preorder[nid]
+            
             branch_length = dim[_blen] * tree_image.scale
             pp.setPen(QPen(QColor("#999999")))
             parent_radius = img_data[int(dim[_parent])][_rad] if nid else tree_image.root_open
@@ -237,7 +234,6 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
             if not dim[_is_leaf] and len(node.children) > 1:
                 acen_0 = tree_image.img_data[node.children[0]._id][_acenter]
                 acen_1 = tree_image.img_data[node.children[-1]._id][_acenter]
-                
                 pp.setPen(QColor(node.img_style.vt_line_color))
                 vLinePath = get_arc_path(dim[_rad], dim[_rad], [acen_0, acen_1])
                 pp.drawPath(M.map(vLinePath))
@@ -259,7 +255,7 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
             #new_rad, new_angle = parent_radius, dim[_acenter]
 
             pp.translate(cx*zoom_factor, cy*zoom_factor)
-            pp.rotate(math.degrees(new_angle))
+            pp.rotate(np.degrees(new_angle))
             # if node was not visited yet, compute face dimensions
             if not np.any(dim[_btw:_bah+1]):
                 face_pos_sizes = layout.compute_face_dimensions(node, node._temp_faces)
