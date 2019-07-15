@@ -37,10 +37,10 @@ def get_qt_corrected_angle(rad, angle):
     path = QPainterPath()
     inner_diam = rad * 2.0
     rect1 = QRectF(-rad, -rad, inner_diam, inner_diam)
-    path.arcMoveTo(rect1, -math.degrees(angle))
+    path.arcMoveTo(rect1, -np.degrees(angle))
     i1 = path.currentPosition()
-    new_angle = math.atan2(i1.y(), i1.x())
-    new_rad = math.hypot(i1.y(), i1.x())
+    new_angle = np.arctan2(i1.y(), i1.x())
+    new_rad = np.hypot(i1.y(), i1.x())
     return new_rad, new_angle
 
 def get_arc_path(inner_r, outter_r, rad_angles):
@@ -58,15 +58,15 @@ def get_arc_path(inner_r, outter_r, rad_angles):
         path.lineTo(i1)
 
     elif inner_r == outter_r:
-        #print 'OK'
+        span = -np.degrees(rad_angles[-1]-rad_angles[0])
         path.arcMoveTo(-inner_r, -inner_r, inner_diam, inner_diam, -angles[0])
-        #path.arcMoveTo(rect1, -angles[0])
-        #i1 = path.currentPosition()
-        #path.moveTo(i1)
-        #current_a = angles[0]
-        #for a in angles[1:]:
-        path.arcTo(-inner_r, -inner_r, inner_diam, inner_diam,
-                   -angles[0], -np.degrees(rad_angles[-1]-rad_angles[0]))
+        if abs(span) < 0.1:
+            i1 = path.currentPosition()
+            path.arcMoveTo(-inner_r, -inner_r, inner_diam, inner_diam, -angles[-1])
+            path.lineTo(i1)
+        else:
+            path.arcTo(-inner_r, -inner_r, inner_diam, inner_diam,
+                   -angles[0], span)
         #    current_a = a
         #path.closeSubpath()
     else:
@@ -237,13 +237,9 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
             if not dim[_is_leaf] and len(node.children) > 1:
                 acen_0 = tree_image.img_data[node.children[0]._id][_acenter]
                 acen_1 = tree_image.img_data[node.children[-1]._id][_acenter]
-
-                # new_rad, ang1 = get_qt_corrected_angle(dim[_rad], acen_0)
-                # new_rad, ang2 = get_qt_corrected_angle(dim[_rad], acen_1)
-                # vLinePath = get_arc_path(dim[_rad], dim[_rad], [ang1, ang2])
                 
-                vLinePath = get_arc_path(dim[_rad], dim[_rad], [acen_0, acen_1])
                 pp.setPen(QColor(node.img_style.vt_line_color))
+                vLinePath = get_arc_path(dim[_rad], dim[_rad], [acen_0, acen_1])
                 pp.drawPath(M.map(vLinePath))
 
             branch_length = dim[_blen] * tree_image.scale

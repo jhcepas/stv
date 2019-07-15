@@ -11,7 +11,7 @@ def get_empty_matrix(nnodes):
     "nnodes"
     '''
     #matrix = np.zeros(nnodes, dtype="int8,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,float64,float64,float64,float64,float64,float64,float64,float64")
-    matrix = np.zeros((nnodes,MATRIX_FIELDS), dtype="float64")
+    matrix = np.zeros((nnodes,MATRIX_FIELDS), dtype="float32")
     return matrix
 
 
@@ -286,7 +286,7 @@ def by_size_new(tree_image, stop=None):
                     tree_image.img_data[ch._id][_blen] = ch.dist * clade_scale
 
     for dim in tree_image.img_data:
-        dim[_blen] *= 100
+         dim[_blen] *= 0.1
 
 def by_level(tree_image, stop=None):
     if stop is None:
