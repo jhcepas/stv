@@ -43,8 +43,8 @@ def get_qt_corrected_angle(rad, angle):
     new_rad = math.hypot(i1.y(), i1.x())
     return new_rad, new_angle
 
-def get_arc_path(inner_r, outter_r, angles):
-    angles = map(math.degrees, angles)
+def get_arc_path(inner_r, outter_r, rad_angles):
+    angles = map(np.degrees, rad_angles)
     path = QPainterPath()
     inner_diam = inner_r * 2.0
     rect1 = QRectF(-inner_r, -inner_r, inner_diam, inner_diam)
@@ -58,33 +58,40 @@ def get_arc_path(inner_r, outter_r, angles):
         path.lineTo(i1)
 
     elif inner_r == outter_r:
-        path.arcMoveTo(rect1, -angles[0])
-        i1 = path.currentPosition()
-        path.moveTo(i1)
-        current_a = angles[0]
-        for a in angles[1:]:
-            path.arcTo(rect1, -current_a, -(a-current_a))
-            current_a = a
+        #print 'OK'
+        path.arcMoveTo(-inner_r, -inner_r, inner_diam, inner_diam, -angles[0])
+        #path.arcMoveTo(rect1, -angles[0])
+        #i1 = path.currentPosition()
+        #path.moveTo(i1)
+        #current_a = angles[0]
+        #for a in angles[1:]:
+        path.arcTo(-inner_r, -inner_r, inner_diam, inner_diam,
+                   -angles[0], -np.degrees(rad_angles[-1]-rad_angles[0]))
+        #    current_a = a
+        #path.closeSubpath()
     else:
         outter_diam = outter_r * 2.0
         rect2 = QRectF(-outter_r, -outter_r, outter_diam, outter_diam)
-
-        path.arcMoveTo(rect1, -angles[0])
+        path.arcMoveTo(-inner_r, -inner_r, inner_diam, inner_diam, -angles[0])
+        #path.arcMoveTo(rect1, -angles[0])
         i1 = path.currentPosition()
 
-        path.arcMoveTo(rect2, -angles[-1])
+        path.arcMoveTo(-outter_r, -outter_r, outter_diam, outter_diam, -angles[-1])
+        #path.arcMoveTo(rect2, -angles[-1])
         o2 = path.currentPosition()
 
         path.moveTo(i1)
         current_a = angles[0]
         for a in angles[1:]:
-            path.arcTo(rect1, -current_a, -(a-current_a))
+            path.arcTo(-inner_r, -inner_r, inner_diam, inner_diam, -current_a, -(a-current_a))
+            #path.arcTo(rect1, -current_a, -(a-current_a))
             current_a = a
         path.lineTo(o2)
 
         current_a = angles[-1]
         for a in reversed(angles[:-1]):
-            path.arcTo(rect2, -current_a, current_a-a)
+            path.arcTo(-outter_r, -outter_r, outter_diam, outter_diam, -current_a, current_a-a)
+            #path.arcTo(rect2, -current_a, current_a-a)
             current_a = a
         path.closeSubpath()
     return path
@@ -133,6 +140,7 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
     m_scene_rect = m.mapRect(scene_rect)
 
     M = QTransform()
+    print type(zoom_factor)
     M.scale(zoom_factor, zoom_factor)
     M.translate(cx, cy)
 
@@ -229,6 +237,11 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
             if not dim[_is_leaf] and len(node.children) > 1:
                 acen_0 = tree_image.img_data[node.children[0]._id][_acenter]
                 acen_1 = tree_image.img_data[node.children[-1]._id][_acenter]
+
+                # new_rad, ang1 = get_qt_corrected_angle(dim[_rad], acen_0)
+                # new_rad, ang2 = get_qt_corrected_angle(dim[_rad], acen_1)
+                # vLinePath = get_arc_path(dim[_rad], dim[_rad], [ang1, ang2])
+                
                 vLinePath = get_arc_path(dim[_rad], dim[_rad], [acen_0, acen_1])
                 pp.setPen(QColor(node.img_style.vt_line_color))
                 pp.drawPath(M.map(vLinePath))
@@ -247,6 +260,7 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
             # pp.rotate(math.degrees(_angle))
             # pp.drawLine(parent_radius, 0, dim[_rad], 0)
             new_rad, new_angle = get_qt_corrected_angle(parent_radius, dim[_acenter])
+            #new_rad, new_angle = parent_radius, dim[_acenter]
 
             pp.translate(cx*zoom_factor, cy*zoom_factor)
             pp.rotate(math.degrees(new_angle))

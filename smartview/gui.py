@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import time
 from multiprocessing import Pool, Queue, Process
+import numpy as np
 
 import signal
 import math
@@ -63,7 +64,7 @@ class TiledTreeView(QGraphicsView):
     """
     def __init__(self, tree_image, tile_w, tile_h, zoom_factor=None):
         self.threads = {}
-        self.zoom_factor = zoom_factor
+        self.zoom_factor = np.float64(zoom_factor)
         self.tree_image = tree_image
         self.tree_mode = tree_image.tree_style.mode
         self.tile_w = tile_w
@@ -535,7 +536,7 @@ class TiledTreeView(QGraphicsView):
 
         # 3
         elif key == 51:
-            self.tree_image.adjust_branch_lengths(layout.by_level)
+            self.tree_image.adjust_branch_lengths(layout.by_size_new)
             self.tree_image.update_collision_paths()
             self.update_tile_view()
             self._fit_to_window()

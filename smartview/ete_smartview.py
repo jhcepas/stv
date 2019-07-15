@@ -236,7 +236,7 @@ def run(args):
 
     ts.layout_fn = globals()[args.layout]
     ts.mode = "c"
-    ts.arc_span = 360
+    ts.arc_span = 270
     ts.arc_start = -90
     if args.scale:
         ts.scale = args.scale

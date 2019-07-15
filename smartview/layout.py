@@ -193,7 +193,7 @@ def by_size(tree_image, stop=None):
 
 @timeit
 def by_size_new(tree_image, stop=None):
-    opt_size = 100
+    opt_size = 200
     root = tree_image.root_node
 
     n2leaves = {}
@@ -213,9 +213,9 @@ def by_size_new(tree_image, stop=None):
             if n.up:
                 n2rootdist[n] = n2rootdist[n.up] + n.dist
             else:
-                n2rootdist[n] = 0
+                n2rootdist[n] = 1
 
-    scale = 1000
+
     seeds = [root]
     while seeds:
         seed = seeds.pop()
@@ -223,45 +223,71 @@ def by_size_new(tree_image, stop=None):
             continue
         sorted_leaves = [(n2leaves[seed], seed)]
         while len(sorted_leaves) < opt_size:
-            if sorted_leaves[-1][0] < opt_size:
+            if sorted_leaves[-1][0] <= opt_size:
                 break
             size, largest = sorted_leaves.pop()
             for ch in largest.children:
                     bisect.insort_left(sorted_leaves, (n2leaves[ch], ch))
 
         if sorted_leaves:
-            print 'New Set ----------------', len(sorted_leaves), sorted_leaves[-1]
             leaves = [i[1] for i in sorted_leaves]
             dist, most_dist = sorted([(n2rootdist[lf], lf) for lf in leaves])[-1]
-            
-            if seed is root:
-                clade_scale = 5000
-                n2scale[seed] = 1000
-            else:
-                # curr = n2rootdist[seed] * n2scale[seed.up]
-                # aperture = tree_image.img_data[seed._id][_fnh]
-                # print aperture, len(seed)
-                # if aperture <= R90:
-                #     hyp = (n2leaves[seed] * 3) / math.sin(aperture/ 2.0)
-                # print hyp, curr
 
-                scale = (100.0) / dist
-                clade_scale = scale
+            aperture = tree_image.img_data[seed._id][_fnh]
+            if aperture < R180:
+                hyp = (n2leaves[seed] * 1) / math.sin(aperture/ 2.0)
+                #hyp = (len(leaves) * 1) / math.sin(aperture/ 2.0)
+            else:
+                hyp = (n2leaves[seed] * 1)
+                #hyp = (len(leaves) * 1)
+
+            if seed is root:
+                dist = max([n2rootdist[lf] for lf in leaves])
+                clade_scale = hyp / dist
+                n2scale[seed] = dist * clade_scale
+            else:
+                dist = max([n2rootdist[lf] for lf in leaves])
+
+                diff = dist - n2rootdist[seed]
+
+                current_rad = n2scale[seed]
+                if current_rad >= hyp:
+                    clade_scale = 500 / diff
+                else:
+                    clade_scale = (hyp-current_rad) / diff 
+
+
             print 'node_size:', n2leaves[seed], 'nodeRootdist:', n2rootdist[seed], 'scale', clade_scale
             for n in seed.traverse(is_leaf_fn=lambda x: x in leaves):
                 for ch in n.children: 
                     tree_image.img_data[ch._id][_blen] = ch.dist * clade_scale
-                    n2scale[ch] = clade_scale
+                    n2scale[ch] = n2scale[n] + (ch.dist * clade_scale)
                     
-            seeds.extend([lf for lf in leaves if n2leaves[lf]>= opt_size ])
+            seeds.extend([lf for lf in leaves if n2leaves[lf]> opt_size ])
         else:
-            clade_scale = 100.0 / ((n2farthest[seed] - n2rootdist[seed]) * scale)
+            aperture = tree_image.img_data[seed._id][_fnh]
+            if aperture < R180:
+                hyp = (n2leaves[seed] * 3) / math.sin(aperture/ 2.0)
+            else:
+                hyp = (n2leaves[seed] * 3)
+
+
+            dist = max([n2rootdist[lf] for lf in seed])
+            diff = dist - n2rootdist[seed]
+
+            current_rad = n2scale[seed]
+            if current_rad >= hyp:
+                clade_scale = 500 / diff
+            else:
+                clade_scale = (hyp-current_rad) / diff 
+
             for n in seed.traverse():
-                for ch in n.children: 
+                for ch in n.children:
                     tree_image.img_data[ch._id][_blen] = ch.dist * clade_scale
 
+    for dim in tree_image.img_data:
+        dim[_blen] *= 100
 
-            
 def by_level(tree_image, stop=None):
     if stop is None:
         stop = 4

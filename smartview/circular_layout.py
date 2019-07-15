@@ -265,7 +265,7 @@ def update_node_angles(img_data, arc_start, cached_prepostorder,
             dim[_astart] = node_astart
             dim[_aend] = node_aend
             dim[_acenter] = node_acenter
-            dim[_fnh] = dim[_aend] - dim[_astart] 
+            dim[_fnh] = dim[_aend] - dim[_astart]
         else:
             if dim[_is_leaf]:
                 angle_step = leaf_apertures[current_leaf_index]
