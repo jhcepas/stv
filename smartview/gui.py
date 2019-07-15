@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import *
 
 from .utils import timeit, debug
 from .common import *
-from . import layout 
+from . import layout
 from . import drawer
 
 _QApp = None
@@ -76,7 +76,7 @@ class TiledTreeView(QGraphicsView):
 
         # DEBUG and TEST
         self.stop = 5
-        
+
         # This flag prevents updating tiles every single time that a
         # resize event is emitted.
         self.NO_TILE_UPDATE = False
@@ -119,7 +119,7 @@ class TiledTreeView(QGraphicsView):
         # tiles that have already been rendered
         self.visible_tiles = set()
         self.setup_tiles_grid()
-        
+
     def setup_tiles_grid(self):
         # Set up default tile size
         temp_tile_w = min((self.tile_w, self.img_w))
@@ -541,7 +541,7 @@ class TiledTreeView(QGraphicsView):
             self._fit_to_window()
 
 
-            
+
         debug("PRESSED", key)
         QGraphicsView.keyReleaseEvent(self,e)
 
@@ -578,7 +578,7 @@ class TiledTreeView(QGraphicsView):
                 self.highlighter.setPath(fpath)
                 self.highlighter.show()
                 # print path.boundingRect().height()*self.zoom_factor
-                # print fpath.boundingRect().height()*self.zoom_factor, fpath.boundingRect().height()  
+                # print fpath.boundingRect().height()*self.zoom_factor, fpath.boundingRect().height()
                 # print "--"
             else:
                 self.highlighter.hide()
@@ -606,11 +606,12 @@ class TiledTreeView(QGraphicsView):
     def wheelEvent(self, e):
         factor =  (-e.angleDelta().y() / 360.0)
 
+        print factor
         if factor < 0:
-            factor = 1.25 
+            factor = 1.25
         else:
             factor = 0.75
-    
+
         # Ctrl+Shift
         if  (e.modifiers() & Qt.ControlModifier) and (e.modifiers() & Qt.ShiftModifier):
             pass
@@ -627,7 +628,6 @@ class TiledTreeView(QGraphicsView):
             pass
         # Default
         else:
-
             self._zoom(factor)
 
     def adjust_apertures(self, factor):

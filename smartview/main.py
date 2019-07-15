@@ -13,7 +13,7 @@ class TreeImage(object):
         self.tree_style = tree_style
         self.root_node = root_node
         self.scale = tree_style.scale
-        self.root_open = 1
+        self.root_open = 0
 
         self.cached_prepostorder = None
         self.cached_preorder = None
@@ -34,6 +34,8 @@ class TreeImage(object):
         self.adjust_apertures()
         self.adjust_branch_lengths()
         self.update_collision_paths()
+
+        print "min_rad", math.radians((self.img_data[:,_aend] - self.img_data[:,_astart]).min())
 
     def set_leaf_aperture(self, nodeid=None, factor=None):
         if self.leaf_apertures is None:
@@ -102,10 +104,14 @@ class TreeImage(object):
                                                cached_preorder=self.cached_preorder,
                                                leaf_apertures=self.leaf_apertures)
 
+
     def adjust_branch_lengths(self, adjust_fn = None):
         if not adjust_fn:
             adjust_fn = layout.default_adjust_branch
         adjust_fn(self)
+        
+        self.root_open = 0.0
+
 
         self.scale = 1.0
 

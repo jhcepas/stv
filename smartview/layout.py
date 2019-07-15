@@ -1,6 +1,6 @@
 import math
 from collections import defaultdict, deque
-
+import bisect
 import numpy as np
 
 from .utils import timeit
@@ -142,7 +142,7 @@ def by_size(tree_image, stop=None):
     print nleaves
     median_dist = np.median(distances)
     min_dist = np.median(distances)
-    scale = 10.0 / min_dist 
+    scale = 10.0 / min_dist
 
     # minimum distance to allocate 3 pixels per terminal node
     angle = tree_image.tree_style.arc_span / float(nleaves)
@@ -153,7 +153,7 @@ def by_size(tree_image, stop=None):
     init_zoom_factor = min_sep / 1080
     print "INIT ZOOM FACTOR", init_zoom_factor
 
-    
+
     # angle = tree_image.tree_style.arc_span / nleaves
     # theta = (angle * math.pi) / 180
     # min_sep = 3 / math.sin(theta)
@@ -170,7 +170,7 @@ def by_size(tree_image, stop=None):
 
             # scale = ((stop*3) / node_height)
 
-            
+
             for ch in leaf.get_children():
                 for n in ch.traverse():
                     tree_image.img_data[n._id][_blen] = n.dist * scale
@@ -197,26 +197,71 @@ def by_size_new(tree_image, stop=None):
     root = tree_image.root_node
 
     n2leaves = {}
-    for n in root.traverse("postorder"):
-        if n.children:
-            n2leaves[n] = sum([n2leaves[ch] for ch in n.children])
+    n2rootdist = {}
+    n2farthest = {}
+    n2scale = {}
+    for post,  n in root.iter_prepostorder():
+        if post:
+            if n.children:
+                n2leaves[n] = sum([n2leaves[ch] for ch in n.children])
+                n2farthest[n] = n.dist + max(n2farthest[ch] for ch in n.children)
         else:
-            n2leaves[n] = 1
+            if not n.children:
+                n2leaves[n] = 1
+                n2farthest[n] = n.dist
+                
+            if n.up:
+                n2rootdist[n] = n2rootdist[n.up] + n.dist
+            else:
+                n2rootdist[n] = 0
+
+    scale = 1000
+    seeds = [root]
+    while seeds:
+        seed = seeds.pop()
+        if not seed.children:
+            continue
+        sorted_leaves = [(n2leaves[seed], seed)]
+        while len(sorted_leaves) < opt_size:
+            if sorted_leaves[-1][0] < opt_size:
+                break
+            size, largest = sorted_leaves.pop()
+            for ch in largest.children:
+                    bisect.insort_left(sorted_leaves, (n2leaves[ch], ch))
+
+        if sorted_leaves:
+            print 'New Set ----------------', len(sorted_leaves), sorted_leaves[-1]
+            leaves = [i[1] for i in sorted_leaves]
+            dist, most_dist = sorted([(n2rootdist[lf], lf) for lf in leaves])[-1]
+            
+            if seed is root:
+                clade_scale = 5000
+                n2scale[seed] = 1000
+            else:
+                # curr = n2rootdist[seed] * n2scale[seed.up]
+                # aperture = tree_image.img_data[seed._id][_fnh]
+                # print aperture, len(seed)
+                # if aperture <= R90:
+                #     hyp = (n2leaves[seed] * 3) / math.sin(aperture/ 2.0)
+                # print hyp, curr
+
+                scale = (100.0) / dist
+                clade_scale = scale
+            print 'node_size:', n2leaves[seed], 'nodeRootdist:', n2rootdist[seed], 'scale', clade_scale
+            for n in seed.traverse(is_leaf_fn=lambda x: x in leaves):
+                for ch in n.children: 
+                    tree_image.img_data[ch._id][_blen] = ch.dist * clade_scale
+                    n2scale[ch] = clade_scale
+                    
+            seeds.extend([lf for lf in leaves if n2leaves[lf]>= opt_size ])
+        else:
+            clade_scale = 100.0 / ((n2farthest[seed] - n2rootdist[seed]) * scale)
+            for n in seed.traverse():
+                for ch in n.children: 
+                    tree_image.img_data[ch._id][_blen] = ch.dist * clade_scale
+
 
             
-    to_process = [root]
-    while to_process:
-        print "to_process", len(to_process)
-        for x in to_process:
-            # select first OPT_SIZE nodes sorted by size
-            new_adds = [n for n,size in sorted(n2leaves.iteritems(),
-                                               key=lambda x: x[1],
-                                               reverse=True)[:opt_size]
-                        if size >= opt_size]
-        print len(new_adds)
-        to_process = new_adds
-
-
 def by_level(tree_image, stop=None):
     if stop is None:
         stop = 4
@@ -256,7 +301,7 @@ def by_scale(tree_image, stop=20, sca=10):
             for scamax, sca in scale_ranges:
                 if current_pos <= scamax:
                     offset = min(scamax, current_pos + fbranch)
-                    current_pos += offset 
+                    current_pos += offset
                     blen += offset * sca
 
             tree_image.img_data[n._id][_blen] = blen
@@ -267,7 +312,7 @@ def by_scale(tree_image, stop=20, sca=10):
 def by_islands(tree_image, stop=None):
     if stop is None:
         stop = 150
-        
+
     n2leaves = {}
     root = tree_image.root_node
     for n in root.traverse("postorder"):
@@ -295,6 +340,6 @@ def real(tree_image, stop=None):
     #scale = 10 / min(distances)
 
     for n in root.traverse("preorder"):
-        tree_image.img_data[n._id][_blen] =  n.dist 
+        tree_image.img_data[n._id][_blen] =  n.dist
 
-default_adjust_branch=by_size
+default_adjust_branch=by_size_new

@@ -194,11 +194,11 @@ def update_node_radius(imgdata, cached_prepostorder,
             max_radius = max(max_radius, node_end_radius)
             if dim[_is_leaf]:
                 dim[_fnw] = node_end_radius
-                angle = (dim[_aend] - dim[_astart])
-                dim[_fnh] = angle
+                # angle = (dim[_aend] - dim[_astart])
+                # dim[_fnh] = angle
         else:
             dim[_fnw] = max([imgdata[ch._id][_fnw] for ch in node.children])
-            dim[_fnh] = dim[_aend] - dim[_astart]
+            # dim[_fnh] = dim[_aend] - dim[_astart]  
     return max_radius
 
 @timeit
@@ -265,6 +265,7 @@ def update_node_angles(img_data, arc_start, cached_prepostorder,
             dim[_astart] = node_astart
             dim[_aend] = node_aend
             dim[_acenter] = node_acenter
+            dim[_fnh] = dim[_aend] - dim[_astart] 
         else:
             if dim[_is_leaf]:
                 angle_step = leaf_apertures[current_leaf_index]
@@ -275,4 +276,5 @@ def update_node_angles(img_data, arc_start, cached_prepostorder,
                 dim[_aend] = current_angle + angle_step
                 dim[_acenter] = current_angle + (angle_step/2.0)
                 current_angle += angle_step
+                dim[_fnh] = dim[_aend] - dim[_astart] 
 
