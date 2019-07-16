@@ -19,15 +19,14 @@ COLLAPSE_RESOLUTION = 25
 def get_node_paths(tree_image, nid):
     dim = tree_image.img_data[nid]
     node = tree_image.cached_preorder[nid]
-    arc_start = dim[_astart]
-    arc_end = dim[_aend]
     radius = dim[_rad]
     parent_radius = tree_image.img_data[int(dim[_parent])][_rad]
-    angles = [arc_start]
     if not dim[_is_leaf]:
-        for ch in node.children:
-            angles.append(tree_image.img_data[ch._id][_acenter])
-    angles.append(arc_end)
+        angles = (tree_image.img_data[node.children[0]._id][_astart],
+                  tree_image.img_data[node.children[-1]._id][_aend])
+    else:
+        angles = (dim[_astart], dim[_aend])
+
     path = get_arc_path(parent_radius, radius, angles)
     full_path = get_arc_path(parent_radius, dim[_fnw], angles)
 
@@ -48,6 +47,7 @@ def get_arc_path(inner_r, outter_r, rad_angles):
     path = QPainterPath()
     inner_diam = inner_r * 2.0
     rect1 = QRectF(-inner_r, -inner_r, inner_diam, inner_diam)
+    # draw a horizontal line
     if len(angles) == 1:
         outter_diam = outter_r * 2.0
         rect2 = QRectF(-outter_r, -outter_r, outter_diam, outter_diam)
@@ -56,44 +56,53 @@ def get_arc_path(inner_r, outter_r, rad_angles):
         i1 = path.currentPosition()
         path.arcMoveTo(rect2, -angles[0])
         path.lineTo(i1)
-
+    # draw a vertical line
     elif inner_r == outter_r:
-        span = -np.degrees(rad_angles[-1]-rad_angles[0])
+        span = angles[-1] - angles[0]
         path.arcMoveTo(-inner_r, -inner_r, inner_diam, inner_diam, -angles[0])
-        if abs(span) < 0.1:
+        if span < 0.1: # solves precision problems drawing small arcs
             i1 = path.currentPosition()
             path.arcMoveTo(-inner_r, -inner_r, inner_diam, inner_diam, -angles[-1])
             path.lineTo(i1)
         else:
             path.arcTo(-inner_r, -inner_r, inner_diam, inner_diam,
-                   -angles[0], span)
-        #    current_a = a
-        #path.closeSubpath()
+                   -angles[0], -span)
+    # draw arc
     else:
         outter_diam = outter_r * 2.0
         rect2 = QRectF(-outter_r, -outter_r, outter_diam, outter_diam)
-        path.arcMoveTo(-inner_r, -inner_r, inner_diam, inner_diam, -angles[0])
-        #path.arcMoveTo(rect1, -angles[0])
-        i1 = path.currentPosition()
 
-        path.arcMoveTo(-outter_r, -outter_r, outter_diam, outter_diam, -angles[-1])
-        #path.arcMoveTo(rect2, -angles[-1])
-        o2 = path.currentPosition()
+        span = angles[-1] - angles[0]
+        if span < 0.1: # solves precision problems drawing small arcs
+            path.arcMoveTo(rect1, -angles[0])
+            i1 = path.currentPosition()
+            path.arcMoveTo(rect1, -angles[-1])
+            i2 = path.currentPosition()
+            path.arcMoveTo(rect2, -angles[0])
+            o1 = path.currentPosition()
+            path.arcMoveTo(rect2, -angles[-1])
+            o2 = path.currentPosition()
 
-        path.moveTo(i1)
-        current_a = angles[0]
-        for a in angles[1:]:
-            path.arcTo(-inner_r, -inner_r, inner_diam, inner_diam, -current_a, -(a-current_a))
-            #path.arcTo(rect1, -current_a, -(a-current_a))
-            current_a = a
-        path.lineTo(o2)
+            path.moveTo(i1)
+            path.lineTo(i2)
+            path.lineTo(o2)
+            path.lineTo(o1)
+            path.closeSubpath()
 
-        current_a = angles[-1]
-        for a in reversed(angles[:-1]):
-            path.arcTo(-outter_r, -outter_r, outter_diam, outter_diam, -current_a, current_a-a)
-            #path.arcTo(rect2, -current_a, current_a-a)
-            current_a = a
-        path.closeSubpath()
+        else:
+            path.arcMoveTo(rect1, -angles[0])
+            i1 = path.currentPosition()
+
+            path.arcMoveTo(rect2, -angles[-1])
+            o2 = path.currentPosition()
+
+            path.moveTo(i1)
+
+            path.arcTo(rect1, -angles[0], -span)
+            path.lineTo(o2)
+            path.arcTo(rect2, -angles[-1], span)
+            path.closeSubpath()
+
     return path
 
 
@@ -148,7 +157,7 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
     #pp.drawEllipse(c1, c1, aligned_circ_diam, aligned_circ_diam)
 
     # DEBUG INFO
-    DRAWN, SKIPPED, TOO_SMALL, COLLAPSED, MULTI, ITERS = 0, 0, 0, 0, 0, 0
+    DRAWN, OUTSIDE, TOO_SMALL, COLLAPSED, MULTI, ITERS = 0, 0, 0, 0, 0, 0
 
     curr = 0
     nid = curr
@@ -185,24 +194,32 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
         else:
             curr += 1
 
-        path, fpath = get_node_paths(tree_image, nid)
+        if 1  and arc_paths[nid][0] is None:
+            path, fpath = get_node_paths(tree_image, nid)
+            arc_paths[nid] = [path, fpath]
+        else:
+            path, fpath = arc_paths[nid]
 
         # skip if node does not overlap with requested region
         if not path.intersects(m_scene_rect):
             # and skip all descendants in case none fits in region
             if not fpath.intersects(m_scene_rect):
                 new_curr = max(int(dim[_max_leaf_idx]+1), curr)
-                SKIPPED += new_curr - curr
+                OUTSIDE += new_curr - curr
                 curr = new_curr
             continue
-        
-        arc_paths[nid] = [path, fpath]
+
         # Draw the node
         DRAWN += 1
 
+        if not node._temp_faces:
+            node._temp_faces = None
+            for func in tree_image.tree_style.layout_fn:
+                func(node)
+
         pp.save()
+
         if draw_collapsed:
-            
             branch_length = dim[_blen] * tree_image.scale
             pp.setPen(QPen(QColor("#999999")))
             parent_radius = img_data[int(dim[_parent])][_rad] if nid else tree_image.root_open
@@ -291,7 +308,7 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
         pp.setOpacity(0.5)
         pp.fillPath(path, QColor("green"))
 
-    debug("NODES DRAWN", DRAWN, 'skipped', SKIPPED, 'too_small', TOO_SMALL, "collapsed", COLLAPSED, "iters", ITERS, "MULTI", MULTI)
+    debug("NODES DRAWN", DRAWN, 'OutsideRegion', OUTSIDE, 'too_small', TOO_SMALL, "collapsed", COLLAPSED, "iters", ITERS, "MULTI", MULTI)
 
 
 

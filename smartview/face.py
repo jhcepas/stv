@@ -63,6 +63,43 @@ class Face(object):
     def _size(self):
         pass
 
+
+
+class HeatmapFace(Face):
+    __slots__ = ['rect_width', 'rect_height', 'rect_label', "fgcolor", 'bgcolor', 'values']
+
+    def __init__(self, values, width, height, label=None, fgcolor="steelblue",
+                 bgcolor="steelblue"):
+        Face.__init__(self)
+
+        self.rect_width = width
+        self.rect_height = height
+        self.fgcolor = fgcolor
+        self.bgcolor = bgcolor
+        self.rect_label = label
+        self.values = values
+
+    def _height(self):
+        return self.rect_height 
+
+    def _width(self):
+        return self.rect_width * len(self.values)
+
+    def _size(self):
+        return self.rect_width * len(self.values), self.rect_height
+
+    def _draw(self, painter, x, y, zoom_factor):
+        painter.save()
+        painter.scale(zoom_factor, zoom_factor)
+        x = 0 
+        for v in self.values:
+            color = random_color(l=0.5, s=0.5)
+            painter.fillRect(QRectF(x, y, self.rect_width, self.rect_height), QColor(color))
+            painter.setPen(QColor("black"))
+            painter.drawRect(QRectF(x, y, self.rect_width, self.rect_height))
+            x += self.rect_width
+        painter.restore()
+    
     
 class RectFace(Face):
     __slots__ = ['rect_width', 'rect_height', 'rect_label', 'rect_fgcolor', 'rect_bgcolor', "fgcolor", 'bgcolor']

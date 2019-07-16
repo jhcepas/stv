@@ -208,6 +208,8 @@ def compute_circ_collision_paths(tree_image):
     collision_paths = defaultdict(lambda: [None, None])
     return collision_paths
 
+
+    collision_paths = []
     img_data = tree_image.img_data
 
     for nid, dim in enumerate(img_data):

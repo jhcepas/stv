@@ -346,6 +346,7 @@ def add_face_to_node(face, node, column, row=None, position="branch-right"):
         poscode = FACEPOS2CODE[position]
     except KeyError:
         raise ValueError("face position not in %s" %FACEPOS2CODE.keys())
+    
     if isinstance(face, Face):
         # Faces container
         # [Face, pos, col, row, fw, fh]

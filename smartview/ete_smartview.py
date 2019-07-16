@@ -3,12 +3,12 @@ from __future__ import print_function
 import sys
 import random
 import math
-import numpy
+import numpy as np
 from argparse import ArgumentParser
 from .ctree import Tree
 #from .. import Tree
 from .style import TreeStyle, add_face_to_node
-from .face import  RectFace, TextFace, AttrFace, LabelFace, CircleLabelFace, GradientFace
+from .face import  RectFace, TextFace, AttrFace, LabelFace, CircleLabelFace, GradientFace, HeatmapFace
 from .main import TreeImage, gui
 from . import common
 from .common import *
@@ -16,6 +16,7 @@ from .common import *
 DESC = """
 Smartview 0.1
 """
+MATRIX = None
 
 def populate_args(parser):
     parser.add_argument("-t", dest="src_trees", type=str, help="target_tree", nargs="+")
@@ -34,6 +35,8 @@ def populate_args(parser):
     parser.add_argument("--polardist", dest="polardist", type=float, default=0)
     parser.add_argument("--scale", dest="scale", type=float, default=None)
     parser.add_argument("--newick_format", dest="nwformat", type=int, default=0)
+    parser.add_argument("--heatmap", dest="heatmap", action="store_true")
+    
 
 
 nameF = AttrFace("name", fsize=10, fgcolor='royalBlue', ftype='Arial')
@@ -131,6 +134,9 @@ def stacked_layout(node):
         add_face_to_node(nameF, node, column=0, position="branch-right")
         add_face_to_node(nameF2, node, column=0, position="branch-right")
         add_face_to_node(nameF3, node, column=1, position="branch-right")
+        if MATRIX is not None: 
+            hface = HeatmapFace(MATRIX[node._id], 10, 10)
+            add_face_to_node(hface, node, column=2, position="branch-right")
     else:
         if node.name:
             add_face_to_node(nameF, node, column=0, position="branch-top")
@@ -175,27 +181,15 @@ def run(args):
 
     print ("annotating")
     n2leaves = {}
-    for n in t.traverse("postorder"):
-        if n.children:
-            n2leaves[n] = sum([n2leaves[ch] for ch in n.children])
-        else:
-            n2leaves[n] = 1
-        n.support = n2leaves[n]
-
-    seed_start = None
-    seed_node = None
+    precount = 0
     for post, n in t.iter_prepostorder():
         if post:
-            n.custom = numpy.mean([ch.custom for ch in n.children])
-            if n is seed_node:
-                seed_start = None
-                seed_node = None
+            n2leaves[n] = sum([n2leaves[ch] for ch in n.children])
         else:
-            if seed_start is None and n2leaves[n]<100:
-                seed_start = random.sample([(5,10), (0,5)], 1)[0]
-                seed_node = n
-            if n.is_leaf():
-                n.custom = random.randint(seed_start[0], seed_start[1])/10.0
+            n._id = precount
+            precount += 1
+            if not n.children:
+                n2leaves[n] = 1
 
     printmem("after tree load")
 
@@ -207,7 +201,10 @@ def run(args):
         #t.convert_to_ultrametric(tree_length=min_rad, strategy="log", logbase=1000)
         t.convert_to_ultrametric(strategy='balanced')
 
-        
+    if args.heatmap:
+        global MATRIX
+        MATRIX = np.random.rand(precount+1, 10)
+
     if args.polardist:
         #node, mdist = t.get_farthest_leaf()
         d = 1
@@ -236,7 +233,7 @@ def run(args):
 
     ts.layout_fn = globals()[args.layout]
     ts.mode = "c"
-    ts.arc_span = 270
+    ts.arc_span = 360
     ts.arc_start = -90
     if args.scale:
         ts.scale = args.scale
