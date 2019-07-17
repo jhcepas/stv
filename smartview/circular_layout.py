@@ -97,8 +97,6 @@ def get_optimal_circular_scale(tree_image, optimization_level="med", root_openin
 
         max_rad = max(max_rad, (n2sumdist[nid] * best_scale) + (n2sumwidth[nid] + root_opening))
 
-    # Adjust scale for aligned faces
-    print "Max rad,",  max_rad, root_opening
     if 0:
         for nid, dim in enumerate(imgdata):
             current_rad = (n2sumdist[nid] * best_scale) + (n2sumwidth[nid] + root_opening)

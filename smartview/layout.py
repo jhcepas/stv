@@ -139,7 +139,7 @@ def by_size(tree_image, stop=None):
             nleaves += 1
         n._id = count
 
-    print nleaves
+    
     median_dist = np.median(distances)
     min_dist = np.median(distances)
     scale = 10.0 / min_dist
@@ -147,7 +147,7 @@ def by_size(tree_image, stop=None):
     # minimum distance to allocate 3 pixels per terminal node
     angle = tree_image.tree_style.arc_span / float(nleaves)
     theta = math.radians(angle/2.0)
-    print theta
+    
     min_sep = 3.0 / math.sin(theta)
 
     init_zoom_factor = min_sep / 1080
@@ -315,8 +315,8 @@ def by_scale(tree_image, stop=20, sca=10):
     distances = [n.dist for n in root.iter_descendants()]
 
     scale_ranges = [(maxd/4, 100), (maxd/3, 16), (maxd/2, 16), (maxd**maxd, 1)]
-    print scale_ranges
-    print maxd, min(distances), max(distances), '-----------------------'
+
+    #print maxd, min(distances), max(distances), '-----------------------'
     for n in root.traverse("preorder"):
         if n.up:
             fbranch = n.dist

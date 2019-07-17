@@ -93,7 +93,7 @@ class TiledTreeView(QGraphicsView):
     @timeit
     def init(self):
         #self.setViewportUpdateMode(QGraphicsView.SmartViewportUpdate)
-        print len(self._scene.items())
+        #print len(self._scene.items())
         map(lambda x: self._scene.removeItem(x), self._scene.items())
 
         self.highlighter = QGraphicsPathItem()
@@ -607,7 +607,6 @@ class TiledTreeView(QGraphicsView):
     def wheelEvent(self, e):
         factor =  (-e.angleDelta().y() / 360.0)
 
-        print factor
         if factor < 0:
             factor = 1.25
         else:

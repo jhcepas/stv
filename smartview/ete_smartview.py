@@ -8,7 +8,7 @@ from argparse import ArgumentParser
 from .ctree import Tree
 #from .. import Tree
 from .style import TreeStyle, add_face_to_node
-from .face import  RectFace, TextFace, AttrFace, LabelFace, CircleLabelFace, GradientFace, HeatmapFace
+from .face import  RectFace, TextFace, AttrFace, LabelFace, CircleLabelFace, GradientFace, HeatmapArcFace, HeatmapFace
 from .main import TreeImage, gui
 from . import common
 from .common import *
@@ -129,15 +129,22 @@ def basic_layout(node):
         if node.name:
             add_face_to_node(nameF, node, column=0, position="branch-top")
 
-def stacked_layout(node):
+def stacked_layout(node, dim=None):
     if node.is_leaf():
         add_face_to_node(nameF, node, column=0, position="branch-right")
         add_face_to_node(nameF2, node, column=0, position="branch-right")
         add_face_to_node(nameF3, node, column=1, position="branch-right")
         if MATRIX is not None: 
+            hface = HeatmapArcFace(MATRIX[node._id], 100, 0.5)
+            add_face_to_node(hface, node, column=0, position="aligned")
             hface = HeatmapFace(MATRIX[node._id], 10, 10)
             add_face_to_node(hface, node, column=2, position="branch-right")
+
     else:
+        if MATRIX is not None: 
+            hface = HeatmapArcFace(MATRIX[node._id], 100, 0.8)
+            add_face_to_node(hface, node, column=0, position="aligned")
+
         if node.name:
             add_face_to_node(nameF, node, column=0, position="branch-top")
         add_face_to_node(distF, node, column=0, position="branch-bottom")
@@ -174,8 +181,8 @@ def run(args):
         t2.populate(args.size, random_branches=True)
         for n in t2.traverse():
             n.dist = random.randint(1, 15)/100.0
-        t = t1 + t2
-            
+        #t = t1 + t2
+        t = t1
     elif args.src_trees:
         t = Tree(args.src_trees[0], format=args.nwformat)
 

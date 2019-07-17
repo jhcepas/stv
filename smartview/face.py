@@ -1,10 +1,49 @@
-from PyQt5.QtGui import QColor, QPen, QBrush, QFont, QFontMetrics
+from PyQt5.QtGui import QColor, QPen, QBrush, QFont, QFontMetrics, QPainterPath
 from PyQt5.QtCore import QRectF
-
+import numpy as np
 from colors import random_color
+
+def get_arc_path(rect1, rect2, rad_angles):
+    angles = map(np.degrees, rad_angles)
+    path = QPainterPath()
+    span = angles[-1] - angles[0]
+    if 0 and span < 0.1: # solves precision problems drawing small arcs
+        path.arcMoveTo(rect1, -angles[0])
+        i1 = path.currentPosition()
+        path.arcMoveTo(rect1, -angles[-1])
+        i2 = path.currentPosition()
+        path.arcMoveTo(rect2, -angles[0])
+        o1 = path.currentPosition()
+        path.arcMoveTo(rect2, -angles[-1])
+        o2 = path.currentPosition()
+
+        path.moveTo(i1)
+        path.lineTo(i2)
+        path.lineTo(o2)
+        path.lineTo(o1)
+        path.closeSubpath()
+    else:
+        path.arcMoveTo(rect1, -angles[0])
+        i1 = path.currentPosition()
+
+        path.arcMoveTo(rect2, -angles[-1])
+        o2 = path.currentPosition()
+
+        path.moveTo(i1)
+
+        path.arcTo(rect1, -angles[0], -span)
+        path.lineTo(o2)
+        path.arcTo(rect2, -angles[-1], span)
+        path.closeSubpath()
+    return path
+
+
 
 class Face(object):
     __slots__ = ["node",
+                 "arc_start",
+                 "arc_end",
+                 "img_rad",
                  "type",
                  "margin_left", "margin_right", "margin_top", "margin_bottom",
                  "opacity",
@@ -25,6 +64,9 @@ class Face(object):
         self.only_if_leaf = None
         self.node = None
         self.type = None
+        self.arc_start = None
+        self.arc_end = None
+        self.img_rad = None
         self.margin_top = 0
         self.margin_bottom = 0
         self.margin_left = 0
@@ -65,6 +107,62 @@ class Face(object):
 
 
 
+
+class HeatmapArcFace(Face):
+    __slots__ = ['width', 'values', 'h']
+
+    def __init__(self, values, width, h):
+        Face.__init__(self)
+
+        self.width = width
+        self.values = values
+        self.h = h
+
+    def _height(self):
+        return 1
+
+    def _width(self):
+        return self.width
+
+    def _size(self):
+        return self.width, 1
+
+    def _draw(self, painter, x, y, zoom_factor):
+        painter.save()
+        painter.scale(zoom_factor, zoom_factor)
+        painter.translate(-self.img_rad*2, -self.img_rad)
+
+        # r1 = QRectF(0, 0, (self.img_rad)*2, (self.img_rad)*2)
+        # painter.setPen(QColor("blue"))
+        # painter.drawRect(r1)
+        step = (self.width) / float(len(self.values))
+        offset = 0
+        for v in self.values:
+            color = random_color(l=self.h, s=0.5)
+
+            r1 = QRectF(-offset, -offset,
+                        (self.img_rad+offset)*2, (self.img_rad+offset)*2)
+            offset += step
+
+            r2 = QRectF(-offset, -offset,
+                        (self.img_rad+offset)*2, (self.img_rad+offset)*2)
+
+            # if self.node.name == 'aaaaaaaaac':
+            #     painter.setPen(QColor("green"))
+            #     painter.drawRect(r2)
+            #     painter.setPen(QColor("yellow"))
+            #     painter.drawRect(r1)
+
+            span = self.arc_end - self.arc_start
+            path = get_arc_path(r1, r2, [span/2, -span/2])
+            painter.setBrush(QColor(color))
+            painter.setPen(QColor("#777777"))
+            painter.drawPath(path)
+
+        painter.restore()
+
+
+
 class HeatmapFace(Face):
     __slots__ = ['rect_width', 'rect_height', 'rect_label', "fgcolor", 'bgcolor', 'values']
 
@@ -80,7 +178,7 @@ class HeatmapFace(Face):
         self.values = values
 
     def _height(self):
-        return self.rect_height 
+        return self.rect_height
 
     def _width(self):
         return self.rect_width * len(self.values)
@@ -91,7 +189,7 @@ class HeatmapFace(Face):
     def _draw(self, painter, x, y, zoom_factor):
         painter.save()
         painter.scale(zoom_factor, zoom_factor)
-        x = 0 
+        x = 0
         for v in self.values:
             color = random_color(l=0.5, s=0.5)
             painter.fillRect(QRectF(x, y, self.rect_width, self.rect_height), QColor(color))
@@ -99,8 +197,8 @@ class HeatmapFace(Face):
             painter.drawRect(QRectF(x, y, self.rect_width, self.rect_height))
             x += self.rect_width
         painter.restore()
-    
-    
+
+
 class RectFace(Face):
     __slots__ = ['rect_width', 'rect_height', 'rect_label', 'rect_fgcolor', 'rect_bgcolor', "fgcolor", 'bgcolor']
 
@@ -124,7 +222,7 @@ class RectFace(Face):
 
     def _size(self):
         return self.rect_width, self.rect_height
-    
+
     def _draw(self, painter, x, y, zoom_factor):
         painter.save()
         painter.scale(zoom_factor, zoom_factor)
@@ -136,7 +234,7 @@ class RectFace(Face):
         else:
             painter.drawRect(QRectF(x, y, self.rect_width, self.rect_height))
         painter.restore()
-        
+
 class TextFace(Face):
     __slots__ = ['_text', 'fsize', 'ftype', 'fgcolor', 'fstyle', 'tight_text', "_text_size", "min_fsize"]
 
@@ -246,7 +344,7 @@ class LabelFace(Face):
 
     def _size(self):
         return self.width, 0.0
-    
+
     def _draw(self, painter, x, y, zoom_factor):
         pass
 
@@ -266,7 +364,7 @@ class GradientFace(Face):
 
     def _size(self):
         return self.width, 0.0
-    
+
     def _pre_draw(self):
         value = getattr(self.node, self.node_attr)
         self.fill_color = random_color(h=0.3, s=0.5, l=value)

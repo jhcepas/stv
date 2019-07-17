@@ -14,7 +14,6 @@ def random_color(h=None, l=None, s=None, num=None, sep=None, seed=None):
         if seed:
             random.seed(seed)
         color = 1.0 / random.randint(1, 360)
-        print(color)
     else:
         color = h
 
