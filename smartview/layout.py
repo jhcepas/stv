@@ -252,7 +252,7 @@ def by_size_new(tree_image, stop=None):
 
                 current_rad = n2scale[seed]
                 if current_rad >= hyp:
-                    clade_scale = 200 / diff
+                    clade_scale = 500 / diff
                 else:
                     clade_scale = (hyp-current_rad) / diff 
 
@@ -277,7 +277,7 @@ def by_size_new(tree_image, stop=None):
 
             current_rad = n2scale[seed]
             if current_rad >= hyp:
-                clade_scale = 200 / diff
+                clade_scale = 500 / diff
             else:
                 clade_scale = (hyp-current_rad) / diff 
 

@@ -14,7 +14,7 @@ from .common import *
 from .utils import timeit, debug
 from . import layout
 
-COLLAPSE_RESOLUTION = 25
+COLLAPSE_RESOLUTION = 10
 
 def pol2cart(rho, phi):
     x = rho * np.cos(phi)
@@ -177,22 +177,35 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
         nid = curr
         node = tree_image.cached_preorder[nid]
         dim = img_data[nid]
-
+        nsize = nid - tree_image.img_data[nid][_max_leaf_idx]+1
+        
         if dim[_fnh] >= R180:
             node_height = 999999999
+            node_height_left = 999999999
+            node_height_right = 999999999
+            
         else:
             node_height = ((math.sin(dim[_fnh]/2.0) * dim[_fnw]) * 2) * zoom_factor
+            node_height_left = ((math.sin(dim[_acenter]-dim[_astart]) * dim[_fnw]) ) * zoom_factor
+            node_height_right = ((math.sin(dim[_aend]-dim[_acenter]) * dim[_fnw]) ) * zoom_factor
+
 
         # if node looks smaller than a pixel
-        if node_height < 3:
-            #curr = int(dim[_max_leaf_idx] + 1)
-            is_terminal = True
-            TOO_SMALL += 1
-            draw_collapsed = True 
-            #continue
+        #if node_height < 1:
+        #     curr = int(dim[_max_leaf_idx] + 1)
+        #     is_terminal = True
+        #     TOO_SMALL += 1
+        #     draw_collapsed = True
+        #     visible_leaves.append(node)
+        #     #node_x, node_y = pol2cart(dim[_fnw], dim[_astart])
+        #     #if m_scene_rect.contains(node_x, node_y):
+        #     endx = dim[_fnw] * zoom_factor
+        #     continue
         # if descendants are too small, draw the whole partition as a single
         # simplified item
-        elif not dim[_is_leaf] and (node_height < COLLAPSE_RESOLUTION or node_height/len(node.children) < 3):
+        if not dim[_is_leaf] and (node_height_left < COLLAPSE_RESOLUTION \
+                                  or node_height_right < COLLAPSE_RESOLUTION \
+                                  or node_height/len(node.children) < 3):
             #curr = int(dim[_max_leaf_idx] + 1)
             draw_collapsed = True
             is_terminal = True
