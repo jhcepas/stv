@@ -30,9 +30,10 @@ def populate_args(parser):
     parser.add_argument("--nogui", dest="nogui", action="store_true")
     parser.add_argument("--ultrametric", dest="ultrametric", action="store_true", help="convert to untrametric")
     parser.add_argument("--standardize", dest="standardize", action="store_true", help="stand")
+    parser.add_argument("--randbranches", dest="randbranches", action="store_true", help="stand")
+    parser.add_argument("--softrandbranches", dest="softrandbranches", action="store_true", help="stand")
     parser.add_argument("-C", dest="cmode", action="store_true")
     parser.add_argument("--tilesize", dest="tilesize", type=int, default=800)
-    parser.add_argument("--polardist", dest="polardist", type=float, default=0)
     parser.add_argument("--scale", dest="scale", type=float, default=None)
     parser.add_argument("--newick_format", dest="nwformat", type=int, default=0)
     parser.add_argument("--heatmap", dest="heatmap", action="store_true")
@@ -152,6 +153,35 @@ def stacked_layout(node, dim=None):
 #        add_face_to_node(TextFace("%0.2f" % n2dist[n], fsize=13), node, column=0, position="branch-top")
 #            add_face_to_node(nameF, node, column=0, position="aligned")
 
+
+def tol_layout(node, dim=None):
+    nameF = TextFace(node.name, fgcolor="indianRed", fsize=16)
+    # if node.rank: 
+    #     rankF = TextFace(node.sci_name, fgcolor="orange", fsize=10)
+    distF = TextFace("%0.2f" %node.dist, fgcolor="#888888", fsize=8)
+    sizeF = TextFace(" (size: %d)" %n2leaves[node], fsize=8)
+    
+    add_face_to_node(distF, node, column=0, position="branch-bottom")
+    if node.is_leaf():
+        add_face_to_node(nameF, node, column=0, position="branch-right")
+        if MATRIX is not None: 
+            hface = HeatmapArcFace(MATRIX[node._id], 100, 0.5)
+            add_face_to_node(hface, node, column=0, position="aligned")
+            hface = HeatmapFace(MATRIX[node._id], 10, 10)
+            add_face_to_node(hface, node, column=2, position="branch-right")
+
+    else:
+        if MATRIX is not None: 
+            hface = HeatmapArcFace(MATRIX[node._id], 100, 0.8)
+            add_face_to_node(hface, node, column=0, position="aligned")
+
+        if node.name:
+            add_face_to_node(nameF, node, column=0, position="branch-top")
+            add_face_to_node(sizeF, node, column=1, position="branch-bottom")
+
+
+
+
 def rect_layout(node):
     if node.is_leaf():
         add_face_to_node(rectF, node, column=0, position="branch-right")
@@ -173,18 +203,29 @@ def run(args):
 
     if args.size:
         t1 = Tree()
-        t1.populate(args.size, random_branches=True)
-        for n in t1.traverse():
-            n.dist = random.randint(1, 99)/100.0
-            n.dist = 1.0
+        t1.populate(args.size/2, random_branches=True)
         t2 = Tree()
-        t2.populate(args.size, random_branches=True)
-        for n in t2.traverse():
-            n.dist = random.randint(1, 15)/100.0
-        #t = t1 + t2
-        t = t1
+        t2.populate(args.size/2, random_branches=True)
+        t = t1 + t2
     elif args.src_trees:
         t = Tree(args.src_trees[0], format=args.nwformat)
+
+
+    if args.standardize:
+        t.standardize()
+
+
+    if args.randbranches:
+        for n in t.children[0].traverse():
+            n.dist = random.randint(1, 99)/100.0
+        for n in t.children[1].traverse():
+            n.dist = random.randint(1, 15)/100.0
+
+    if args.softrandbranches:
+        for n in t.traverse():
+            n.dist = random.randint(50, 80)/100.0
+
+
 
     print ("annotating")
     n2leaves = {}
@@ -194,14 +235,13 @@ def run(args):
             n2leaves[n] = sum([n2leaves[ch] for ch in n.children])
         else:
             n._id = precount
+            if not n.name:
+                n.name = "Node:%05d" %(n._id)
             precount += 1
             if not n.children:
                 n2leaves[n] = 1
 
     printmem("after tree load")
-
-    if args.standardize:
-        t.standardize()
 
     if args.ultrametric:
         #min_rad = len(t)/(2*math.pi)
@@ -211,29 +251,7 @@ def run(args):
     if args.heatmap:
         global MATRIX
         MATRIX = np.random.rand(precount+1, 10)
-
-    if args.polardist:
-        #node, mdist = t.get_farthest_leaf()
-        d = 1
-        node2pdist = {}
-        for post, node in t.iter_prepostorder():
-            if post:
-                d -= node.dist
-            else:
-                if node.dist == 0:
-                    node2pdist[node] = 0.0
-                else:
-                    c = d * args.polardist
-                    #print node.dist / c
-                    node2pdist[node] = node.dist / c
-
-                if not node.is_leaf():
-                    d += node.dist
-        for n in t.traverse():
-            n.dist = node2pdist[n]
-
-    # for n in t.traverse():
-    #     n.support = random.randint(5,25)
+        MATRIX.sort()
 
     ts = TreeStyle()
 

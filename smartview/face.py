@@ -2,12 +2,55 @@ from PyQt5.QtGui import QColor, QPen, QBrush, QFont, QFontMetrics, QPainterPath
 from PyQt5.QtCore import QRectF
 import numpy as np
 from colors import random_color
+import colorsys
+
+
+
+# Pick two colors. Values from 0 to 1. See "hue" at
+# http://en.wikipedia.org/wiki/HSL_and_HSV
+def get_color_gradient():
+
+    COLOR1= 0.4
+    COLOR2= 0.97
+    COLOR_INTENSITY = 0.6
+
+    def gradient(hue):
+        min_lightness = 0.35 
+        max_lightness = 0.85
+        base_value = COLOR_INTENSITY
+
+        # each gradient must contain 100 lightly descendant colors
+        colors = []   
+        rgb2hex = lambda rgb: '#%02x%02x%02x' % rgb
+        l_factor = (max_lightness-min_lightness) / 100.
+        l = min_lightness
+        while l<=max_lightness:
+            l += l_factor
+            rgb =  rgb2hex(tuple(map(lambda x: int(x*255), 
+                                     colorsys.hls_to_rgb(hue, l, base_value))))
+            colors.append(rgb)
+        return colors
+
+    def color_scale():
+        colors = []
+        for c in  gradient(COLOR1):
+            color=QColor(c)
+            colors.append(color)
+        colors.append(QColor("white"))
+        for c in  reversed(gradient(COLOR2)):
+            color=QColor(c)
+            colors.append(color)
+        return colors 
+
+    return color_scale()
+
+GRADIENT = get_color_gradient()
 
 def get_arc_path(rect1, rect2, rad_angles):
     angles = map(np.degrees, rad_angles)
     path = QPainterPath()
     span = angles[-1] - angles[0]
-    if 0 and span < 0.1: # solves precision problems drawing small arcs
+    if 0 and span < 0.01: # solves precision problems drawing small arcs
         path.arcMoveTo(rect1, -angles[0])
         i1 = path.currentPosition()
         path.arcMoveTo(rect1, -angles[-1])
@@ -43,6 +86,7 @@ class Face(object):
     __slots__ = ["node",
                  "arc_start",
                  "arc_end",
+                 "arc_center",
                  "img_rad",
                  "type",
                  "margin_left", "margin_right", "margin_top", "margin_bottom",
@@ -66,6 +110,7 @@ class Face(object):
         self.type = None
         self.arc_start = None
         self.arc_end = None
+        self.arc_center = None
         self.img_rad = None
         self.margin_top = 0
         self.margin_bottom = 0
@@ -138,7 +183,9 @@ class HeatmapArcFace(Face):
         step = (self.width) / float(len(self.values))
         offset = 0
         for v in self.values:
-            color = random_color(l=self.h, s=0.5)
+            #color = random_color(l=self.h, s=0.7, h=v)
+
+            color = GRADIENT[int(v*200)]
 
             r1 = QRectF(-offset, -offset,
                         (self.img_rad+offset)*2, (self.img_rad+offset)*2)
@@ -147,16 +194,26 @@ class HeatmapArcFace(Face):
             r2 = QRectF(-offset, -offset,
                         (self.img_rad+offset)*2, (self.img_rad+offset)*2)
 
-            # if self.node.name == 'aaaaaaaaac':
-            #     painter.setPen(QColor("green"))
-            #     painter.drawRect(r2)
-            #     painter.setPen(QColor("yellow"))
-            #     painter.drawRect(r1)
+            #if self.node.name == 'aaaaaaaaac':
+                 # painter.setPen(QColor("green"))
+                 # painter.drawRect(r2)
+                 # painter.setPen(QColor("yellow"))
+                 # painter.drawRect(r1)
+
+            if self.node.children:
+                painter.setOpacity(0.5)
+
+            painter.setPen(QColor("#777777"))
+            painter.setBrush(QColor(color))
+
+
+            # if 'aaaaaaaaac' in self.node.get_leaf_names():
+            #     painter.setBrush(QColor(random_color(h=0.9)))
+            #     painter.setPen(QColor("#777777"))
 
             span = self.arc_end - self.arc_start
-            path = get_arc_path(r1, r2, [span/2, -span/2])
-            painter.setBrush(QColor(color))
-            painter.setPen(QColor("#777777"))
+            #path = get_arc_path(r1, r2, [span/2, -span/2])
+            path = get_arc_path(r1, r2, [self.arc_start-self.arc_center, self.arc_end-self.arc_center])
             painter.drawPath(path)
 
         painter.restore()
@@ -295,7 +352,7 @@ class TextFace(Face):
         painter.setPen(QPen(QColor(self.fgcolor)))
         r = QRectF(x, y, self._width(), self._height())
         if zoom_factor * self._height() < 4:
-            painter.setOpacity(0.25)
+            painter.setOpacity(0.6)
             painter.drawRect(r)
         else:
             painter.setFont(self._get_font())

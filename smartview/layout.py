@@ -252,12 +252,12 @@ def by_size_new(tree_image, stop=None):
 
                 current_rad = n2scale[seed]
                 if current_rad >= hyp:
-                    clade_scale = 500 / diff
+                    clade_scale = 200 / diff
                 else:
                     clade_scale = (hyp-current_rad) / diff 
 
 
-            print 'node_size:', n2leaves[seed], 'nodeRootdist:', n2rootdist[seed], 'scale', clade_scale
+            #print 'node_size:', n2leaves[seed], 'nodeRootdist:', n2rootdist[seed], 'scale', clade_scale
             for n in seed.traverse(is_leaf_fn=lambda x: x in leaves):
                 for ch in n.children: 
                     tree_image.img_data[ch._id][_blen] = ch.dist * clade_scale
@@ -277,7 +277,7 @@ def by_size_new(tree_image, stop=None):
 
             current_rad = n2scale[seed]
             if current_rad >= hyp:
-                clade_scale = 500 / diff
+                clade_scale = 200 / diff
             else:
                 clade_scale = (hyp-current_rad) / diff 
 
@@ -316,7 +316,7 @@ def by_scale(tree_image, stop=20, sca=10):
 
     scale_ranges = [(maxd/4, 100), (maxd/3, 16), (maxd/2, 16), (maxd**maxd, 1)]
 
-    #print maxd, min(distances), max(distances), '-----------------------'
+    
     for n in root.traverse("preorder"):
         if n.up:
             fbranch = n.dist
