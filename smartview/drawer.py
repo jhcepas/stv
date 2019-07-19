@@ -10,6 +10,10 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtSvg import *
 
+import logging
+logger = logging.getLogger("smartview")
+
+from .utils import colorify
 from .common import *
 from .utils import timeit, debug
 from . import layout
@@ -163,13 +167,14 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
     #pp.drawEllipse(c1, c1, aligned_circ_diam, aligned_circ_diam)
 
     # DEBUG INFO
-    DRAWN, OUTSIDE, TOO_SMALL, COLLAPSED, MULTI, ITERS = 0, 0, 0, 0, 0, 0
+    DRAWN, OUTSIDE, COLLAPSED, ITERS = 0, 0, 0, 0 
 
     curr = 0
     nid = curr
     end = img_data[curr][_max_leaf_idx] + 1
     max_observed_radius = 0
     visible_leaves = []
+    terminal_nodes = []
     visible_labels = []
     while curr < end:
         ITERS += 1
@@ -178,7 +183,23 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
         node = tree_image.cached_preorder[nid]
         dim = img_data[nid]
         nsize = nid - tree_image.img_data[nid][_max_leaf_idx]+1
-        
+        branch_length = dim[_blen] #* tree_image.scale
+
+        # Compute node and full paths for the node
+        if arc_paths[nid][0] is None:
+            path, fpath = get_node_paths(tree_image, nid)
+            arc_paths[nid] = [path, fpath]
+        else:
+            path, fpath = arc_paths[nid]
+
+        # If node and their descendants are not visible, skip them
+        if not fpath.intersects(m_scene_rect):
+            new_curr = max(int(dim[_max_leaf_idx]+1), curr)
+            terminal_nodes.append(node)
+            OUTSIDE += 1
+            curr = new_curr
+            continue
+
         if dim[_fnh] >= R180:
             node_height = 999999999
             node_height_left = 999999999
@@ -190,83 +211,63 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
             node_height_right = ((math.sin(dim[_aend]-dim[_acenter]) * dim[_fnw]) ) * zoom_factor
 
 
-        # if node looks smaller than a pixel
-        #if node_height < 1:
-        #     curr = int(dim[_max_leaf_idx] + 1)
-        #     is_terminal = True
-        #     TOO_SMALL += 1
-        #     draw_collapsed = True
-        #     visible_leaves.append(node)
-        #     #node_x, node_y = pol2cart(dim[_fnw], dim[_astart])
-        #     #if m_scene_rect.contains(node_x, node_y):
-        #     endx = dim[_fnw] * zoom_factor
-        #     continue
         # if descendants are too small, draw the whole partition as a single
         # simplified item
-        if not dim[_is_leaf] and (node_height_left < COLLAPSE_RESOLUTION \
-                                  or node_height_right < COLLAPSE_RESOLUTION \
-                                  or node_height/len(node.children) < 3):
-            #curr = int(dim[_max_leaf_idx] + 1)
+        if (node_height_left < COLLAPSE_RESOLUTION) \
+           or node_height_right < COLLAPSE_RESOLUTION \
+           or node_height/len(node.children) < 3:
+            curr = int(dim[_max_leaf_idx] + 1)
             draw_collapsed = True
             is_terminal = True
             COLLAPSED += 1
         elif dim[_is_leaf]:
+            curr += 1
             is_terminal = True
         else:
+            curr += 1
             is_terminal = False
 
+
+       # record node as terminal
         if is_terminal:
-            curr = int(dim[_max_leaf_idx] + 1)
             # visible leaves for aligned faces
-            visible_leaves.append(node)
-            #node_x, node_y = pol2cart(dim[_fnw], dim[_astart])
-            #if m_scene_rect.contains(node_x, node_y):
-            endx = dim[_fnw] * zoom_factor
-        else:
-            curr += 1
+            terminal_nodes.append(node)
+            #node_x, node_y = pol2cart(dim[_fnw], dim[_acenter])
+            
+            new_rad, new_angle = get_qt_corrected_angle(dim[_fnw], dim[_acenter])
+            anode_x, anode_y = get_cart_coords(new_rad*zoom_factor, new_angle, cx*zoom_factor, cy*zoom_factor)
+            #print node_x, node_y, anode_x, anode_y
 
-        if 1 or arc_paths[nid][0] is None:
-            path, fpath = get_node_paths(tree_image, nid)
-            arc_paths[nid] = [path, fpath]
-        else:
-            path, fpath = arc_paths[nid]
+            if scene_rect.contains(anode_x, anode_y):
+                visible_leaves.append(node)
+                endx = dim[_fnw] * zoom_factor
+            else:
+                endx = 0
 
-        # skip if node does not overlap with requested region
-        if not path.intersects(m_scene_rect):
-            # and skip all descendants in case none fits in region
-            if not fpath.intersects(m_scene_rect):
-                new_curr = max(int(dim[_max_leaf_idx]+1), curr)
-                OUTSIDE += new_curr - curr
-                curr = new_curr
-            continue
+        # If node is not visible, don't draw it
+        #if not draw_collapsed and not path.intersects(m_scene_rect):
+        #    continue
 
-        # Draw the node
+        # Actually draw the node
         DRAWN += 1
 
+        # Compute faces
         if not node._temp_faces:
             node._temp_faces = None
             for func in tree_image.tree_style.layout_fn:
                 func(node)
+
         pp.save()
         parent_radius = img_data[int(dim[_parent])][_rad] if nid else tree_image.root_open
         node = tree_image.cached_preorder[nid]
-        
+
         if draw_collapsed:
-            branch_length = dim[_blen] * tree_image.scale
-            # if is_terminal:
-            #     pp.setPen(QPen(QColor("blue")))
-            # else:
-            pp.setPen(QPen(QColor("#AAAAAA")))
-            
+            if node in visible_leaves:
+                pp.setPen(QPen(QColor("LightSteelBlue")))
+            else:
+                pp.setPen(QPen(QColor("#AAAAAA")))
             pp.drawPath(M.map(fpath))
         else:
-            pp.setPen(QPen(QColor("black")))
-            # if dim[_is_leaf]:
-            #     pp.setPen(QColor("green"))
-            #     pp.setBrush(QColor("indianred"))
-            #     bkg_arc = get_arc_path(parent_radius, tree_image.radius[0], [dim[_astart], dim[_aend]])
-            #     pp.drawPath(M.map(bkg_arc))
-            #     pp.setBrush(Qt.NoBrush)
 
             # Draw arc line connecting children
             if not dim[_is_leaf] and len(node.children) > 1:
@@ -276,13 +277,9 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
                 vLinePath = get_arc_path(dim[_rad], dim[_rad], [acen_0, acen_1])
                 pp.drawPath(M.map(vLinePath))
 
-            branch_length = dim[_blen] #* tree_image.scale
-            linew = branch_length
-            hLinePath = get_arc_path(parent_radius, parent_radius+linew, [dim[_acenter]])
+            hLinePath = get_arc_path(parent_radius, parent_radius+branch_length, [dim[_acenter]])
             pp.setPen(QColor(node.img_style.hz_line_color))
             pp.drawPath(M.map(hLinePath))
-
-            pp.setPen(QColor("black"))
 
         new_rad, new_angle = get_qt_corrected_angle(parent_radius, dim[_acenter])
         pp.translate(cx*zoom_factor, cy*zoom_factor)
@@ -300,14 +297,11 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
 
         pp.restore()
 
-    print "VIS leaves:", len(visible_leaves), max_observed_radius
-
-    visible_leaves.sort(reverse=False,
-                        key = lambda x: x._id - tree_image.img_data[x._id][_max_leaf_idx]+1)
+    visible_leaves.sort(reverse=True,
+                        key = lambda x: x._id - tree_image.img_data[x._id][_max_leaf_idx])
     
-    for node in visible_leaves:
+    for node in terminal_nodes:
         dim = tree_image.img_data[node._id]
-
         pp.save()
         new_rad, new_angle = get_qt_corrected_angle(max_observed_radius, dim[_acenter])
         pp.translate(cx*zoom_factor, cy*zoom_factor)
@@ -316,79 +310,68 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
                           tree_image, is_collapsed=False, target_positions = [4])
         pp.restore()
 
-    for node in visible_leaves:
-        dim = tree_image.img_data[node._id]
-        # Draw overlay labels
-        if not dim[_is_leaf]:
-            pp.save()
-            qfont = QFont("Verdana",pointSize=16)
-            qfont.setWeight(QFont.Black)
-            fm = QFontMetrics(qfont)
-            name = node.name.strip()+str("%0.03f" %dim[_acenter])
-            text_w = fm.width(name)
-            text_h = fm.height()
-            new_rad, new_angle = get_qt_corrected_angle(dim[_fnw], dim[_acenter])
-            node_x, node_y = get_cart_coords(new_rad*zoom_factor, new_angle, cx*zoom_factor, cy*zoom_factor)
-            label_rect = QRectF(node_x, node_y, text_w, text_h)
-            # if dim[_acenter] >= R90 and dim[_acenter] <=R270:
-            #     label_rect.translate(-text_w,0)
-            color = 'royalBlue'
-            rect_x = node_x
-            rect_y = node_y
-            if dim[_acenter] <= R90 and dim[_acenter] > 0:
-                label_rect.translate(-text_w, -text_h)
-                rect_x -= text_w
-                color= "indianred"
-            elif dim[_acenter] < R270 and dim[_acenter] < 0:
-                label_rect.translate(-text_w, -text_h)
-                rect_x -= text_w
-                color = "darkgoldenrod"
-            else:
-                label_rect.translate(0, -text_h)
+    if tree_image.tree_style.show_labels: 
+        for node in visible_leaves:
+            dim = tree_image.img_data[node._id]
+            # Draw overlay labels
+            if not dim[_is_leaf]:
+                pp.save()
+                qfont = QFont("Verdana",pointSize=16)
+                qfont.setWeight(QFont.Black)
+                fm = QFontMetrics(qfont)
+                name = node.name.strip()
+                text_w = fm.width(name)
+                text_h = fm.height()
+                new_rad, new_angle = get_qt_corrected_angle(dim[_fnw], dim[_acenter])
+                node_x, node_y = get_cart_coords(new_rad*zoom_factor, new_angle, cx*zoom_factor, cy*zoom_factor)
+                label_rect = QRectF(node_x, node_y, text_w, text_h)
+                # if dim[_acenter] >= R90 and dim[_acenter] <=R270:
+                #     label_rect.translate(-text_w,0)
 
-            
-            
+                rect_x = node_x
+                rect_y = node_y
+                if dim[_acenter] <R90:
+                    label_rect.translate(-text_w, -text_h)
+                    rect_x -= text_w
+                    color= "teal"
+                elif dim[_acenter] <R180:
+                    label_rect.translate(0, -text_h)
+                    color= "seagreen"
+                elif dim[_acenter] < R270:
+                    label_rect.translate(0, 0)
+                    rect_y += text_h
+                    color= "slategrey"
+                else:
+                    label_rect.translate(-text_w, 0)
+                    rect_x -= text_w
+                    rect_y += text_h
+                    color = "darkgoldenrod"
 
-            skip_label = False
-            for x in visible_labels:
-                if label_rect.intersects(x):
-                    skip_label = True
-                    break
-            if not skip_label:
-                visible_labels.append(label_rect)
-                pp.setFont(qfont)
-                
-                pp.setPen(QColor("white"))
-                pp.setBrush(QColor(color))
+                skip_label = False
+                for x in visible_labels:
+                    if label_rect.intersects(x):
+                        skip_label = True
+                        break
+                if not skip_label:
+                    visible_labels.append(label_rect)
+                    pp.setFont(qfont)
 
-                text_path = QPainterPath()
-                text_path.addText(rect_x, rect_y, qfont, name)
-                pp.setOpacity(0.2)
-                pp.drawRoundedRect(label_rect, 10, 10)
-                pp.setOpacity(0.6)
-                pp.drawText(rect_x, rect_y, node.name)
-                
-                pp.drawEllipse(node_x-5, node_y-5, 10, 10)
-                pp.drawPath(text_path)
-            pp.restore()
-    
-        
+                    pp.setPen(QColor("white"))
+                    pp.setBrush(QColor(color))
 
+                    text_path = QPainterPath()
+                    text_path.addText(rect_x, rect_y-5, qfont, name)
+                    pp.setOpacity(0.2)
+                    pp.drawRoundedRect(label_rect, 5, 5)
+                    pp.setOpacity(0.7)
+                    pp.drawText(rect_x, rect_y-5, node.name)
+                    pp.drawEllipse(node_x-5, node_y-5, 10, 10)
+                    pp.drawPath(text_path)
+                pp.restore()
 
-
-        
-        #alg_path = get_arc_path(tree_image.img_data[int(dim[_parent])][_rad],
-        #                        new_rad, [dim[_astart], dim[_aend]])
-        
-        #arc_paths[node._id] = alg_path, alg_path
-        
-    # pp.scale(zoom_factor, zoom_factor)
-    # for path in tree_image.link_paths:
-    #     pp.setOpacity(0.5)
-    #     pp.fillPath(path, QColor("green"))
-
-    debug("NODES DRAWN", DRAWN, 'OutsideRegion', OUTSIDE, 'too_small', TOO_SMALL, "collapsed", COLLAPSED, "iters", ITERS, "MULTI", MULTI)
-
+    logger.debug(colorify("Iters: %d, Drawn:%d, OutScene:%d, Collapsed:%d" %(ITERS, DRAWN, OUTSIDE, COLLAPSED), "lblue"))
+    logger.debug(colorify(" Visible leaves: %d rad: %0.3f (term nodes: %d)" \
+                          %(len(visible_leaves), max_observed_radius, len(terminal_nodes)), "magenta" ))
 
 
 

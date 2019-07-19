@@ -3,6 +3,9 @@ from __future__ import print_function
 import re
 import time
 
+import logging
+logger = logging.getLogger("smartview")
+
 import os
 import six
 from six.moves import range
@@ -39,7 +42,7 @@ SHELL_COLORS = {
 }
 
 
-def color(string, color):
+def colorify(string, color):
     return "%s%s%s" %(SHELL_COLORS[color], string, SHELL_COLORS[None])
 
 def clear_color(string):
@@ -184,7 +187,9 @@ def timeit(f):
     def a_wrapper_accepting_arguments(*args, **kargs):
         t1 = time.time()
         r = f(*args, **kargs)
-        print("    ", f.__name__, time.time() - t1, "seconds")
+        etime = colorify("%0.6f" %(time.time() - t1), "lred")
+        msg = colorify(' '.join(map(str, [f.__name__, etime , "seconds"])), "green")
+        logger.debug(msg)
         return r
     return a_wrapper_accepting_arguments
 

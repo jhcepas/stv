@@ -12,6 +12,24 @@ from .face import  RectFace, TextFace, AttrFace, LabelFace, CircleLabelFace, Gra
 from .main import TreeImage, gui
 from . import common
 from .common import *
+from .utils import colorify
+
+import logging
+
+# Create a custom logger
+logger = logging.getLogger("smartview")
+logger.setLevel(10)
+
+# Create handlers
+c_handler = logging.StreamHandler(sys.stdout)
+
+# Create formatters and add it to handlers
+c_format = logging.Formatter('%(levelname)s - %(message)s')
+c_handler.setFormatter(c_format)
+
+# Add handlers to the logger
+logger.addHandler(c_handler)
+
 
 DESC = """
 Smartview 0.1
@@ -201,6 +219,8 @@ def run(args):
         h = hpy()
         h.setref()
 
+    logger.info(colorify("Building ETE tree", "lblue"))
+        
     if args.size:
         t1 = Tree()
         t1.populate(args.size/2, random_branches=True)
@@ -227,7 +247,7 @@ def run(args):
 
 
 
-    print ("annotating")
+
     n2leaves = {}
     precount = 0
     for post, n in t.iter_prepostorder():
@@ -240,9 +260,8 @@ def run(args):
             precount += 1
             if not n.children:
                 n2leaves[n] = 1
-
-    printmem("after tree load")
-
+    logger.info(colorify("Loaded tree: %d leaves and %d nodes" %(n2leaves[t], precount), "lblue"))
+    
     if args.ultrametric:
         #min_rad = len(t)/(2*math.pi)
         #t.convert_to_ultrametric(tree_length=min_rad, strategy="log", logbase=1000)
@@ -251,15 +270,28 @@ def run(args):
     if args.heatmap:
         global MATRIX
         MATRIX = np.random.rand(precount+1, 10)
-        MATRIX.sort()
-
+        # #MATRIX.sort()
+        # for post, n in t.iter_prepostorder():
+        #     if post:
+        #         mean = np.array([MATRIX[ch._id] for ch in n.children]).mean(axis=0)
+        #         MATRIX[n._id] = mean
+        #         #print(MATRIX[n._id])
+        MATRIX[n.children[0]._id] = np.array([1,1,1,1,1,0.1,0.1,0.1,0.1,0.1])
+        MATRIX[n.children[-1]._id] = np.array([0.1,0.1,0.1,0.1,0.1,1,1,1,1,1])
+        
+        for n in t.iter_descendants():
+            for ch in n.children:
+                rand = np.array([1-(random.randint(0,1)/10.) for x in range(10)])
+                MATRIX[ch._id] = MATRIX[n._id] * rand
+                
+                
     ts = TreeStyle()
 
 
     ts.layout_fn = globals()[args.layout]
     ts.mode = "c"
     ts.arc_span = 360
-    ts.arc_start = -180
+    ts.arc_start = 0
     if args.scale:
         ts.scale = args.scale
 
@@ -267,7 +299,6 @@ def run(args):
 
     tree_image = TreeImage(t, ts)
 
-    print("Tree image created", len(tree_image.cached_leaves))
     if args.profile:
         import cProfile, pstats, StringIO
         pr = cProfile.Profile()

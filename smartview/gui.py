@@ -14,6 +14,8 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
+import logging
+logger = logging.getLogger("smartview")
 
 from .utils import timeit, debug
 from .common import *
@@ -90,7 +92,6 @@ class TiledTreeView(QGraphicsView):
         self.highlighter = None
         self.selector = None
 
-    @timeit
     def init(self):
         #self.setViewportUpdateMode(QGraphicsView.SmartViewportUpdate)
         #print len(self._scene.items())
@@ -98,8 +99,8 @@ class TiledTreeView(QGraphicsView):
 
         self.highlighter = QGraphicsPathItem()
         self.highlighter.setZValue(100)
-        self.highlighter.setPen(QColor("tomato"))
-        self.highlighter.setBrush(QBrush(QColor("#dddddd")))
+        self.highlighter.setPen(QColor("red"))
+        #self.highlighter.setBrush(QBrush(QColor("#dddddd")))
         self.highlighter.setOpacity(0.4)
         self._scene.addItem(self.highlighter)
 
@@ -219,8 +220,9 @@ class TiledTreeView(QGraphicsView):
         match = self.mapToScene(vrect)
         srect = match.boundingRect()
 
-        self.info_w.setText("Leaves:%07d  -  Zoom:%0.10f  -  Branch Scale:%0.2f  -  Scene Region:%0.1f,%0.1f,%0.1f,%0.1f"%\
-                            (len(self.tree_image.cached_leaves),
+        self.info_w.setText("#Leaves:<span style='color:blue'>%s</span>  -  #Nodes:<span style='color:red'>%s</span>  -  Zoom:%0.10f  -  BScale:%0.2f  -  Scene Region:%0.1f,%0.1f,%0.1f,%0.1f"%\
+                            ('{:,}'.format(len(self.tree_image.cached_leaves)),
+                             '{:,}'.format(len(self.tree_image.cached_preorder)),
                              self.zoom_factor,
                              self.tree_image.scale,
                              srect.x(), srect.y(), srect.width(), srect.height(),
@@ -415,7 +417,7 @@ class TiledTreeView(QGraphicsView):
         scene_mouse_pos = self.mapToScene(mouse_pos) / current_zoom_factor
         next_scene_mouse_pos = scene_mouse_pos * next_zoom_factor
 
-        # Distance form mouse to screen center
+        # Distance from mouse to screen center
         center_dist = QPointF(mouse_pos - vrect.center())
 
         new_center = next_scene_mouse_pos - center_dist
@@ -541,9 +543,17 @@ class TiledTreeView(QGraphicsView):
             self.update_tile_view()
             self._fit_to_window()
 
+        # L(abels)
+        elif key == 76:
+            self.tree_image.tree_style.show_labels ^= True
+            self.tree_image.update_collision_paths()
+            self.update_tile_view()
 
 
-        debug("PRESSED", key)
+            
+
+
+        logger.debug("PRESSED %s" %key)
         QGraphicsView.keyReleaseEvent(self,e)
 
     def mouseReleaseEvent(self, e):
@@ -600,8 +610,9 @@ class TiledTreeView(QGraphicsView):
 
     def mouseDoubleClickEvent(self, e):
         nid, path, fpath = self._get_node_under_mouse()
-        r = fpath.boundingRect()
-        self._zoom_area(r.x(), r.y(), r.width(), r.height())
+        if fpath:
+            r = fpath.boundingRect()
+            self._zoom_area(r.x(), r.y(), r.width(), r.height())
 
 
     def wheelEvent(self, e):
@@ -620,7 +631,7 @@ class TiledTreeView(QGraphicsView):
             pass
         # Ctrl
         elif e.modifiers() & Qt.ControlModifier:
-            print("Control:", factor)
+            #print("Control:", factor)
             self.adjust_apertures(factor)
 
         # Shift
@@ -669,9 +680,9 @@ class TiledGUI(QMainWindow):
             cx, cy = map(lambda x: x/2.0, [self.view.img_w, self.view.img_h])
         else:
             cx, cy = map(lambda x: x/2.0, self.view)
-        self.view.centerOn(cx, cy)
-        self.view.update_tile_view()
-        self.view._fit_to_window()
+        #self.view.centerOn(cx, cy)
+        #self.view.update_tile_view()
+        #self.view._fit_to_window()
 
     def create_view(self, zoom_factor):
         if zoom_factor is None:
@@ -680,8 +691,8 @@ class TiledGUI(QMainWindow):
             zoom_factor = round(min(x_zoom_factor, y_zoom_factor), 6)
 
         view = TiledTreeView(self.tree_image, self.TILE_W, self.TILE_H, zoom_factor)
-        # from PyQt5 import QtOpenGL
-        # view.setViewport(QtOpenGL.QGLWidget())
+        #from PyQt5 import QtOpenGL
+        #view.setViewport(QtOpenGL.QGLWidget())
 
         view.init()
         view.gui = self
@@ -696,7 +707,7 @@ class TiledGUI(QMainWindow):
 
     def keyReleaseEvent(self,e):
         key = e.key()
-        debug("captured in GUI", key)
+        #debug("captured in GUI", key)
         QMainWindow.keyReleaseEvent(self,e)
 
 def test(*args):

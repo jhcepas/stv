@@ -151,7 +151,7 @@ def by_size(tree_image, stop=None):
     min_sep = 3.0 / math.sin(theta)
 
     init_zoom_factor = min_sep / 1080
-    print "INIT ZOOM FACTOR", init_zoom_factor
+    #print "INIT ZOOM FACTOR", init_zoom_factor
 
 
     # angle = tree_image.tree_style.arc_span / nleaves
@@ -192,7 +192,7 @@ def by_size(tree_image, stop=None):
     print "----------------"
 
 @timeit
-def by_size_new(tree_image, stop=None):
+def adjust_lengths_by_size(tree_image, stop=None):
     opt_size = 200
     root = tree_image.root_node
 
@@ -368,4 +368,4 @@ def real(tree_image, stop=None):
     for n in root.traverse("preorder"):
         tree_image.img_data[n._id][_blen] =  n.dist
 
-default_adjust_branch=by_size_new
+default_adjust_branch=adjust_lengths_by_size

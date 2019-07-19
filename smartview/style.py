@@ -307,6 +307,7 @@ class TreeStyle(object):
         self.legend = FaceContainer()
         self.legend_position = 2
 
+        self.show_labels = False
 
         self.title = FaceContainer()
 

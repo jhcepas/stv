@@ -10,7 +10,7 @@ import colorsys
 # http://en.wikipedia.org/wiki/HSL_and_HSV
 def get_color_gradient():
 
-    COLOR1= 0.4
+    COLOR1= 0.67
     COLOR2= 0.97
     COLOR_INTENSITY = 0.6
 
