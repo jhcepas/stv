@@ -11,7 +11,7 @@ import colorsys
 def get_color_gradient():
 
     COLOR1= 0.67
-    COLOR2= 0.97
+    COLOR2= 0.3
     COLOR_INTENSITY = 0.6
 
     def gradient(hue):

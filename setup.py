@@ -1,6 +1,4 @@
 #! /usr/bin/env python
-from __future__ import absolute_import
-from __future__ import print_function
 import sys
 import os
 import ez_setup
@@ -8,20 +6,22 @@ from Cython.Build import cythonize
 import numpy
 
 from glob import glob
-from setuptools import Extension
+#from setuptools import Extension
+from distutils.core import setup, Extension
+
+if sys.platform == "darwin":
+    # Don't create resource files on OS X tar.
+    os.environ['COPY_EXTENDED_ATTRIBUTES_DISABLE'] = 'true'
+    os.environ['COPYFILE_DISABLE'] = 'true'
 
 #sourcefiles = glob('smartview/*pyx')
 #extensions = [Extension("smartview", sourcefiles)]
-extensions = [Extension("smartview.ctree", ['smartview/ctree.pyx']),
-             Extension("smartview.cstyle", ['smartview/cstyle.pyx']),
-             Extension("smartview.clayout", ['smartview/clayout.pyx'])]
 
-
-try:
-    from setuptools import setup, find_packages
-except ImportError:
-    ez_setup.use_setuptools()
-    from setuptools import setup, find_packages
+# try:
+#     from setuptools import setup, find_packages
+# except ImportError:
+#     ez_setup.use_setuptools()
+#     from setuptools import setup, find_packages
 
 CLASSIFIERS= [
     "Development Status :: 6 - Mature",
@@ -43,9 +43,9 @@ CLASSIFIERS= [
 
 try:
 
-    extensions = [Extension('ctree', ['smartview/ctree.pyx']),
-                  Extension('clayout', ['smartview/clayout.pyx']),
-                  Extension('cstyle', ['smartview/cstyle.pyx']),
+    extensions = [Extension('smartview.ctree', ['smartview/ctree.pyx']),
+                  Extension('smartview.clayout', ['smartview/clayout.pyx']),
+                  Extension('smartview.cstyle', ['smartview/cstyle.pyx']),
     ]
 
     _s = setup(
@@ -62,8 +62,6 @@ try:
 
         # Project uses reStructuredText, so ensure that the docutils get
         # installed or upgraded on the target machine
-        install_requires = [
-            ],
         package_data = {
 
         },

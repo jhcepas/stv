@@ -63,7 +63,7 @@ nameF2 = AttrFace("name", fsize=16, fgcolor='indianred', ftype='Arial')
 nameF3 = AttrFace("name", fsize=8, fgcolor='grey', ftype='Arial')
 #nameF.margin_right = 10
 distF = AttrFace("dist", fsize=12)
-supportF = AttrFace("support", fsize=12)
+supportF = AttrFace("support", fsize=16)
 labelF = LabelFace(70)
 labelF.fill_color = "thistle"
 labelF2 = LabelFace(70)
@@ -103,6 +103,7 @@ def real_layout(node):
 
         add_face_to_node(distF, node, column=0, position="branch-top")
         add_face_to_node(supportF, node, column=1, position="branch-bottom")
+        
     elif node.up:
         if node.name:
             add_face_to_node(nameF, node, column=0, position="branch-top")
@@ -130,16 +131,23 @@ def test_layout(node):
     add_face_to_node(mundo, node, column=2, position="branch-bottom")
     add_face_to_node(mundo, node, column=1, position="branch-bottom")
 
-def test_layout2(node):
-    #f.margin_left=20
-    add_face_to_node(f, node, column=0, position="branch-right")
-    add_face_to_node(f, node, column=0, position="branch-right")
-    add_face_to_node(rectF, node, column=1, position="branch-right")
+def crouded_layout(node):
+    if node.is_leaf():
+        add_face_to_node(nameF, node, column=0, position="branch-right")
+        add_face_to_node(nameF2, node, column=0, position="branch-right")
+        add_face_to_node(nameF3, node, column=1, position="branch-right")
 
-    add_face_to_node(f, node, column=1, position="branch-top")
-    add_face_to_node(f, node, column=1, position="branch-bottom")
-    add_face_to_node(f2, node, column=2, position="branch-bottom")
-    add_face_to_node(f3, node, column=1, position="branch-bottom")
+    else:
+        if MATRIX is not None: 
+            hface = HeatmapArcFace(MATRIX[node._id], 100, 0.8)
+            add_face_to_node(hface, node, column=0, position="aligned")
+
+        if node.name:
+            add_face_to_node(nameF, node, column=0, position="branch-top")
+        add_face_to_node(distF, node, column=0, position="branch-bottom")
+        add_face_to_node(TextFace(str(n2leaves[node]), fsize=13), node, column=0, position="branch-top")
+#        add_face_to_node(TextFace("%0.2f" % n2dist[n], fsize=13), node, column=0, position="branch-top")
+#            add_face_to_node(nameF, node, column=0, position="aligned")
 
 def basic_layout(node):
     if node.is_leaf():
@@ -197,9 +205,6 @@ def tol_layout(node, dim=None):
             add_face_to_node(nameF, node, column=0, position="branch-top")
             add_face_to_node(sizeF, node, column=1, position="branch-bottom")
 
-
-
-
 def rect_layout(node):
     if node.is_leaf():
         add_face_to_node(rectF, node, column=0, position="branch-right")
@@ -256,7 +261,7 @@ def run(args):
         else:
             n._id = precount
             if not n.name:
-                n.name = "Node:%05d" %(n._id)
+                n.name = "Node:%06d" %(n._id)
             precount += 1
             if not n.children:
                 n2leaves[n] = 1

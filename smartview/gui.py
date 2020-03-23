@@ -618,10 +618,13 @@ class TiledTreeView(QGraphicsView):
     def wheelEvent(self, e):
         factor =  (-e.angleDelta().y() / 360.0)
 
-        if factor < 0:
-            factor = 1.25
-        else:
-            factor = 0.75
+        if abs(factor) >= 1:
+            factor = 0.0
+
+        # if factor < 0:
+        #     factor = 1.25
+        # else:
+        #     factor = 0.75
 
         # Ctrl+Shift
         if  (e.modifiers() & Qt.ControlModifier) and (e.modifiers() & Qt.ShiftModifier):
@@ -639,7 +642,8 @@ class TiledTreeView(QGraphicsView):
             pass
         # Default
         else:
-            self._zoom(factor)
+            scale_factor = 1 - factor
+            self._zoom(scale_factor)
 
     def adjust_apertures(self, factor):
         nid, path, fpath = self._get_node_under_mouse()
