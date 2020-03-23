@@ -1,5 +1,5 @@
-from __future__ import absolute_import
-from __future__ import print_function
+
+
 import sys
 import random
 import math
@@ -305,7 +305,7 @@ def run(args):
     tree_image = TreeImage(t, ts)
 
     if args.profile:
-        import cProfile, pstats, StringIO
+        import cProfile, pstats, io
         pr = cProfile.Profile()
         pr.enable()
 
@@ -314,7 +314,7 @@ def run(args):
 
     if args.profile:
         pr.disable()
-        s = StringIO.StringIO()
+        s = io.StringIO()
         sortby = 'cumulative'
         ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
         ps.print_stats()

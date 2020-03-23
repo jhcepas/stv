@@ -1,6 +1,6 @@
 
 import math
-from common import *
+from .common import *
 
 from PyQt5 import QtCore
 from PyQt5.QtGui import *

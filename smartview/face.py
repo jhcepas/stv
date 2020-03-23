@@ -1,7 +1,7 @@
 from PyQt5.QtGui import QColor, QPen, QBrush, QFont, QFontMetrics, QPainterPath
 from PyQt5.QtCore import QRectF
 import numpy as np
-from colors import random_color
+from .colors import random_color
 import colorsys
 
 
@@ -26,8 +26,7 @@ def get_color_gradient():
         l = min_lightness
         while l<=max_lightness:
             l += l_factor
-            rgb =  rgb2hex(tuple(map(lambda x: int(x*255), 
-                                     colorsys.hls_to_rgb(hue, l, base_value))))
+            rgb =  rgb2hex(tuple([int(x*255) for x in colorsys.hls_to_rgb(hue, l, base_value)]))
             colors.append(rgb)
         return colors
 
@@ -47,7 +46,7 @@ def get_color_gradient():
 GRADIENT = get_color_gradient()
 
 def get_arc_path(rect1, rect2, rad_angles):
-    angles = map(np.degrees, rad_angles)
+    angles = list(map(np.degrees, rad_angles))
     path = QPainterPath()
     span = angles[-1] - angles[0]
     if 0 and span < 0.01: # solves precision problems drawing small arcs
@@ -101,7 +100,7 @@ class Face(object):
                  "only_if_leaf",
     ]
     def __repr__(self):
-        print type(self.__hash__())
+        print(type(self.__hash__()))
         return "'%s' (%s)" %(self.__class__, hex(int(self.__hash__())))
 
     def __init__(self):

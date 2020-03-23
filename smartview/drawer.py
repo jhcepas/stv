@@ -53,7 +53,7 @@ def get_qt_corrected_angle(rad, angle):
     return new_rad, new_angle
 
 def get_arc_path(inner_r, outter_r, rad_angles):
-    angles = map(np.degrees, rad_angles)
+    angles = list(map(np.degrees, rad_angles))
     path = QPainterPath()
     inner_diam = inner_r * 2.0
     rect1 = QRectF(-inner_r, -inner_r, inner_diam, inner_diam)
@@ -463,7 +463,7 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
         poscol2height[pos, col] = poscol2height.get((pos, col), 0) + fh
 
     endx = 0
-    for pos, colfaces in pos2colfaces.iteritems():
+    for pos, colfaces in pos2colfaces.items():
         if pos == 0:
             facegrid_width = dim[_btw]
             facegrid_height = dim[_bth]
@@ -522,7 +522,7 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
 
         face_zoom_factor = min(x_face_zoom_factor, y_face_zoom_factor, 1.0)
         
-        for col, faces in colfaces.iteritems():
+        for col, faces in colfaces.items():
             if pos == 0:
                 start_y = y - (poscol2height[pos, col]) 
             elif pos == 1:

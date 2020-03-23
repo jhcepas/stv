@@ -20,11 +20,11 @@ import math
 # needs float64
     _blen, _bh, # branch length and branch stroke height
     _fnw, _fnh, # total full-node width and height (incl. children)
-) = range(19)
+) = list(range(19))
 
 # position
-(_rad, _acenter, _astart, _aend) = range(19, 23)  # for circular view
-(_xend, _ycenter, _ystart, _yend) = range(19, 23) # for rectangular view
+(_rad, _acenter, _astart, _aend) = list(range(19, 23))  # for circular view
+(_xend, _ycenter, _ystart, _yend) = list(range(19, 23)) # for rectangular view
 
 MATRIX_FIELDS = 23
 
@@ -65,7 +65,7 @@ def printmem(text=""):
     gc.collect()
 
     import os
-    print "MEMORY:", text
+    print("MEMORY:", text)
     os.system("ps aux|grep layout|grep -v grep|awk '{print $6}'")
 
     #raw_input('stop'+text)
@@ -73,4 +73,4 @@ def printmem(text=""):
 
 if __name__ == "__main__":
     for name in __all__:
-        print "#define %s %s" %(name, globals()[name])
+        print("#define %s %s" %(name, globals()[name]))

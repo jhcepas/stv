@@ -1,18 +1,15 @@
 #! /usr/bin/env python
 import sys
 import os
-import ez_setup
+from glob import glob
+from distutils.core import setup, Extension
 from Cython.Build import cythonize
 import numpy
 
-from glob import glob
-#from setuptools import Extension
-from distutils.core import setup, Extension
-
-if sys.platform == "darwin":
-    # Don't create resource files on OS X tar.
-    os.environ['COPY_EXTENDED_ATTRIBUTES_DISABLE'] = 'true'
-    os.environ['COPYFILE_DISABLE'] = 'true'
+# if sys.platform == "darwin":
+#     # Don't create resource files on OS X tar.
+#     os.environ['COPY_EXTENDED_ATTRIBUTES_DISABLE'] = 'true'
+#     os.environ['COPYFILE_DISABLE'] = 'true'
 
 #sourcefiles = glob('smartview/*pyx')
 #extensions = [Extension("smartview", sourcefiles)]

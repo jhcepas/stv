@@ -1,5 +1,5 @@
-from __future__ import absolute_import
-from __future__ import print_function
+
+
 import re
 import time
 
@@ -167,7 +167,7 @@ def print_table(items, header=None, wrap=True, max_col_width=20,
 def ask_filename(text):
     fname = ""
     while not os.path.exists(fname):
-        fname = input(text)
+        fname = eval(input(text))
     return fname
 
 def ask(string,valid_values,default=-1,case_sensitive=False):
@@ -176,7 +176,7 @@ def ask(string,valid_values,default=-1,case_sensitive=False):
     if not case_sensitive:
         valid_values = [value.lower() for value in valid_values]
     while v not in valid_values:
-        v = input("%s [%s]" % (string,','.join(valid_values) ))
+        v = eval(input("%s [%s]" % (string,','.join(valid_values) )))
         if v == '' and default>=0:
             v = valid_values[default]
         if not case_sensitive:

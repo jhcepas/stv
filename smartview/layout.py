@@ -79,8 +79,8 @@ def compute_face_dimensions(node, facegrid):
     # Calculate total facegrid size
     face_pos_sizes = []
     for fpos in FACE_POS_INDEXES:
-        total_w = sum([max(v) for v in cols_w[fpos].values()]) if fpos in cols_w else 0.0
-        total_h = max([sum(v) for v in cols_h[fpos].values()]) if fpos in cols_h else 0.0
+        total_w = sum([max(v) for v in list(cols_w[fpos].values())]) if fpos in cols_w else 0.0
+        total_h = max([sum(v) for v in list(cols_h[fpos].values())]) if fpos in cols_h else 0.0
         face_pos_sizes.extend((total_w, total_h))
     return face_pos_sizes
 
@@ -175,21 +175,21 @@ def by_size(tree_image, stop=None):
                 for n in ch.traverse():
                     tree_image.img_data[n._id][_blen] = n.dist * scale
                 ch.detach()
-        print "scale used:", scale
-        print "leaves processed:", nleaves
-        print "new size of tree:", len(root)
-        print "----------------"
+        print("scale used:", scale)
+        print("leaves processed:", nleaves)
+        print("new size of tree:", len(root))
+        print("----------------")
         scale = scale * 10
         n2leaves = root.get_cached_content()
         if len(n2leaves[root]) < stop:
-            print 'break'
+            print('break')
             break
     for nleaves, n in enumerate(root.traverse()):
         tree_image.img_data[n._id][_blen] = n.dist * scale
-    print "scale used:", scale
-    print "leaves processed:", nleaves
-    print "new size of tree:", len(root)
-    print "----------------"
+    print("scale used:", scale)
+    print("leaves processed:", nleaves)
+    print("new size of tree:", len(root))
+    print("----------------")
 
 @timeit
 def adjust_lengths_by_size(tree_image, stop=None):

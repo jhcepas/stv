@@ -1,8 +1,8 @@
 import math
-from utils import timeit
+from .utils import timeit
 from collections import defaultdict
-from common import *
-from colors import *
+from .common import *
+from .colors import *
 
 def iter_prepostorder(prepostorder):
     root_visited = False

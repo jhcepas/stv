@@ -1190,7 +1190,7 @@ class TreeNode(cTreeNode):
             root = self
 
         next_deq = deque([root])
-        for i in range(size-1):
+        for i in range(int(size-1)):
             if random.randint(0, 1):
                 p = next_deq.pop()
             else:

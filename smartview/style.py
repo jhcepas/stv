@@ -1,9 +1,9 @@
 from collections import namedtuple
 import re
-from face import Face
+from .face import Face
 
-from checkers import *
-from common import *
+from .checkers import *
+from .common import *
 
 __all__  = ["TreeStyle"]
 
@@ -346,7 +346,7 @@ def add_face_to_node(face, node, column, row=None, position="branch-right"):
     try:
         poscode = FACEPOS2CODE[position]
     except KeyError:
-        raise ValueError("face position not in %s" %FACEPOS2CODE.keys())
+        raise ValueError("face position not in %s" %list(FACEPOS2CODE.keys()))
     
     if isinstance(face, Face):
         # Faces container

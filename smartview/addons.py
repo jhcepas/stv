@@ -348,7 +348,7 @@ class test(QGLWidget):
         self.painter = True
             
         # Create an empty tile image
-        print self.scene_rect
+        print(self.scene_rect)
         target_rect = QRectF(0, 0, self.scene_rect.width(), self.scene_rect.height())
         
         pp = QPainter()        

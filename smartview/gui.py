@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import time
 from multiprocessing import Pool, Queue, Process
 import numpy as np
@@ -95,7 +95,7 @@ class TiledTreeView(QGraphicsView):
     def init(self):
         #self.setViewportUpdateMode(QGraphicsView.SmartViewportUpdate)
         #print len(self._scene.items())
-        map(lambda x: self._scene.removeItem(x), self._scene.items())
+        list(map(lambda x: self._scene.removeItem(x), list(self._scene.items())))
 
         self.highlighter = QGraphicsPathItem()
         self.highlighter.setZValue(100)
@@ -681,9 +681,9 @@ class TiledGUI(QMainWindow):
         self.view = self.views[self.current_view]
         self.splitter.insertWidget(0, self.view)
         if tree_image.tree_style.mode == "c":
-            cx, cy = map(lambda x: x/2.0, [self.view.img_w, self.view.img_h])
+            cx, cy = [x/2.0 for x in [self.view.img_w, self.view.img_h]]
         else:
-            cx, cy = map(lambda x: x/2.0, self.view)
+            cx, cy = [x/2.0 for x in self.view]
         #self.view.centerOn(cx, cy)
         #self.view.update_tile_view()
         #self.view._fit_to_window()
@@ -715,7 +715,7 @@ class TiledGUI(QMainWindow):
         QMainWindow.keyReleaseEvent(self,e)
 
 def test(*args):
-    print( "done", args)
+    print(( "done", args))
 
 class TileThread(QThread):
     def __init__(self, view, tile_rect, row, col):
@@ -794,7 +794,7 @@ class AreaSelectorItem(QGraphicsRectItem):
             p.setPen(QPen(self.Color))
             p.setFont(QFont("Arial",13))
             p.drawText(self.rect().bottomLeft().x(),self.rect().bottomLeft().y(),text)
-        print "painted"
+        print("painted")
     def setActive(self, state):
         self._active = bool(state)
 
