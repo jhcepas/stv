@@ -34,7 +34,7 @@ class TreeImage(object):
         self.adjust_apertures()
         self.adjust_branch_lengths()
         self.update_collision_paths()
-        
+
     @timeit
     def set_leaf_aperture(self, nodeid=None, factor=None):
         if self.leaf_apertures is None:
@@ -82,7 +82,7 @@ class TreeImage(object):
 
     def adjust_dimensions(self):
         self.img_data = layout.get_empty_matrix(len(self.cached_preorder))
-        
+
         layout.update_node_dimensions(img_data=self.img_data,
                                       cached_prepostorder=self.cached_prepostorder,
                                       cached_preorder=self.cached_preorder,
@@ -91,7 +91,7 @@ class TreeImage(object):
     @timeit
     def adjust_apertures(self):
         if self.tree_style.mode == 'r':
-            rect_layout.update_rect_positions(img_data=self.img_data, 
+            rect_layout.update_rect_positions(img_data=self.img_data,
                                         cached_prepostorder=self.cached_prepostorder,
                                         cached_preorder=self.cached_preorder,
                                         leaf_apertures=self.leaf_apertures)
@@ -108,7 +108,7 @@ class TreeImage(object):
         if not adjust_fn:
             adjust_fn = layout.default_adjust_branch
         adjust_fn(self)
-        
+
         self.root_open = 0.0
 
 
@@ -150,4 +150,3 @@ class TreeImage(object):
                 #     func(node)
             else:
                 self.cached_prepostorder.append(-node._id)
-

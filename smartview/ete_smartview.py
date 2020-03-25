@@ -1,4 +1,4 @@
-
+import pyximport; pyximport.install()
 
 import sys
 import random
@@ -55,7 +55,7 @@ def populate_args(parser):
     parser.add_argument("--scale", dest="scale", type=float, default=None)
     parser.add_argument("--newick_format", dest="nwformat", type=int, default=0)
     parser.add_argument("--heatmap", dest="heatmap", action="store_true")
-    
+
 
 
 nameF = AttrFace("name", fsize=10, fgcolor='royalBlue', ftype='Arial')
@@ -103,7 +103,7 @@ def real_layout(node):
 
         add_face_to_node(distF, node, column=0, position="branch-top")
         add_face_to_node(supportF, node, column=1, position="branch-bottom")
-        
+
     elif node.up:
         if node.name:
             add_face_to_node(nameF, node, column=0, position="branch-top")
@@ -113,7 +113,7 @@ def real_layout(node):
         #add_face_to_node(circleF, node, column=5, position="branch-right")
     add_face_to_node(gradF, node, column=10, position="branch-right")
 
-    
+
 def test_layout(node):
     node.img_style.size = 1
     #f.margin_left=20
@@ -138,7 +138,7 @@ def crouded_layout(node):
         add_face_to_node(nameF3, node, column=1, position="branch-right")
 
     else:
-        if MATRIX is not None: 
+        if MATRIX is not None:
             hface = HeatmapArcFace(MATRIX[node._id], 100, 0.8)
             add_face_to_node(hface, node, column=0, position="aligned")
 
@@ -161,14 +161,14 @@ def stacked_layout(node, dim=None):
         add_face_to_node(nameF, node, column=0, position="branch-right")
         add_face_to_node(nameF2, node, column=0, position="branch-right")
         add_face_to_node(nameF3, node, column=1, position="branch-right")
-        if MATRIX is not None: 
+        if MATRIX is not None:
             hface = HeatmapArcFace(MATRIX[node._id], 100, 0.5)
             add_face_to_node(hface, node, column=0, position="aligned")
             hface = HeatmapFace(MATRIX[node._id], 10, 10)
             add_face_to_node(hface, node, column=2, position="branch-right")
 
     else:
-        if MATRIX is not None: 
+        if MATRIX is not None:
             hface = HeatmapArcFace(MATRIX[node._id], 100, 0.8)
             add_face_to_node(hface, node, column=0, position="aligned")
 
@@ -182,22 +182,22 @@ def stacked_layout(node, dim=None):
 
 def tol_layout(node, dim=None):
     nameF = TextFace(node.name, fgcolor="indianRed", fsize=16)
-    # if node.rank: 
+    # if node.rank:
     #     rankF = TextFace(node.sci_name, fgcolor="orange", fsize=10)
     distF = TextFace("%0.2f" %node.dist, fgcolor="#888888", fsize=8)
     sizeF = TextFace(" (size: %d)" %n2leaves[node], fsize=8)
-    
+
     add_face_to_node(distF, node, column=0, position="branch-bottom")
     if node.is_leaf():
         add_face_to_node(nameF, node, column=0, position="branch-right")
-        if MATRIX is not None: 
+        if MATRIX is not None:
             hface = HeatmapArcFace(MATRIX[node._id], 100, 0.5)
             add_face_to_node(hface, node, column=0, position="aligned")
             hface = HeatmapFace(MATRIX[node._id], 10, 10)
             add_face_to_node(hface, node, column=2, position="branch-right")
 
     else:
-        if MATRIX is not None: 
+        if MATRIX is not None:
             hface = HeatmapArcFace(MATRIX[node._id], 100, 0.8)
             add_face_to_node(hface, node, column=0, position="aligned")
 
@@ -225,7 +225,7 @@ def run(args):
         h.setref()
 
     logger.info(colorify("Building ETE tree", "lblue"))
-        
+
     if args.size:
         t1 = Tree()
         t1.populate(args.size/2, random_branches=True)
@@ -266,7 +266,7 @@ def run(args):
             if not n.children:
                 n2leaves[n] = 1
     logger.info(colorify("Loaded tree: %d leaves and %d nodes" %(n2leaves[t], precount), "lblue"))
-    
+
     if args.ultrametric:
         #min_rad = len(t)/(2*math.pi)
         #t.convert_to_ultrametric(tree_length=min_rad, strategy="log", logbase=1000)
@@ -283,13 +283,13 @@ def run(args):
         #         #print(MATRIX[n._id])
         MATRIX[n.children[0]._id] = np.array([1,1,1,1,1,0.1,0.1,0.1,0.1,0.1])
         MATRIX[n.children[-1]._id] = np.array([0.1,0.1,0.1,0.1,0.1,1,1,1,1,1])
-        
+
         for n in t.iter_descendants():
             for ch in n.children:
                 rand = np.array([1-(random.randint(0,1)/10.) for x in range(10)])
                 MATRIX[ch._id] = MATRIX[n._id] * rand
-                
-                
+
+
     ts = TreeStyle()
 
 

@@ -43,7 +43,8 @@ def get_node_end_radius(parent_radius, dim, scale):
 
 @timeit
 def get_optimal_circular_scale(tree_image, optimization_level="med", root_opening_factor=0.0):
-    """ Returns the minimum branch scale necessary to display all faces avoiding extra (dashed) branche lines
+    """ Returns the minimum branch scale necessary to display all faces
+    avoiding extra (dashed) branche lines
     """
 
     imgdata = tree_image.img_data
@@ -196,7 +197,7 @@ def update_node_radius(imgdata, cached_prepostorder,
                 # dim[_fnh] = angle
         else:
             dim[_fnw] = max([imgdata[ch._id][_fnw] for ch in node.children])
-            # dim[_fnh] = dim[_aend] - dim[_astart]  
+            # dim[_fnh] = dim[_aend] - dim[_astart]
     return max_radius
 
 @timeit
@@ -276,5 +277,4 @@ def update_node_angles(img_data, arc_start, cached_prepostorder,
                 dim[_aend] = current_angle + angle_step
                 dim[_acenter] = current_angle + (angle_step/2.0)
                 current_angle += angle_step
-                dim[_fnh] = dim[_aend] - dim[_astart] 
-
+                dim[_fnh] = dim[_aend] - dim[_astart]

@@ -4,8 +4,6 @@ import numpy as np
 from .colors import random_color
 import colorsys
 
-
-
 # Pick two colors. Values from 0 to 1. See "hue" at
 # http://en.wikipedia.org/wiki/HSL_and_HSV
 def get_color_gradient():
@@ -148,9 +146,6 @@ class Face(object):
 
     def _size(self):
         pass
-
-
-
 
 class HeatmapArcFace(Face):
     __slots__ = ['width', 'values', 'h']

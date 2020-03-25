@@ -139,7 +139,7 @@ def by_size(tree_image, stop=None):
             nleaves += 1
         n._id = count
 
-    
+
     median_dist = np.median(distances)
     min_dist = np.median(distances)
     scale = 10.0 / min_dist
@@ -147,7 +147,7 @@ def by_size(tree_image, stop=None):
     # minimum distance to allocate 3 pixels per terminal node
     angle = tree_image.tree_style.arc_span / float(nleaves)
     theta = math.radians(angle/2.0)
-    
+
     min_sep = 3.0 / math.sin(theta)
 
     init_zoom_factor = min_sep / 1080
@@ -209,7 +209,7 @@ def adjust_lengths_by_size(tree_image, stop=None):
             if not n.children:
                 n2leaves[n] = 1
                 n2farthest[n] = n.dist
-                
+
             if n.up:
                 n2rootdist[n] = n2rootdist[n.up] + n.dist
             else:
@@ -227,7 +227,8 @@ def adjust_lengths_by_size(tree_image, stop=None):
                 break
             size, largest = sorted_leaves.pop()
             for ch in largest.children:
-                    bisect.insort_left(sorted_leaves, (n2leaves[ch], ch))
+                i = bisect.bisect_left([s[0] for s in sorted_leaves], n2leaves[ch])
+                sorted_leaves.insert(i, (n2leaves[ch], ch))
 
         if sorted_leaves:
             leaves = [i[1] for i in sorted_leaves]
@@ -254,15 +255,15 @@ def adjust_lengths_by_size(tree_image, stop=None):
                 if current_rad >= hyp:
                     clade_scale = 500 / diff
                 else:
-                    clade_scale = (hyp-current_rad) / diff 
+                    clade_scale = (hyp-current_rad) / diff
 
 
             #print 'node_size:', n2leaves[seed], 'nodeRootdist:', n2rootdist[seed], 'scale', clade_scale
             for n in seed.traverse(is_leaf_fn=lambda x: x in leaves):
-                for ch in n.children: 
+                for ch in n.children:
                     tree_image.img_data[ch._id][_blen] = ch.dist * clade_scale
                     n2scale[ch] = n2scale[n] + (ch.dist * clade_scale)
-                    
+
             seeds.extend([lf for lf in leaves if n2leaves[lf]> opt_size ])
         else:
             aperture = tree_image.img_data[seed._id][_fnh]
@@ -279,7 +280,7 @@ def adjust_lengths_by_size(tree_image, stop=None):
             if current_rad >= hyp:
                 clade_scale = 500 / diff
             else:
-                clade_scale = (hyp-current_rad) / diff 
+                clade_scale = (hyp-current_rad) / diff
 
             for n in seed.traverse():
                 for ch in n.children:
@@ -316,7 +317,7 @@ def by_scale(tree_image, stop=20, sca=10):
 
     scale_ranges = [(maxd/4, 100), (maxd/3, 16), (maxd/2, 16), (maxd**maxd, 1)]
 
-    
+
     for n in root.traverse("preorder"):
         if n.up:
             fbranch = n.dist

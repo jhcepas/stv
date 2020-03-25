@@ -11,15 +11,6 @@ import numpy
 #     os.environ['COPY_EXTENDED_ATTRIBUTES_DISABLE'] = 'true'
 #     os.environ['COPYFILE_DISABLE'] = 'true'
 
-#sourcefiles = glob('smartview/*pyx')
-#extensions = [Extension("smartview", sourcefiles)]
-
-# try:
-#     from setuptools import setup, find_packages
-# except ImportError:
-#     ez_setup.use_setuptools()
-#     from setuptools import setup, find_packages
-
 CLASSIFIERS= [
     "Development Status :: 6 - Mature",
     "Environment :: Console",
@@ -39,7 +30,6 @@ CLASSIFIERS= [
     ]
 
 try:
-
     extensions = [Extension('smartview.ctree', ['smartview/ctree.pyx']),
                   Extension('smartview.clayout', ['smartview/clayout.pyx']),
                   Extension('smartview.cstyle', ['smartview/cstyle.pyx']),
@@ -52,7 +42,7 @@ try:
 
         name = 'smartview',
         version = 0.1,
-        packages = ['smartview'], 
+        packages = ['smartview'],
 
         entry_points = {"console_scripts":
                         ["smartview = smartview.ete_smartview:main"]},
@@ -63,14 +53,14 @@ try:
 
         },
 
-        # metadata for upload to PyPI 
-       author = "Jaime Huerta-Cepas",
+        # metadata for upload to PyPI
+        author = "Jaime Huerta-Cepas",
         author_email = "jhcepas@gmail.com",
         maintainer = "Jaime Huerta-Cepas",
-        maintainer_email = "huerta@embl.de",
+        maintainer_email = "jhcepas@gmail.com",
         platforms = "OS Independent",
         license = "GPLv3",
-        description = "Smartview",
+        description = "Huge tree visualization with smart zooming",
         long_description = "",
         classifiers = CLASSIFIERS,
         provides = ["smartview"],
