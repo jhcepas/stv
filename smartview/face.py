@@ -13,12 +13,12 @@ def get_color_gradient():
     COLOR_INTENSITY = 0.6
 
     def gradient(hue):
-        min_lightness = 0.35 
+        min_lightness = 0.35
         max_lightness = 0.85
         base_value = COLOR_INTENSITY
 
         # each gradient must contain 100 lightly descendant colors
-        colors = []   
+        colors = []
         rgb2hex = lambda rgb: '#%02x%02x%02x' % rgb
         l_factor = (max_lightness-min_lightness) / 100.
         l = min_lightness
@@ -37,7 +37,7 @@ def get_color_gradient():
         for c in  reversed(gradient(COLOR2)):
             color=QColor(c)
             colors.append(color)
-        return colors 
+        return colors
 
     return color_scale()
 
@@ -455,3 +455,307 @@ class CircleLabelFace(Face):
         else:
             painter.setPen(QPen(QColor(self.color)))
             painter.drawEllipse(x, y, self._width(), self._height())
+
+
+class SeqMotifFace(Face):
+    """
+    Creates a face based on an amino acid or nucleotide sequence and a
+    list of motif regions.
+
+    :param None seq: a text string containing an aa or nt sequence. If
+        not provided, ``seq`` and ``compactseq`` motif modes will not be
+        available.
+
+    :param None motifs: a list of motif regions referred to original
+        sequence. Each motif is defined as a list containing the
+        following information:
+
+        ::
+
+          motifs = [[seq.start, seq.end, shape, width, height, fgcolor, bgcolor, text_label],
+                   [seq.start, seq.end, shape, width, height, fgcolor, bgcolor, text_label],
+                   ...
+                  ]
+
+        Where:
+
+         * **seq.start:** Motif start position referred to the full sequence (1-based)
+         * **seq.end:** Motif end position referred to the full sequence (1-based)
+         * **shape:** Shape used to draw the motif. Available values are:
+
+            * ``o`` = circle or ellipse
+            * ``>``  = triangle (base to the left)
+            * ``<``  = triangle (base to the left)
+            * ``^``  = triangle (base at bottom)
+            * ``v``  = triangle (base on top )
+            * ``<>`` = diamond
+            * ``[]`` = rectangle
+            * ``()`` = round corner rectangle
+            * ``line`` = horizontal line
+            * ``blank`` = blank space
+
+            * ``seq`` = Show a color and the corresponding letter of each sequence position
+            * ``compactseq`` = Show a thinh vertical color line for each sequence position
+
+         * **width:** total width of the motif (or sequence position width if seq motif type)
+         * **height:** total height of the motif (or sequence position height if seq motif type)
+         * **fgcolor:** color for the motif shape border
+         * **bgcolor:** motif background color. Color code or name can be preceded with the "rgradient:" tag to create a radial gradient effect.
+         * **text_label:** a text label in the format 'FontType|FontSize|FontColor|Text', for instance, arial|8|white|MotifName""
+
+    :param line gap_format: default shape for the gaps between motifs
+    :param blockseq seq_format: default shape for the seq regions not covered in motifs
+    """
+
+    def __init__(self, seq=None, motifs=None, seqtype="aa",
+                 gap_format="line", seq_format="()",
+                 scale_factor=1, height=10, width=10,
+                 fgcolor='slategrey', bgcolor='slategrey', gapcolor='black'):
+
+        if not motifs and not seq:
+            raise ValueError("At least one argument (seq or motifs) should be provided. ")
+
+        Face.__init__(self)
+        self.seq = seq
+        self.motifs = motifs
+
+        self.scale_factor = scale_factor
+        self.overlaping_motif_opacity = 0.5
+        self.adjust_to_text = False
+
+        self.gap_format = gap_format
+        self.seq_format = seq_format
+
+        if seqtype == "aa":
+            self.fg = _aafgcolors
+            self.bg = _aabgcolors
+        elif seqtype == "nt":
+            self.fg = _ntfgcolors
+            self.bg = _ntbgcolors
+
+        self.h = height
+        self.w = width
+        self.fgcolor = fgcolor
+        self.bgcolor = bgcolor
+        self.gapcolor = gapcolor
+        self.regions = []
+        self.build_regions()
+
+    def build_regions(self):
+        # Build and sort regions
+        motifs = self.motifs
+        if self.seq:
+            seq = self.seq
+        else:
+            seq = "-" * max([m[1] for m in motifs])
+
+        # if only sequence is provided, build regions out of gap spaces
+        if not motifs:
+            if self.seq_format == "seq":
+                motifs = [[0, len(seq), "seq", 10, self.h, None, None, None]]
+            else:
+                motifs = []
+                pos = 0
+                for reg in re.split('([^-]+)', seq):
+                    if reg:
+                        if not reg.startswith("-"):
+                            if self.seq_format == "compactseq":
+                                motifs.append([pos, pos+len(reg)-1, "compactseq", 1, self.h, None, None, None])
+                            elif self.seq_format == "line":
+                                motifs.append([pos, pos+len(reg)-1, "-", 1, 1, self.fgcolor, None, None])
+                            else:
+                                motifs.append([pos, pos+len(reg)-1, self.seq_format, None, self.h, self.fgcolor, self.bgcolor, None])
+                        pos += len(reg)
+
+        motifs.sort()
+
+        # complete missing regions
+        current_seq_pos = 0
+        for index, mf in enumerate(motifs):
+            start, end, typ, w, h, fg, bg, name = mf
+            if start > current_seq_pos:
+                pos = current_seq_pos
+                for reg in re.split('([^-]+)', seq[current_seq_pos:start]):
+                    if reg:
+                        if reg.startswith("-") and self.seq_format != "seq":
+                            self.regions.append([pos, pos+len(reg)-1, self.gap_format, 1, 1, self.gapcolor, None, None])
+                        else:
+                            self.regions.append([pos, pos+len(reg)-1, self.seq_format,
+                                                 self.w, self.h,
+                                                 self.fgcolor, self.bgcolor, None])
+                    pos += len(reg)
+                current_seq_pos = start
+
+            self.regions.append(mf)
+            current_seq_pos = end + 1
+
+        if len(seq) > current_seq_pos:
+            pos = current_seq_pos
+            for reg in re.split('([^-]+)', seq[current_seq_pos:]):
+                if reg:
+                    if reg.startswith("-") and self.seq_format != "seq":
+                        self.regions.append([pos, pos+len(reg)-1, self.gap_format, 1, 1, self.gapcolor, None, None])
+                    else:
+                        self.regions.append([pos, pos+len(reg)-1, self.seq_format,
+                                             self.w, self.h,
+                                             self.fgcolor, self.bgcolor, None])
+                    pos += len(reg)
+
+        #print ('\n'.join(map(str, self.regions)))
+
+
+    def sumary():
+        # build regions for the set of nodes collapsed?
+
+        # combine regions for block visualization
+        #
+
+    def _draw(self, painter, x, y, zoom_factor):
+
+        # given regions and zoom factor:
+        # viz mode = adaptive: if enough site, show the selected mode i.e. sequence
+        # otherwise, show colappsed
+
+
+
+
+        # master item, all object should have this as parent
+        self.item = SeqMotifRectItem()
+
+        # Calculate max height of all elements in this motif object
+        max_h = max([reg[4] for index, reg
+                     in enumerate(self.regions)])
+        y_center = max_h / 2
+
+        max_x_pos = 0
+        current_seq_end = 0
+
+
+        seq_x_correction = {}
+        for seq_start, seq_end, typ, wf, h, fg, bg, name in self.regions:
+            if typ == "seq":
+                seq_x_correction[(seq_start, seq_end)] = wf * self.scale_factor
+
+        for index, (seq_start, seq_end, typ, wf, h, fg, bg, name) in enumerate(self.regions):
+            # this are the actual coordinates mapping to the sequence
+            opacity = 1
+            w = (seq_end - seq_start) + 1
+            xstart = seq_start
+
+            if self.scale_factor:
+                w *= self.scale_factor
+                if wf:
+                    wf *= self.scale_factor
+                xstart *= self.scale_factor
+
+
+            # this loop corrects x-positions for overlaping motifs and takes
+            # into account the different scales used for different motif types,
+            # i.e. seq
+            for (old_start, old_end), correction in six.iteritems(seq_x_correction):
+                seq_range = None
+                if seq_start > old_start:
+                    seq_range = min(old_end, seq_start) - old_start
+                    xstart -= seq_range
+                    xstart += (seq_range * correction)
+                elif seq_end > old_start:
+                    seq_range = min(old_end, seq_end) - old_start
+                # corrects also the width for the overlaping part
+                if seq_range:
+                    if seq_start < old_end or seq_end < seq_start:
+                        w -= seq_range
+                        w += (seq_range * correction)
+
+            if seq_start < current_seq_end:
+                opacity = self.overlaping_motif_opacity
+
+            # expected width of the object to be drawn
+            ystart = y_center - (h/2)
+
+            if typ == "-" or typ == "line":
+                i = QGraphicsLineItem(0, h/2, w, h/2)
+            elif typ == " " or typ == "blank":
+                i = None
+            elif typ == "o":
+                i = QGraphicsEllipseItem(0, 0, w, h)
+            elif typ == ">":
+                i = QGraphicsTriangleItem(w, h, orientation=1)
+            elif typ == "v":
+                i = QGraphicsTriangleItem(w, h, orientation=2)
+            elif typ == "<":
+                i = QGraphicsTriangleItem(w, h, orientation=3)
+            elif typ == "^":
+                i = QGraphicsTriangleItem(w, h, orientation=4)
+            elif typ == "<>":
+                i = QGraphicsDiamondItem(w, h)
+            elif typ == "[]":
+                i = QGraphicsRectItem(0, 0, w, h)
+            elif typ == "()":
+                i = QGraphicsRoundRectItem(0, 0, w, h)
+
+            elif typ == "seq" and self.seq:
+                i = SequenceItem(self.seq[seq_start:seq_end+1],
+                                 poswidth=wf,
+                                 posheight=h, draw_text=True)
+                w = i.rect().width()
+                h = i.rect().height()
+            elif typ == "compactseq" and self.seq:
+                i = SequenceItem(self.seq[seq_start:seq_end+1], poswidth=1*self.scale_factor,
+                                 posheight=h, draw_text=False)
+                w = i.rect().width()
+                h = i.rect().height()
+            else:
+                i = QGraphicsSimpleTextItem("?")
+
+            if name and i:
+                family, fsize, fcolor, text = name.split("|")
+                #qfmetrics = QFontMetrics(qfont)
+                #txth = qfmetrics.height()
+                #txtw = qfmetrics.width(text)
+                txt_item = TextLabelItem(text, w, h,
+                                         fsize=fsize, ffam=family, fcolor=fcolor)
+                # enlarges circle domains to fit text
+                #if typ == "o":
+                #    min_r = math.hypot(txtw/2.0, txth/2.0)
+                #    txtw = max(txtw, min_r*2)
+
+                #y_txt_start = (max_h/2.0) - (h/2.0)
+                txt_item.setParentItem(i)
+                #txt_item.setPos(0, ystart)
+
+
+            if i:
+                i.setParentItem(self.item)
+                i.setPos(xstart, ystart)
+
+                if bg:
+                    if bg.startswith("rgradient:"):
+                        bg = bg.replace("rgradient:", "")
+                        try:
+                            c1, c2 = bg.split("|")
+                        except ValueError:
+                            c1, c2 = bg, "white"
+                        rect = i.boundingRect()
+                        gr = QRadialGradient(rect.center(), rect.width()/2)
+                        gr.setColorAt(0, QColor(c2))
+                        gr.setColorAt(1, QColor(c1))
+                        color = gr
+                    else:
+                        color = QColor(bg)
+                    try:
+                        i.setBrush(color)
+                    except:
+                        pass
+
+                if fg:
+                    i.setPen(QColor(fg))
+
+                if opacity < 1:
+                    i.setOpacity(opacity)
+
+            max_x_pos = max(max_x_pos, xstart + w)
+            current_seq_end = max(seq_end, current_seq_end)
+
+        self.item.setRect(0, 0, max_x_pos, max_h)
+
+        self.item.setPen(QPen(Qt.NoPen))

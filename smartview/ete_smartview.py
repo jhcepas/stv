@@ -30,15 +30,17 @@ c_handler.setFormatter(c_format)
 # Add handlers to the logger
 logger.addHandler(c_handler)
 
-
 DESC = """
-Smartview 0.1
+Smartview: explore large trees interactively
 """
 MATRIX = None
 
 def populate_args(parser):
-    parser.add_argument("-t", dest="src_trees", type=str, help="target_tree", nargs="+")
-    parser.add_argument("-s", dest="size", type=int, help="size")
+    input_args = parser.add_mutually_exclusive_group(required=True)
+    input_args.add_argument("-t", dest="src_trees", type=str, help="target tree in newick format")
+    input_args.add_argument("-s", dest="size", type=int, help="Random tree size (for testing purposes)")
+
+    layout_args = parser.add_argument_group('tree layout options')
     parser.add_argument("-z", dest="zoom_factor", type=float, help="initial zoom level")
     parser.add_argument("-l", dest="layout", type=str, help="layout function to use", default="basic_layout")
     parser.add_argument("--debug", dest="debug", action="store_true", help="enable debug mode")
@@ -55,6 +57,13 @@ def populate_args(parser):
     parser.add_argument("--scale", dest="scale", type=float, default=None)
     parser.add_argument("--newick_format", dest="nwformat", type=int, default=0)
     parser.add_argument("--heatmap", dest="heatmap", action="store_true")
+
+
+def link_to_table():
+    pass
+
+def link_alg():
+    pass
 
 
 
