@@ -1,9 +1,8 @@
-
-
+from collections import defaultdict
 import numpy as np
 
 from .utils import timeit
-from . import layout, circular_layout, gui, links
+from . import (layout, circular_layout, rect_layout, gui, links)
 from .common import *
 
 import math
@@ -26,7 +25,8 @@ class TreeImage(object):
         self.break_points = None
 
         self.link_paths = []
-        self.circ_collistion_paths = None
+        self.circ_collision_paths = None
+        self.rect_collision_paths = None
 
         self.initialize()
         self.set_leaf_aperture()
@@ -92,9 +92,9 @@ class TreeImage(object):
     def adjust_apertures(self):
         if self.tree_style.mode == 'r':
             rect_layout.update_rect_positions(img_data=self.img_data,
-                                        cached_prepostorder=self.cached_prepostorder,
-                                        cached_preorder=self.cached_preorder,
-                                        leaf_apertures=self.leaf_apertures)
+                                              cached_prepostorder=self.cached_prepostorder,
+                                              cached_preorder=self.cached_preorder,
+                                              leaf_apertures=self.leaf_apertures)
 
         elif self.tree_style.mode == "c":
             circular_layout.update_node_angles(img_data=self.img_data,
@@ -110,24 +110,31 @@ class TreeImage(object):
         adjust_fn(self)
 
         self.root_open = 0.0
-
-
         self.scale = 1.0
-
-        #aligned_region_width = layout.compute_aligned_region_width(self)
         aligned_region_width = 100
-        max_leaf_radius = circular_layout.update_node_radius(self.img_data,
-                                                             self.cached_prepostorder, self.cached_preorder,
-                                                             self.scale, self.root_open)
 
-        # set image total size
-        self.width = (max_leaf_radius + aligned_region_width) * 2
-        self.height = self.width
-        self.radius = (max_leaf_radius + aligned_region_width, max_leaf_radius + aligned_region_width)
+        if self.tree_style.mode == 'c':
+            #aligned_region_width = layout.compute_aligned_region_width(self)
+            max_leaf_radius = circular_layout.update_node_radius(self.img_data,
+                                                                 self.cached_prepostorder, self.cached_preorder,
+                                                                 self.scale, self.root_open)
+
+            # set image total size
+            self.width = (max_leaf_radius + aligned_region_width) * 2
+            self.height = self.width
+            self.radius = (max_leaf_radius + aligned_region_width, max_leaf_radius + aligned_region_width)
+        elif self.tree_style.mode == 'r':
+            self.adjust_apertures()
+            self.width = self.img_data[0][_fnw]
+            self.height = self.img_data[0][_fnw]
+
 
     def update_collision_paths(self):
         if self.tree_style.mode == 'c':
-            self.circ_collistion_paths = circular_layout.compute_circ_collision_paths(self)
+            self.circ_collision_paths = defaultdict(lambda: [None, None])
+            #circular_layout.compute_circ_collision_paths(self)
+        elif self.tree_style.mode == 'r':
+            self.rect_collision_paths = defaultdict(lambda: [None, None])
 
 
     @timeit

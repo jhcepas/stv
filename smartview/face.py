@@ -609,6 +609,7 @@ class SeqMotifFace(Face):
 
         # combine regions for block visualization
         #
+        pass
 
     def _draw(self, painter, x, y, zoom_factor):
 

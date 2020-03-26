@@ -203,10 +203,6 @@ def update_node_radius(imgdata, cached_prepostorder,
 @timeit
 def compute_circ_collision_paths(tree_image):
     from .drawer import get_arc_path
-    """ collision paths in the un-transformed scene"""
-    collision_paths = defaultdict(lambda: [None, None])
-    return collision_paths
-
 
     collision_paths = []
     img_data = tree_image.img_data

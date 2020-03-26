@@ -1,20 +1,11 @@
 from .common import *
 from .utils import timeit, debug
-from .painter import QETEPainter
-
-from PyQt5 import QtCore
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from PyQt5 import QtGui
-import base64
 
 # TODO: cover scenario where internal nodes are higher than all children!
-
 @timeit
-def update_rect_coordinates(img_data, cached_prepostorder,
+def update_rect_positions(img_data, cached_prepostorder,
                             cached_preorder,
-                            leaf_apertures,
-                            branch_scale):
+                            leaf_apertures):
 
     current_y = 0.0
     current_x = 0.0
@@ -27,11 +18,12 @@ def update_rect_coordinates(img_data, cached_prepostorder,
         node = cached_preorder[abs(nid)]
         dim = img_data[node._id]
 
-        # calculate node width, could this be cached so it is not recalculate
+        # calculate node width, could this be cached so it is not recalculated
         # in post and pre order?
-        wtop = max(dim[_btw], dim[_blen]) + dim[_brw]
-        wbot = max(dim[_bbw], dim[_blen]) + dim[_brw]
-        node_width = max(wtop, wbot)
+        # wtop = max(dim[_btw], dim[_blen]) + dim[_brw]
+        # wbot = max(dim[_bbw], dim[_blen]) + dim[_brw]
+        # node_width = max(wtop, wbot)
+        node_width = dim[_blen]
 
         if postorder:
             if len(node.children) > 1:
@@ -72,13 +64,12 @@ def update_rect_coordinates(img_data, cached_prepostorder,
             else:
                 current_x += node_width
 
-    return img_data[0][_fnw], img_data[0][_fnh]
 
 
-#@timeit
-# def get_rect_collision_paths(tree_image):
+# @timeit
+# def compute_rect_collision_paths(tree_image):
 #     """ collision paths in the un-transformed scene"""
-#     collistion_paths = []
+#     collision_paths = []
 #     img_data = tree_image.img_data
 #     for nid, dim in enumerate(img_data):
 #         node = tree_image.cached_preorder[nid]
@@ -90,19 +81,18 @@ def update_rect_coordinates(img_data, cached_prepostorder,
 #         fpath= QtGui.QPainterPath()
 #         path.addRect(xstart, ystart, xend-xstart, yend-ystart)
 #         fpath.addRect(xstart, ystart, dim[_fnw], dim[_fnh])
-#         collistion_paths.append([path, fpath])
-#     return collistion_paths
+#         collision_paths.append([path, fpath])
+#     return collision_paths
 
-def get_collision_path(dim, parentdim, zoom_factor):
-    ystart = dim[_ystart] * zoom_factor
-    yend = dim[_yend] * zoom_factor
-    xend = dim[_xend] * zoom_factor
-    xstart = parentdim[_xend] * zoom_factor
-    path = QtGui.QPainterPath()
-    fpath= QtGui.QPainterPath()
-    path.addRect(xstart, ystart, xend-xstart, yend-ystart)
-    fpath.addRect(xstart, ystart,
-                  dim[_fnw] * zoom_factor,
-                  dim[_fnh] * zoom_factor)
-    return path, fpath
-
+# def get_rect_collision_paths(dim, parentdim, zoom_factor):
+#     ystart = dim[_ystart] * zoom_factor
+#     yend = dim[_yend] * zoom_factor
+#     xend = dim[_xend] * zoom_factor
+#     xstart = parentdim[_xend] * zoom_factor
+#     path = QtGui.QPainterPath()
+#     fpath= QtGui.QPainterPath()
+#     path.addRect(xstart, ystart, xend-xstart, yend-ystart)
+#     fpath.addRect(xstart, ystart,
+#                   dim[_fnw] * zoom_factor,
+#                   dim[_fnh] * zoom_factor)
+#     return path, fpath

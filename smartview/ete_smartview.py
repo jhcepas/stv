@@ -40,7 +40,13 @@ def populate_args(parser):
     input_args.add_argument("-t", dest="src_trees", type=str, help="target tree in newick format")
     input_args.add_argument("-s", dest="size", type=int, help="Random tree size (for testing purposes)")
 
-    layout_args = parser.add_argument_group('tree layout options')
+    parser.add_argument("-m", dest='mode', default='c', help="(c)icular or (r)ect ")
+
+
+    circ_layout_args = parser.add_argument_group('tree layout options')
+    circ_layout_args.add_argument('--arc_span', dest="arc_span", type=float, default=360, help='In degrees')
+    circ_layout_args.add_argument('--arc_start', dest="arc_start", type=float, default=0, help='In degrees')
+
     parser.add_argument("-z", dest="zoom_factor", type=float, help="initial zoom level")
     parser.add_argument("-l", dest="layout", type=str, help="layout function to use", default="basic_layout")
     parser.add_argument("--debug", dest="debug", action="store_true", help="enable debug mode")
@@ -242,7 +248,7 @@ def run(args):
         t2.populate(args.size/2, random_branches=True)
         t = t1 + t2
     elif args.src_trees:
-        t = Tree(args.src_trees[0], format=args.nwformat)
+        t = Tree(args.src_trees, format=args.nwformat)
 
 
     if args.standardize:
@@ -303,9 +309,9 @@ def run(args):
 
 
     ts.layout_fn = globals()[args.layout]
-    ts.mode = "c"
-    ts.arc_span = 360
-    ts.arc_start = 0
+    ts.mode = args.mode
+    ts.arc_span = args.arc_span
+    ts.arc_start = args.arc_start
     if args.scale:
         ts.scale = args.scale
 

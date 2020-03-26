@@ -428,22 +428,31 @@ class TiledTreeView(QGraphicsView):
         viewport =  self.viewport()
         mouse_pos = viewport.mapFromGlobal(QCursor.pos())
         scene_mouse_pos = self.mapToScene(mouse_pos)
-        arc_paths = self.tree_image.circ_collistion_paths
+
+        if self.tree_image.tree_style.mode == "c":
+            collision_paths = self.tree_image.circ_collision_paths
+            M = QTransform()
+            M.scale(self.zoom_factor, self.zoom_factor)
+            M.translate(self.tree_image.radius[-1], self.tree_image.radius[-1])
+        elif self.tree_image.tree_style.mode == "r":
+            collision_paths = self.tree_image.rect_collision_paths
+            M = QTransform()
+            M.scale(self.zoom_factor, self.zoom_factor)
+
+
         img_data = self.tree_image.img_data
         curr = 0
-        end = len(arc_paths)
+        end = len(collision_paths)
         iters = 0
         match = None
-        M = QTransform()
-        M.scale(self.zoom_factor, self.zoom_factor)
-        M.translate(self.tree_image.radius[-1], self.tree_image.radius[-1])
+
 
         while curr < end:
-            if not arc_paths[curr][0]:
+            if not collision_paths[curr][0]:
                 curr += 1
                 continue
-            path = M.map(arc_paths[curr][0])
-            fpath = M.map(arc_paths[curr][1])
+            path = M.map(collision_paths[curr][0])
+            fpath = M.map(collision_paths[curr][1])
             if path.contains(scene_mouse_pos):
                 dim = self.tree_image.img_data[curr]
                 angle =  (dim[_aend] - dim[_astart])
@@ -550,7 +559,7 @@ class TiledTreeView(QGraphicsView):
             self.update_tile_view()
 
 
-            
+
 
 
         logger.debug("PRESSED %s" %key)
@@ -682,8 +691,8 @@ class TiledGUI(QMainWindow):
         self.splitter.insertWidget(0, self.view)
         if tree_image.tree_style.mode == "c":
             cx, cy = [x/2.0 for x in [self.view.img_w, self.view.img_h]]
-        else:
-            cx, cy = [x/2.0 for x in self.view]
+        elif tree_image.tree_style.mode == "r":
+            cx, cy = [0, 0]
         #self.view.centerOn(cx, cy)
         #self.view.update_tile_view()
         #self.view._fit_to_window()
@@ -768,6 +777,7 @@ class TileImage(QImage):
         # translated as 0,0
         matrix = QTransform().translate(-self.scene_rect.left(), -self.scene_rect.top())
         pp.setWorldTransform(matrix, True)
+
         drawer.draw_region_circ(self.tree_image, pp, self.zoom_factor, self.scene_rect)
         pp.end()
 
