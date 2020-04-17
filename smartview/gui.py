@@ -626,6 +626,8 @@ class TiledTreeView(QGraphicsView):
 
     def wheelEvent(self, e):
         factor =  (-e.angleDelta().y() / 360.0)
+        #print(e.pixelDelta())
+        #print(e.angleDelta())
 
         if abs(factor) >= 1:
             factor = 0.0

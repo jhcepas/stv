@@ -1,7 +1,14 @@
 * Drawer
+** General
+- implement labels (currently in old draw_region_circular
+- improve circ/rect control in draw_region --> i.e. split into smaller functions
+- trackpad and apple mouse too sensitive in zooming
+
 ** Rect layout
-   - Implement or use Circular Layout with tiny angles?
+   - Review apertures and branch length adjustment.
+
 ** Circular Layout
+  -
 ** Faces
     - Add SeqMotifFace to visualize alignments. Make Face adapatable to faces
     -
@@ -18,7 +25,6 @@
 
 * command line tool
 
-- link alignments
-- link table --> heatmap
+- link to alignments
+- link to data tables (even dataframes) --> heatmap, profiles, other plots
 - layout modes
-- set arc span, etc

@@ -1,5 +1,6 @@
 import math
 import time
+from collections import defaultdict
 
 from ctypes import *
 from numpy.ctypeslib import ndpointer
@@ -283,6 +284,11 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
             for func in tree_image.tree_style.layout_fn:
                 func(node)
 
+            # if node was not visited yet, compute face dimensions
+            if not np.any(dim[_btw:_bah+1]):
+                face_pos_sizes = layout.compute_face_dimensions(node, node._temp_faces)
+                dim[_btw:_bah+1] = face_pos_sizes
+
         if draw_collapsed:
             if node in visible_leaves:
                 pp.setPen(QPen(QColor("LightSteelBlue")))
@@ -292,10 +298,6 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
 
         else:
 
-            # if node was not visited yet, compute face dimensions
-            if not np.any(dim[_btw:_bah+1]):
-                face_pos_sizes = layout.compute_face_dimensions(node, node._temp_faces)
-                dim[_btw:_bah+1] = face_pos_sizes
 
 
             if treemode == "c":
@@ -314,7 +316,7 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
                 pp.drawPath(M.map(hLinePath))
 
                 new_rad, new_angle = get_qt_corrected_angle(parent_radius, dim[_acenter])
-                pp.translate(cx*zoom_factor, cy*zoom_factor)
+                pp.translate(cx * zoom_factor, cy * zoom_factor)
                 pp.rotate(np.degrees(new_angle))
 
                 end_faces = draw_faces(pp, new_rad, 0, node, zoom_factor, tree_image,
@@ -343,8 +345,6 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
                 max_observed_radius = max(max_observed_radius, endx + end_faces)
 
         pp.restore()
-
-
 
     for node in terminal_nodes:
         dim = tree_image.img_data[node._id]
@@ -445,7 +445,6 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
             curr += 1
             is_terminal = False
 
-
        # record node as terminal
         if is_terminal:
             # visible leaves for aligned faces
@@ -454,8 +453,7 @@ def draw_region_circ(tree_image, pp, zoom_factor, scene_rect):
 
             new_rad, new_angle = get_qt_corrected_angle(dim[_fnw], dim[_acenter])
             anode_x, anode_y = get_cart_coords(new_rad*zoom_factor, new_angle, cx*zoom_factor, cy*zoom_factor)
-            #print node_x, node_y, anode_x, anode_y
-
+            
             if scene_rect.contains(anode_x, anode_y):
                 visible_leaves.append(node)
                 endx = dim[_fnw] * zoom_factor
@@ -623,10 +621,189 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
     a_top = dim[_acenter] - dim[_astart]
     a_bot = dim[_aend] - dim[_acenter]
 
+    # end position hit by these faces
+    endx = 0
+
+    # Calculates basic info on how to start drawing each facegrid position block
+    pos2params = {}
+    for pos in range(5):
+        if pos == 0: # btop
+            facegrid_width = dim[_btw]
+            facegrid_height = dim[_bth]
+            available_pos_width = branch_length * zoom_factor
+            start_x = x * zoom_factor
+            available_pos_height = get_aperture(start_x * zoom_factor, a_top, 9999999999)
+
+        elif pos == 1: # bbottom
+            facegrid_width = dim[_bbw]
+            facegrid_height = dim[_bbh]
+            available_pos_width = branch_length * zoom_factor
+            start_x = x * zoom_factor
+            available_pos_height = get_aperture(start_x * zoom_factor, a_bot, 9999999999)
+
+        elif pos == 2: # branch right
+            facegrid_width = dim[_brw]
+            facegrid_height = dim[_brh]
+            available_pos_width = dim[_brw] * zoom_factor
+            start_x = (x + branch_length) * zoom_factor
+            available_pos_height = min(get_aperture(start_x * zoom_factor, a_top, 99999999999) * 2,
+                                       get_aperture(start_x * zoom_factor, a_bot, 99999999999) * 2)
+
+        elif pos == 3: # float
+            facegrid_width = 0
+            facegrid_height = 0
+            available_pos_width = 0
+            start_x = x + branch_length
+            available_pos_height= 0
+
+        elif pos == 4: # aligned
+            facegrid_width = dim[_baw]
+            facegrid_height = dim[_bah]
+            available_pos_width = 99999999999 
+            start_x = x * zoom_factor
+            available_pos_height = min(get_aperture(start_x * zoom_factor, a_top, 99999999999) * 2,
+                                       get_aperture(start_x * zoom_factor, a_bot, 99999999999) * 2)
+
+        # saves important data of each pos
+        pos2params[pos] = [start_x, available_pos_width, available_pos_height, facegrid_width, facegrid_height]
+
+    # TODO: Check if pos too small to be drawn
+    facegrid.sort(key=lambda x: (x[1], x[3], x[2])) # sort by pos, col, row
+
+    # calculate face information per pos and columns (face list, column width
+    # and height)
+    pos2colfaces = {}
+    poscol2width = {}
+    poscol2height = {}
+    
+    for faceidx, (face, pos, row, col, fw, fh) in enumerate(facegrid):
+        if target_positions is not None and pos not in target_positions:
+            continue
+        if not dim[_is_leaf] and face.only_if_leaf and not is_collapsed:
+            continue
+        pos2colfaces.setdefault(pos, {}).setdefault(col, []).append(faceidx)
+        poscol2width[(pos, col)] = max(fw, poscol2width.get((pos, col), 0))
+        poscol2height[(pos, col)] = poscol2height.get((pos, col), 0) + fh
+
+
+    # Set up each face position and available space, and call draw_face
+    for pos, columns in pos2colfaces.items():
+        (start_x, avail_pos_width, avail_pos_height, pos_width, pos_height) =  pos2params[pos]
+        
+        for col, selected_faces in columns.items(): 
+
+            col_height = poscol2height[(pos, col)]
+            col_width = poscol2width[(pos, col)]
+            avail_col_width  = min(col_width, 
+                                   ((col_width / pos_width) * avail_pos_width))
+            avail_col_height  = min(col_height, 
+                                    ((col_height / pos_height) * avail_pos_height))
+
+            start_y = 0 # We assume painter 0,0 coords are placed at the node center 
+            if pos == 0: # branch top
+                start_y -= avail_col_height
+            elif pos == 1: # branch bottom
+                start_y = start_y
+            elif pos == 2 or pos == 4: # branch right or aligned
+                start_y -=  avail_col_height / 2.0
+            elif pos == 3: # branch float
+                start_y -=  col_height
+
+            for faceidx in selected_faces:  
+                face, _pos, _row, _col, fw, fh = facegrid[faceidx]
+                avail_face_height = (fh / col_height) * avail_col_height
+
+                y_face_zoom_factor = (avail_face_height / fh)
+                x_face_zoom_factor = (avail_col_width / fw)
+
+                face_zoom_factor = min(x_face_zoom_factor, y_face_zoom_factor)
+                if 0 and not node.children: 
+                    print(node.name)
+                    print(" aph: ", avail_pos_height)
+                    print(" ach: ", avail_col_height)
+                    print(" afh: ", avail_face_height)
+                    print(" ph:  ", pos_height)
+                    print(" ch:  ", col_height)
+                    print(" fh:  ", fh)
+                    print()
+                    print(" apw: ", avail_pos_width)
+                    print(" acw: ", avail_col_width)
+                    print(" afw: ", avail_col_width)
+                    print(" pw:  ", pos_width)
+                    print(" cw:  ", col_width)
+                    print(" fw:  ", fw)
+                    print()
+                    print(" zoom_factor", face_zoom_factor)
+                    print("------")
+                
+                # ======================+
+                # DRAW FACE 
+                face.node = node
+
+                face.arc_start = dim[_astart]
+                face.arc_end = dim[_aend]
+                face.arc_center = dim[_acenter]
+                face.img_rad = _rad
+
+                face._pre_draw()
+
+                restore_rot_painter = False
+                if 0 and correct_rotation and face.rotable:
+                    restore_rot_painter = True
+                    pp.save()
+                    zoom_half_fw = ((fw * face_zoom_factor)/2)
+                    zoom_half_fh = ((fh * face_zoom_factor)/2)
+                    pp.translate(zoom_half_fw, zoom_half_fh)
+                    pp.rotate(180)
+                    pp.translate(-(zoom_half_fw), -(zoom_half_fh))
+                
+                face._draw(pp, start_x, start_y, face_zoom_factor)
+
+                if restore_rot_painter:
+                    pp.restore()
+
+                # END OF DRAW FACE 
+                # =======================
+                start_y += avail_face_height 
+
+            start_x += col_width
+            endx = max(endx, start_x)
+
+    return endx
+
+
+
+
+
+
+
+
+
+
+@timeit
+def draw_faces2(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
+               target_positions=None):
+
+    dim = tree_image.img_data[node._id]
+    branch_length = dim[_blen]
+    facegrid = node._temp_faces
+    if not facegrid:
+        return
+
+    correct_rotation = True if tree_image.tree_style.mode == 'c' and \
+                       dim[_acenter] > R90 and dim[_acenter] < R270 \
+                       else False
+
+    # Apertures top-branch and bottom-branch
+    a_top = dim[_acenter] - dim[_astart]
+    a_bot = dim[_aend] - dim[_acenter]
+
     def draw_face_column(faces, _x, _y, _rad, _face_zoom_factor):
         for _f, fw, fh in faces:
             if not dim[_is_leaf] and _f.only_if_leaf and not is_collapsed:
                 continue
+
+
             restore_rot_painter = False
             _f.node = node
             _f.arc_start = dim[_astart]
@@ -635,7 +812,6 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
             _f.img_rad = _rad
 
             _f._pre_draw()
-
 
             if correct_rotation and _f.rotable:
                 restore_rot_painter = True
@@ -650,7 +826,7 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
             _f._draw(pp, _x, _y, _face_zoom_factor)
 
             # # Draw face border (DEBUG)
-            if 0:
+            if 1:
                 pp.save()
                 pp.setPen(QPen(QColor('orange'), ))
                 pp.scale(_face_zoom_factor, _face_zoom_factor)
@@ -734,6 +910,7 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
         # skip if there is not enough width
         if available_pos_width < 1:
             continue
+
         # Faces are scaled based on available space given current zoom factor
         y_face_zoom_factor = aperture / facegrid_height
         x_face_zoom_factor = available_pos_width / facegrid_width

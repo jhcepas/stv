@@ -1,8 +1,10 @@
 from PyQt5.QtGui import QColor, QPen, QBrush, QFont, QFontMetrics, QPainterPath
 from PyQt5.QtCore import QRectF
 import numpy as np
-from .colors import random_color
+import re
+from . import colors
 import colorsys
+from .utils import timeit, debug
 
 # Pick two colors. Values from 0 to 1. See "hue" at
 # http://en.wikipedia.org/wiki/HSL_and_HSV
@@ -242,7 +244,7 @@ class HeatmapFace(Face):
         painter.scale(zoom_factor, zoom_factor)
         x = 0
         for v in self.values:
-            color = random_color(l=0.5, s=0.5)
+            color = colors.random_color(l=0.5, s=0.5)
             painter.fillRect(QRectF(x, y, self.rect_width, self.rect_height), QColor(color))
             painter.setPen(QColor("black"))
             painter.drawRect(QRectF(x, y, self.rect_width, self.rect_height))
@@ -418,7 +420,7 @@ class GradientFace(Face):
 
     def _pre_draw(self):
         value = getattr(self.node, self.node_attr)
-        self.fill_color = random_color(h=0.3, s=0.5, l=value)
+        self.fill_color = colors.random_color(h=0.3, s=0.5, l=value)
 
     def _draw(self, painter, x, y, zoom_factor):
         pass
@@ -509,29 +511,23 @@ class SeqMotifFace(Face):
 
     def __init__(self, seq=None, motifs=None, seqtype="aa",
                  gap_format="line", seq_format="()",
-                 scale_factor=1, height=10, width=10,
+                 height=10, width=10,
                  fgcolor='slategrey', bgcolor='slategrey', gapcolor='black'):
 
         if not motifs and not seq:
             raise ValueError("At least one argument (seq or motifs) should be provided. ")
 
         Face.__init__(self)
+
         self.seq = seq
         self.motifs = motifs
 
-        self.scale_factor = scale_factor
+        self.scale_factor = 1
         self.overlaping_motif_opacity = 0.5
         self.adjust_to_text = False
 
         self.gap_format = gap_format
         self.seq_format = seq_format
-
-        if seqtype == "aa":
-            self.fg = _aafgcolors
-            self.bg = _aabgcolors
-        elif seqtype == "nt":
-            self.fg = _ntfgcolors
-            self.bg = _ntbgcolors
 
         self.h = height
         self.w = width
@@ -578,7 +574,8 @@ class SeqMotifFace(Face):
                 for reg in re.split('([^-]+)', seq[current_seq_pos:start]):
                     if reg:
                         if reg.startswith("-") and self.seq_format != "seq":
-                            self.regions.append([pos, pos+len(reg)-1, self.gap_format, 1, 1, self.gapcolor, None, None])
+                            self.regions.append([pos, pos+len(reg)-1, self.gap_format,
+                                                 1, 1, self.gapcolor, None, None])
                         else:
                             self.regions.append([pos, pos+len(reg)-1, self.seq_format,
                                                  self.w, self.h,
@@ -604,24 +601,19 @@ class SeqMotifFace(Face):
         #print ('\n'.join(map(str, self.regions)))
 
 
-    def sumary():
-        # build regions for the set of nodes collapsed?
+    def _width(self):
+        return self.w * len(self.seq)
 
-        # combine regions for block visualization
-        #
-        pass
+    def _height(self):
+        return self.h
+
+    def _size(self):
+        return self._width(), self._height()
 
     def _draw(self, painter, x, y, zoom_factor):
-
-        # given regions and zoom factor:
-        # viz mode = adaptive: if enough site, show the selected mode i.e. sequence
-        # otherwise, show colappsed
-
-
-
-
-        # master item, all object should have this as parent
-        self.item = SeqMotifRectItem()
+        painter.save()
+        painter.translate(x, y)
+        painter.scale(zoom_factor, zoom_factor)
 
         # Calculate max height of all elements in this motif object
         max_h = max([reg[4] for index, reg
@@ -630,7 +622,6 @@ class SeqMotifFace(Face):
 
         max_x_pos = 0
         current_seq_end = 0
-
 
         seq_x_correction = {}
         for seq_start, seq_end, typ, wf, h, fg, bg, name in self.regions:
@@ -653,7 +644,7 @@ class SeqMotifFace(Face):
             # this loop corrects x-positions for overlaping motifs and takes
             # into account the different scales used for different motif types,
             # i.e. seq
-            for (old_start, old_end), correction in six.iteritems(seq_x_correction):
+            for (old_start, old_end), correction in seq_x_correction.items():
                 seq_range = None
                 if seq_start > old_start:
                     seq_range = min(old_end, seq_start) - old_start
@@ -674,32 +665,44 @@ class SeqMotifFace(Face):
             ystart = y_center - (h/2)
 
             if typ == "-" or typ == "line":
-                i = QGraphicsLineItem(0, h/2, w, h/2)
+                #i = QGraphicsLineItem(0, h/2, w, h/2)
+                painter.drawLine(0, h/2, w, h/2)
             elif typ == " " or typ == "blank":
                 i = None
             elif typ == "o":
-                i = QGraphicsEllipseItem(0, 0, w, h)
+                #i = QGraphicsEllipseItem(0, 0, w, h)
+                painter.drawEllipse(0, 0, w, h)
             elif typ == ">":
-                i = QGraphicsTriangleItem(w, h, orientation=1)
+                #i = QGraphicsTriangleItem(w, h, orientation=1)
+                #i = painter....
+                pass
             elif typ == "v":
-                i = QGraphicsTriangleItem(w, h, orientation=2)
+                #i = QGraphicsTriangleItem(w, h, orientation=2)
+                pass
             elif typ == "<":
-                i = QGraphicsTriangleItem(w, h, orientation=3)
+                #i = QGraphicsTriangleItem(w, h, orientation=3)
+                pass
             elif typ == "^":
-                i = QGraphicsTriangleItem(w, h, orientation=4)
+                #i = QGraphicsTriangleItem(w, h, orientation=4)
+                pass
             elif typ == "<>":
-                i = QGraphicsDiamondItem(w, h)
+                #i = QGraphicsDiamondItem(w, h)
+                pass
             elif typ == "[]":
-                i = QGraphicsRectItem(0, 0, w, h)
+                #i = QGraphicsRectItem(0, 0, w, h)
+                i = painter.drawRect(0, 0, w, h)
             elif typ == "()":
-                i = QGraphicsRoundRectItem(0, 0, w, h)
+                #i = QGraphicsRoundRectItem(0, 0, w, h)
+                i = painter.drawRoundedRect(0, 0, w, h, 3, 3)
 
             elif typ == "seq" and self.seq:
-                i = SequenceItem(self.seq[seq_start:seq_end+1],
-                                 poswidth=wf,
-                                 posheight=h, draw_text=True)
-                w = i.rect().width()
-                h = i.rect().height()
+                # i = SequenceItem(self.seq[seq_start:seq_end+1],
+                #                  poswidth=wf,
+                #                  posheight=h, draw_text=True)
+                # w = i.rect().width()
+                # h = i.rect().height()
+                w, h = draw_sequence(painter, self.seq, poswidth=self.w, posheight=self.h)
+
             elif typ == "compactseq" and self.seq:
                 i = SequenceItem(self.seq[seq_start:seq_end+1], poswidth=1*self.scale_factor,
                                  posheight=h, draw_text=False)
@@ -708,55 +711,92 @@ class SeqMotifFace(Face):
             else:
                 i = QGraphicsSimpleTextItem("?")
 
-            if name and i:
-                family, fsize, fcolor, text = name.split("|")
-                #qfmetrics = QFontMetrics(qfont)
-                #txth = qfmetrics.height()
-                #txtw = qfmetrics.width(text)
-                txt_item = TextLabelItem(text, w, h,
-                                         fsize=fsize, ffam=family, fcolor=fcolor)
-                # enlarges circle domains to fit text
-                #if typ == "o":
-                #    min_r = math.hypot(txtw/2.0, txth/2.0)
-                #    txtw = max(txtw, min_r*2)
+            # if name and i:
+            #     family, fsize, fcolor, text = name.split("|")
+            #     #qfmetrics = QFontMetrics(qfont)
+            #     #txth = qfmetrics.height()
+            #     #txtw = qfmetrics.width(text)
+            #     txt_item = TextLabelItem(text, w, h,
+            #                              fsize=fsize, ffam=family, fcolor=fcolor)
+            #     # enlarges circle domains to fit text
+            #     #if typ == "o":
+            #     #    min_r = math.hypot(txtw/2.0, txth/2.0)
+            #     #    txtw = max(txtw, min_r*2)
 
-                #y_txt_start = (max_h/2.0) - (h/2.0)
-                txt_item.setParentItem(i)
-                #txt_item.setPos(0, ystart)
+            #     #y_txt_start = (max_h/2.0) - (h/2.0)
+            #     txt_item.setParentItem(i)
+            #     #txt_item.setPos(0, ystart)
 
 
-            if i:
-                i.setParentItem(self.item)
-                i.setPos(xstart, ystart)
+            # if i:
+            #     i.setParentItem(self.item)
+            #     i.setPos(xstart, ystart)
 
-                if bg:
-                    if bg.startswith("rgradient:"):
-                        bg = bg.replace("rgradient:", "")
-                        try:
-                            c1, c2 = bg.split("|")
-                        except ValueError:
-                            c1, c2 = bg, "white"
-                        rect = i.boundingRect()
-                        gr = QRadialGradient(rect.center(), rect.width()/2)
-                        gr.setColorAt(0, QColor(c2))
-                        gr.setColorAt(1, QColor(c1))
-                        color = gr
-                    else:
-                        color = QColor(bg)
-                    try:
-                        i.setBrush(color)
-                    except:
-                        pass
+            #     if bg:
+            #         if bg.startswith("rgradient:"):
+            #             bg = bg.replace("rgradient:", "")
+            #             try:
+            #                 c1, c2 = bg.split("|")
+            #             except ValueError:
+            #                 c1, c2 = bg, "white"
+            #             rect = i.boundingRect()
+            #             gr = QRadialGradient(rect.center(), rect.width()/2)
+            #             gr.setColorAt(0, QColor(c2))
+            #             gr.setColorAt(1, QColor(c1))
+            #             color = gr
+            #         else:
+            #             color = QColor(bg)
+            #         try:
+            #             i.setBrush(color)
+            #         except:
+            #             pass
 
-                if fg:
-                    i.setPen(QColor(fg))
+            #     if fg:
+            #         i.setPen(QColor(fg))
 
-                if opacity < 1:
-                    i.setOpacity(opacity)
+            #     if opacity < 1:
+            #         i.setOpacity(opacity)
 
             max_x_pos = max(max_x_pos, xstart + w)
             current_seq_end = max(seq_end, current_seq_end)
 
-        self.item.setRect(0, 0, max_x_pos, max_h)
+        painter.restore()
 
-        self.item.setPen(QPen(Qt.NoPen))
+def draw_sequence(painter, seq, seqtype="aa", poswidth=8, posheight=10,
+                  draw_text=False):
+    p = painter
+    if seqtype == "aa":
+        fg = colors.aafgcolors
+        bg = colors.aabgcolors
+    elif seqtype == "nt":
+        fg = colors.ntfgcolors
+        bg = colors.ntbgcolors
+
+    x, y = 0, 0
+    qfont = QFont("Courier")
+    current_pixel = 0
+    blackPen = QPen(QColor("black"))
+    
+    maxres = int (1000 / poswidth)
+    for letter in seq[:maxres]:
+        #letter = letter.upper()
+        if x >= current_pixel:
+            if draw_text and poswidth >= 8:
+                br = QBrush(QColor(bg.get(letter, "white")))
+                p.setPen(blackPen)
+                p.fillRect(x, 0, poswidth, posheight, br)
+                qfont.setPixelSize(min(posheight, poswidth))
+                p.setFont(qfont)
+                p.setBrush(QBrush(QColor("black")))
+                p.drawText(x, 0, poswidth, posheight,
+                           Qt.AlignCenter |  Qt.AlignVCenter,
+                           letter)
+            elif letter == "-" or letter == ".":
+                p.setPen(blackPen)
+                p.drawLine(x, posheight/2, x+poswidth, posheight/2)
+            else:
+                br = QBrush(QColor(bg.get(letter, "white")))
+                p.fillRect(x, 0, max(1, poswidth), posheight, br)
+            current_pixel = int(x)
+        x += poswidth
+    return x, y

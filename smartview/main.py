@@ -132,10 +132,8 @@ class TreeImage(object):
     def update_collision_paths(self):
         if self.tree_style.mode == 'c':
             self.circ_collision_paths = defaultdict(lambda: [None, None])
-            #circular_layout.compute_circ_collision_paths(self)
         elif self.tree_style.mode == 'r':
             self.rect_collision_paths = defaultdict(lambda: [None, None])
-
 
     @timeit
     def initialize(self):

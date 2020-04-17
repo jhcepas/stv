@@ -8,9 +8,9 @@ from argparse import ArgumentParser
 from .ctree import Tree
 #from .. import Tree
 from .style import TreeStyle, add_face_to_node
-from .face import  RectFace, TextFace, AttrFace, LabelFace, CircleLabelFace, GradientFace, HeatmapArcFace, HeatmapFace
+from .face import  RectFace, TextFace, AttrFace, LabelFace, CircleLabelFace, GradientFace, HeatmapArcFace, HeatmapFace, SeqMotifFace
 from .main import TreeImage, gui
-from . import common
+from . import common, seqio
 from .common import *
 from .utils import colorify
 
@@ -34,11 +34,15 @@ DESC = """
 Smartview: explore large trees interactively
 """
 MATRIX = None
+ALG = None
 
 def populate_args(parser):
-    input_args = parser.add_mutually_exclusive_group(required=True)
-    input_args.add_argument("-t", dest="src_trees", type=str, help="target tree in newick format")
-    input_args.add_argument("-s", dest="size", type=int, help="Random tree size (for testing purposes)")
+    tree_input_args = parser.add_mutually_exclusive_group(required=True)
+    tree_input_args.add_argument("-t", dest="src_trees", type=str, help="target tree in newick format")
+    tree_input_args.add_argument("-s", dest="size", type=int, help="Random tree size (for testing purposes)")
+
+
+    parser.add_argument("-a", dest="alg", help="Bind alignment")
 
     parser.add_argument("-m", dest='mode', default='c', help="(c)icular or (r)ect ")
 
@@ -67,11 +71,6 @@ def populate_args(parser):
 
 def link_to_table():
     pass
-
-def link_alg():
-    pass
-
-
 
 nameF = AttrFace("name", fsize=10, fgcolor='royalBlue', ftype='Arial')
 nameF2 = AttrFace("name", fsize=16, fgcolor='indianred', ftype='Arial')
@@ -128,6 +127,10 @@ def real_layout(node):
         #add_face_to_node(circleF, node, column=5, position="branch-right")
     add_face_to_node(gradF, node, column=10, position="branch-right")
 
+def alg_layout(node):
+    if ALG and node.name in ALG:
+        f = SeqMotifFace(ALG.get(node.name), seqtype='aa', seq_format="seq")
+        add_face_to_node(f, node, column=10, position="branch-right")
 
 def test_layout(node):
     node.img_style.size = 1
@@ -228,7 +231,7 @@ def clean_layout(node):
     pass
 
 def run(args):
-    global n2leaves
+    global n2leaves, ALG, MATRIX
     common.CONFIG["debug"] = args.debug
     common.CONFIG["timeit"] = args.track_time
     common.CONFIG["C"] = args.cmode
@@ -309,6 +312,11 @@ def run(args):
 
 
     ts.layout_fn = globals()[args.layout]
+    if args.alg:
+        ALG = seqio.load_fasta(args.alg)
+        ts.layout_fn.append(alg_layout)
+
+
     ts.mode = args.mode
     ts.arc_span = args.arc_span
     ts.arc_start = args.arc_start
