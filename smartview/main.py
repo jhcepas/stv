@@ -126,7 +126,7 @@ class TreeImage(object):
         elif self.tree_style.mode == 'r':
             self.adjust_apertures()
             self.width = self.img_data[0][_fnw]
-            self.height = self.img_data[0][_fnw]
+            self.height = self.img_data[0][_fnh]
 
 
     def update_collision_paths(self):

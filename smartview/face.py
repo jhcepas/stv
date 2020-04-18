@@ -777,7 +777,7 @@ def draw_sequence(painter, seq, seqtype="aa", poswidth=8, posheight=10,
     current_pixel = 0
     blackPen = QPen(QColor("black"))
     greyPen = QPen(QColor("Grey"))
-    maxres = int (1000 / poswidth)
+    maxres = -1 # int(10000 / poswidth)
     for letter in seq[:maxres]:
         #letter = letter.upper()
         if x >= current_pixel:

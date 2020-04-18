@@ -375,7 +375,7 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
                 #     pp.drawPath(temppath)
                 #pp.setPen(QPen(QColor("Green")))
                 #pp.drawPath(M.map(fpath))
-                
+             
                 if endpos > start_x_aligned_faces: 
                     start_x_aligned_faces = max(start_x_aligned_faces, endpos)
                     farthest_fpath = fpath
