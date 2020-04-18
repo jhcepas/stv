@@ -76,6 +76,7 @@ def compute_face_dimensions(node, facegrid):
         # Update overal grid data
         cols_w[pos][col].append(fw)
         cols_h[pos][col].append(fh)
+        
     # Calculate total facegrid size
     face_pos_sizes = []
     for fpos in FACE_POS_INDEXES:

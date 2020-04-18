@@ -776,7 +776,7 @@ def draw_sequence(painter, seq, seqtype="aa", poswidth=8, posheight=10,
     qfont = QFont("Courier")
     current_pixel = 0
     blackPen = QPen(QColor("black"))
-    
+    greyPen = QPen(QColor("Grey"))
     maxres = int (1000 / poswidth)
     for letter in seq[:maxres]:
         #letter = letter.upper()
@@ -792,7 +792,7 @@ def draw_sequence(painter, seq, seqtype="aa", poswidth=8, posheight=10,
                            Qt.AlignCenter |  Qt.AlignVCenter,
                            letter)
             elif letter == "-" or letter == ".":
-                p.setPen(blackPen)
+                p.setPen(greyPen)
                 p.drawLine(x, posheight/2, x+poswidth, posheight/2)
             else:
                 br = QBrush(QColor(bg.get(letter, "white")))

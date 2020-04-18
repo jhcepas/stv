@@ -130,7 +130,7 @@ def real_layout(node):
 def alg_layout(node):
     if ALG and node.name in ALG:
         f = SeqMotifFace(ALG.get(node.name), seqtype='aa', seq_format="seq")
-        add_face_to_node(f, node, column=10, position="branch-right")
+        add_face_to_node(f, node, column=10, position="aligned")
 
 def test_layout(node):
     node.img_style.size = 1
