@@ -1,5 +1,6 @@
-from PyQt5.QtGui import QColor, QPen, QBrush, QFont, QFontMetrics, QPainterPath
+from PyQt5.QtGui import *
 from PyQt5.QtCore import QRectF
+
 import numpy as np
 import re
 from . import colors
@@ -508,20 +509,22 @@ class SeqMotifFace(Face):
     :param line gap_format: default shape for the gaps between motifs
     :param blockseq seq_format: default shape for the seq regions not covered in motifs
     """
+    AA2IMG = {}
+    for aa, color in colors.aabgcolors.items():
+        ii= QImage(20, 20, QImage.Format_ARGB32_Premultiplied)
+        ii.fill(QColor(color).rgb())
+        AA2IMG[aa] = ii
 
-    def __init__(self, seq=None, motifs=None, seqtype="aa",
+    BLOCK = QImage(10, 10, QImage.Format_ARGB32_Premultiplied)
+    BLOCK.fill(QColor("white"))
+
+    def __init__(self, node2seq, seqtype="aa",
                  gap_format="line", seq_format="()",
                  height=10, width=10,
                  fgcolor='slategrey', bgcolor='slategrey', gapcolor='black'):
 
-        if not motifs and not seq:
-            raise ValueError("At least one argument (seq or motifs) should be provided. ")
-
         Face.__init__(self)
-
-        self.seq = seq
-        self.motifs = motifs
-
+        self.node2seq = node2seq
         self.scale_factor = 1
         self.overlaping_motif_opacity = 0.5
         self.adjust_to_text = False
@@ -533,38 +536,28 @@ class SeqMotifFace(Face):
         self.w = width
         self.fgcolor = fgcolor
         self.bgcolor = bgcolor
-        self.gapcolor = gapcolor
-        self.regions = []
-        self.build_regions()
 
-    def build_regions(self):
-        # Build and sort regions
-        motifs = self.motifs
-        if self.seq:
-            seq = self.seq
-        else:
-            seq = "-" * max([m[1] for m in motifs])
+        _pp = QPainter(self.BLOCK)        
+        _pp.setPen(QColor(self.bgcolor))
+        _pp.setBrush(QColor(self.bgcolor))
+        _pp.drawRoundedRect(0, 0, 10, 10, 3, 3)
+        _pp.end()
 
-        # if only sequence is provided, build regions out of gap spaces
-        if not motifs:
-            if self.seq_format == "seq":
-                motifs = [[0, len(seq), "seq", 10, self.h, None, None, None]]
+    def get_chunks(self, seq):
+        chunks = []
+        pos = 0
+        for reg in re.split('([^-]+)', seq):
+            if not reg.startswith("-"):
+                typ = self.seq_format
             else:
-                motifs = []
-                pos = 0
-                for reg in re.split('([^-]+)', seq):
-                    if reg:
-                        if not reg.startswith("-"):
-                            if self.seq_format == "compactseq":
-                                motifs.append([pos, pos+len(reg)-1, "compactseq", 1, self.h, None, None, None])
-                            elif self.seq_format == "line":
-                                motifs.append([pos, pos+len(reg)-1, "-", 1, 1, self.fgcolor, None, None])
-                            else:
-                                motifs.append([pos, pos+len(reg)-1, self.seq_format, None, self.h, self.fgcolor, self.bgcolor, None])
-                        pos += len(reg)
+                typ = self.gap_format
+            chunks.append([pos, pos+len(reg)-1, typ, self.w, self.h, self.fgcolor, self.bgcolor, reg])
+            pos += len(reg)
+       
+        return chunks
 
-        motifs.sort()
 
+    def complete_regions(self):
         # complete missing regions
         current_seq_pos = 0
         for index, mf in enumerate(motifs):
@@ -600,9 +593,9 @@ class SeqMotifFace(Face):
 
         #print ('\n'.join(map(str, self.regions)))
 
-
     def _width(self):
-        return self.w * len(self.seq)
+        seq = self.node2seq[self.node]
+        return self.w * len(seq)
 
     def _height(self):
         return self.h
@@ -611,24 +604,30 @@ class SeqMotifFace(Face):
         return self._width(), self._height()
 
     def _draw(self, painter, x, y, zoom_factor):
+        sequence = self.node2seq[self.node]
+        chunks = self.get_chunks(sequence)
+
         painter.save()
         painter.translate(x, y)
         painter.scale(zoom_factor, zoom_factor)
 
         # Calculate max height of all elements in this motif object
         max_h = max([reg[4] for index, reg
-                     in enumerate(self.regions)])
+                     in enumerate(chunks)])
         y_center = max_h / 2
 
         max_x_pos = 0
         current_seq_end = 0
-
+        
         seq_x_correction = {}
-        for seq_start, seq_end, typ, wf, h, fg, bg, name in self.regions:
+        for seq_start, seq_end, typ, wf, h, fg, bg, name in chunks:
             if typ == "seq":
                 seq_x_correction[(seq_start, seq_end)] = wf * self.scale_factor
 
-        for index, (seq_start, seq_end, typ, wf, h, fg, bg, name) in enumerate(self.regions):
+        for index, (seq_start, seq_end, typ, wf, h, fg, bg, name) in enumerate(chunks):
+            painter.setPen(QColor(fg))
+            painter.setBrush(QColor(bg))
+
             # this are the actual coordinates mapping to the sequence
             opacity = 1
             w = (seq_end - seq_start) + 1
@@ -639,7 +638,6 @@ class SeqMotifFace(Face):
                 if wf:
                     wf *= self.scale_factor
                 xstart *= self.scale_factor
-
 
             # this loop corrects x-positions for overlaping motifs and takes
             # into account the different scales used for different motif types,
@@ -664,52 +662,34 @@ class SeqMotifFace(Face):
             # expected width of the object to be drawn
             ystart = y_center - (h/2)
 
-            if typ == "-" or typ == "line":
-                #i = QGraphicsLineItem(0, h/2, w, h/2)
-                painter.drawLine(0, h/2, w, h/2)
+            if typ == "-" or typ == "line":                
+                painter.drawLine(0, h/2, w, h/2)                
             elif typ == " " or typ == "blank":
-                i = None
+                pass
             elif typ == "o":
-                #i = QGraphicsEllipseItem(0, 0, w, h)
                 painter.drawEllipse(0, 0, w, h)
             elif typ == ">":
-                #i = QGraphicsTriangleItem(w, h, orientation=1)
-                #i = painter....
                 pass
             elif typ == "v":
-                #i = QGraphicsTriangleItem(w, h, orientation=2)
                 pass
             elif typ == "<":
-                #i = QGraphicsTriangleItem(w, h, orientation=3)
                 pass
             elif typ == "^":
-                #i = QGraphicsTriangleItem(w, h, orientation=4)
                 pass
             elif typ == "<>":
-                #i = QGraphicsDiamondItem(w, h)
                 pass
             elif typ == "[]":
-                #i = QGraphicsRectItem(0, 0, w, h)
-                i = painter.drawRect(0, 0, w, h)
+                painter.drawRect(0, 0, w, h)
             elif typ == "()":
-                #i = QGraphicsRoundRectItem(0, 0, w, h)
-                i = painter.drawRoundedRect(0, 0, w, h, 3, 3)
-
-            elif typ == "seq" and self.seq:
-                # i = SequenceItem(self.seq[seq_start:seq_end+1],
-                #                  poswidth=wf,
-                #                  posheight=h, draw_text=True)
-                # w = i.rect().width()
-                # h = i.rect().height()
-                w, h = draw_sequence(painter, self.seq, poswidth=self.w, posheight=self.h)
-
-            elif typ == "compactseq" and self.seq:
-                i = SequenceItem(self.seq[seq_start:seq_end+1], poswidth=1*self.scale_factor,
-                                 posheight=h, draw_text=False)
-                w = i.rect().width()
-                h = i.rect().height()
+                painter.drawRoundedRect(0, 0, w, h, 3, 3)
+                #painter.drawImage(0, 0, self.BLOCK, sw=w, sh=h)
+            elif typ == "seq" and sequence:
+                w, h = self._draw_sequence(painter, sequence[seq_start:seq_end+1],
+                                            poswidth=self.w, posheight=self.h)
             else:
-                i = QGraphicsSimpleTextItem("?")
+                raise ValueError("Unknown Seq type: %s" %typ)
+            
+            painter.translate(w, 0)
 
             # if name and i:
             #     family, fsize, fcolor, text = name.split("|")
@@ -761,42 +741,28 @@ class SeqMotifFace(Face):
             current_seq_end = max(seq_end, current_seq_end)
 
         painter.restore()
+        
 
-def draw_sequence(painter, seq, seqtype="aa", poswidth=8, posheight=10,
-                  draw_text=False):
-    p = painter
-    if seqtype == "aa":
-        fg = colors.aafgcolors
-        bg = colors.aabgcolors
-    elif seqtype == "nt":
-        fg = colors.ntfgcolors
-        bg = colors.ntbgcolors
-
-    x, y = 0, 0
-    qfont = QFont("Courier")
-    current_pixel = 0
-    blackPen = QPen(QColor("black"))
-    greyPen = QPen(QColor("Grey"))
-    maxres = -1 # int(10000 / poswidth)
-    for letter in seq[:maxres]:
-        #letter = letter.upper()
-        if x >= current_pixel:
+    def _draw_sequence(self, p, seq, seqtype="aa", poswidth=10, posheight=10,
+                    draw_text=False):
+        
+        x, y = 0, 0
+        for letter in seq:
+            #letter = letter.upper()
             if draw_text and poswidth >= 8:
-                br = QBrush(QColor(bg.get(letter, "white")))
-                p.setPen(blackPen)
-                p.fillRect(x, 0, poswidth, posheight, br)
+                p.drawImage(x, 0, self.AA2IMG[letter])#, max(1, poswidth), posheight)
                 qfont.setPixelSize(min(posheight, poswidth))
                 p.setFont(qfont)
                 p.setBrush(QBrush(QColor("black")))
+                qfont = QFont("Courier")
                 p.drawText(x, 0, poswidth, posheight,
-                           Qt.AlignCenter |  Qt.AlignVCenter,
-                           letter)
+                        Qt.AlignCenter |  Qt.AlignVCenter,
+                        letter)
             elif letter == "-" or letter == ".":
-                p.setPen(greyPen)
-                p.drawLine(x, posheight/2, x+poswidth, posheight/2)
-            else:
-                br = QBrush(QColor(bg.get(letter, "white")))
-                p.fillRect(x, 0, max(1, poswidth), posheight, br)
-            current_pixel = int(x)
-        x += poswidth
-    return x, y
+                pass
+                #p.drawImage(x, 0, self.AA2IMG['-'])#, max(1, poswidth), posheight)
+            else:                                   
+                p.drawImage(x, 0, self.AA2IMG[letter], sw=poswidth, sh=posheight)
+    
+            x += poswidth            
+        return x, posheight

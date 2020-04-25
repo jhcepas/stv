@@ -13,6 +13,7 @@ from .main import TreeImage, gui
 from . import common, seqio
 from .common import *
 from .utils import colorify
+from .alg import SmartAlg
 
 import logging
 
@@ -35,6 +36,9 @@ Smartview: explore large trees interactively
 """
 MATRIX = None
 ALG = None
+BLOCK_SEQ_FACE = None
+N2LEAVES = None
+N2CONTENT = None
 
 def populate_args(parser):
     tree_input_args = parser.add_mutually_exclusive_group(required=True)
@@ -128,9 +132,8 @@ def real_layout(node):
     add_face_to_node(gradF, node, column=10, position="branch-right")
 
 def alg_layout(node):
-    if ALG and node.name in ALG:
-        f = SeqMotifFace(ALG.get(node.name), seqtype='aa', seq_format="seq")
-        add_face_to_node(f, node, column=10, position="aligned")
+    if ALG and node in ALG:        
+        add_face_to_node(BLOCK_SEQ_FACE, node, column=10, position="aligned")
 
 def test_layout(node):
     node.img_style.size = 1
@@ -163,7 +166,7 @@ def crouded_layout(node):
         if node.name:
             add_face_to_node(nameF, node, column=0, position="branch-top")
         add_face_to_node(distF, node, column=0, position="branch-bottom")
-        add_face_to_node(TextFace(str(n2leaves[node]), fsize=13), node, column=0, position="branch-top")
+        add_face_to_node(TextFace(str(N2LEAVES[node]), fsize=13), node, column=0, position="branch-top")
 #        add_face_to_node(TextFace("%0.2f" % n2dist[n], fsize=13), node, column=0, position="branch-top")
 #            add_face_to_node(nameF, node, column=0, position="aligned")
 
@@ -193,7 +196,7 @@ def stacked_layout(node, dim=None):
         if node.name:
             add_face_to_node(nameF, node, column=0, position="branch-top")
         add_face_to_node(distF, node, column=0, position="branch-bottom")
-        add_face_to_node(TextFace(str(n2leaves[node]), fsize=13), node, column=0, position="branch-top")
+        add_face_to_node(TextFace(str(N2LEAVES[node]), fsize=13), node, column=0, position="branch-top")
 #        add_face_to_node(TextFace("%0.2f" % n2dist[n], fsize=13), node, column=0, position="branch-top")
 #            add_face_to_node(nameF, node, column=0, position="aligned")
 
@@ -203,7 +206,7 @@ def tol_layout(node, dim=None):
     # if node.rank:
     #     rankF = TextFace(node.sci_name, fgcolor="orange", fsize=10)
     distF = TextFace("%0.2f" %node.dist, fgcolor="#888888", fsize=8)
-    sizeF = TextFace(" (size: %d)" %n2leaves[node], fsize=8)
+    sizeF = TextFace(" (size: %d)" %N2LEAVES[node], fsize=8)
 
     add_face_to_node(distF, node, column=0, position="branch-bottom")
     if node.is_leaf():
@@ -231,7 +234,8 @@ def clean_layout(node):
     pass
 
 def run(args):
-    global n2leaves, ALG, MATRIX
+    global N2LEAVES, N2CONTENT, ALG, MATRIX, BLOCK_SEQ_FACE
+
     common.CONFIG["debug"] = args.debug
     common.CONFIG["timeit"] = args.track_time
     common.CONFIG["C"] = args.cmode
@@ -271,19 +275,21 @@ def run(args):
 
 
 
-    n2leaves = {}
+    N2LEAVES = {}
     precount = 0
     for post, n in t.iter_prepostorder():
         if post:
-            n2leaves[n] = sum([n2leaves[ch] for ch in n.children])
+            N2LEAVES[n] = sum([N2LEAVES[ch] for ch in n.children])
         else:
             n._id = precount
             if not n.name:
                 n.name = "Node:%06d" %(n._id)
             precount += 1
             if not n.children:
-                n2leaves[n] = 1
-    logger.info(colorify("Loaded tree: %d leaves and %d nodes" %(n2leaves[t], precount), "lblue"))
+                N2LEAVES[n] = 1
+    logger.info(colorify("Loaded tree: %d leaves and %d nodes" %(N2LEAVES[t], precount), "lblue"))
+
+    N2CONTENT = t.get_cached_content()
 
     if args.ultrametric:
         #min_rad = len(t)/(2*math.pi)
@@ -310,12 +316,13 @@ def run(args):
 
     ts = TreeStyle()
 
-
     ts.layout_fn = globals()[args.layout]
     if args.alg:
-        ALG = seqio.load_fasta(args.alg)
+        global ALG, BLOCK_SEQ_FACE
+        alg_dict = seqio.load_fasta(args.alg)
+        ALG = SmartAlg(alg_dict, N2CONTENT)
+        BLOCK_SEQ_FACE = SeqMotifFace(ALG, seqtype='aa', seq_format="()")
         ts.layout_fn.append(alg_layout)
-
 
     ts.mode = args.mode
     ts.arc_span = args.arc_span
@@ -346,7 +353,6 @@ def run(args):
     if args.track_mem:
         print (repr(t))
         print (h.heap())
-
 
 def main():
     parser = ArgumentParser()
