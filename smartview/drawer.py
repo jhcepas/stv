@@ -1,3 +1,7 @@
+from . import layout
+from .utils import timeit, debug
+from .common import *
+from .utils import colorify
 import math
 import time
 from collections import defaultdict
@@ -14,30 +18,30 @@ from PyQt5.QtSvg import *
 import logging
 logger = logging.getLogger("smartview")
 
-from .utils import colorify
-from .common import *
-from .utils import timeit, debug
-from . import layout
 
 COLLAPSE_RESOLUTION = 10
 MAX_SCREEN_SIZE = 999999999999999
+
 
 def pol2cart(rho, phi):
     x = rho * np.cos(phi)
     y = rho * np.sin(phi)
     return(x, y)
-        
+
+
 def get_cart_coords(radius, radians, cx, cy):
-    a = (2 * math.pi) - radians;
+    a = (2 * math.pi) - radians
     x = math.cos(a) * radius
     y = math.sin(a) * radius
     return x + cx, -y + cy
+
 
 def get_aperture(radius, angle, default):
     if angle > R90:
         return default
     else:
         return math.tan(angle) * radius
+
 
 def get_node_arc_path(tree_image, nid):
     dim = tree_image.img_data[nid]
@@ -55,6 +59,7 @@ def get_node_arc_path(tree_image, nid):
 
     return path, full_path
 
+
 def get_node_rect_path(tree_image, nid):
     dim = tree_image.img_data[nid]
     node = tree_image.cached_preorder[nid]
@@ -64,10 +69,11 @@ def get_node_rect_path(tree_image, nid):
     xend = dim[_xend]
     xstart = tree_image.img_data[int(dim[_parent])][_xend]
     path = QPainterPath()
-    fpath= QPainterPath()
+    fpath = QPainterPath()
     path.addRect(xstart, ystart, xend-xstart, yend-ystart)
     fpath.addRect(xstart, ystart, dim[_fnw], dim[_fnh])
     return path, fpath
+
 
 def get_qt_corrected_angle(rad, angle):
     path = QPainterPath()
@@ -78,6 +84,7 @@ def get_qt_corrected_angle(rad, angle):
     new_angle = np.arctan2(i1.y(), i1.x())
     new_rad = np.hypot(i1.y(), i1.x())
     return new_rad, new_angle
+
 
 def get_arc_path(inner_r, outter_r, rad_angles):
     angles = list(map(np.degrees, rad_angles))
@@ -97,20 +104,21 @@ def get_arc_path(inner_r, outter_r, rad_angles):
     elif inner_r == outter_r:
         span = angles[-1] - angles[0]
         path.arcMoveTo(-inner_r, -inner_r, inner_diam, inner_diam, -angles[0])
-        if span < 0.1: # solves precision problems drawing small arcs
+        if span < 0.1:  # solves precision problems drawing small arcs
             i1 = path.currentPosition()
-            path.arcMoveTo(-inner_r, -inner_r, inner_diam, inner_diam, -angles[-1])
+            path.arcMoveTo(-inner_r, -inner_r, inner_diam,
+                           inner_diam, -angles[-1])
             path.lineTo(i1)
         else:
             path.arcTo(-inner_r, -inner_r, inner_diam, inner_diam,
-                   -angles[0], -span)
+                       -angles[0], -span)
     # draw arc
     else:
         outter_diam = outter_r * 2.0
         rect2 = QRectF(-outter_r, -outter_r, outter_diam, outter_diam)
 
         span = angles[-1] - angles[0]
-        if span < 0.1: # solves precision problems drawing small arcs
+        if span < 0.1:  # solves precision problems drawing small arcs
             path.arcMoveTo(rect1, -angles[0])
             i1 = path.currentPosition()
             path.arcMoveTo(rect1, -angles[-1])
@@ -142,12 +150,13 @@ def get_arc_path(inner_r, outter_r, rad_angles):
 
     return path
 
-def get_tile_img(tree_image, zoom_factor, treemode, tile_rect):
+
+def get_tile_img(pp, tree_image, zoom_factor, treemode, tile_rect):
     # Create an empty tile image
     source_rect = QRectF(*tile_rect)
     target_rect = QRectF(0, 0, source_rect.width(), source_rect.height())
-    ii= QImage(source_rect.width(), source_rect.height(),
-               QImage.Format_ARGB32_Premultiplied)
+    ii = QImage(source_rect.width(), source_rect.height(),
+                QImage.Format_ARGB32_Premultiplied)
     ii.fill(QColor(Qt.white).rgb())
 
     pp = QPainter()
@@ -168,6 +177,7 @@ def get_tile_img(tree_image, zoom_factor, treemode, tile_rect):
     draw_region(tree_image, pp, zoom_factor, source_rect)
     pp.end()
     return ii
+
 
 @timeit
 def draw_region(tree_image, pp, zoom_factor, scene_rect):
@@ -210,8 +220,9 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
         # transformed scene matrix used to map original node elements into
         # target scence rect
         M = QTransform()
-        M.scale(zoom_factor, zoom_factor)        
-    
+        M.scale(zoom_factor, zoom_factor)
+
+    pp.drawRect(scene_rect)
     # DEBUG INFO
     DRAWN, OUTSIDE, COLLAPSED, ITERS = 0, 0, 0, 0
 
@@ -257,9 +268,12 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
             node_height_up = MAX_SCREEN_SIZE
             node_height_down = MAX_SCREEN_SIZE
         elif treemode == 'c':
-            node_height = ((math.sin(dim[_fnh]/2.0) * dim[_fnw]) * 2) * zoom_factor
-            node_height_up = ((math.sin(dim[_acenter]-dim[_astart]) * dim[_fnw]) ) * zoom_factor
-            node_height_down = ((math.sin(dim[_aend]-dim[_acenter]) * dim[_fnw]) ) * zoom_factor
+            node_height = (
+                (math.sin(dim[_fnh]/2.0) * dim[_fnw]) * 2) * zoom_factor
+            node_height_up = (
+                (math.sin(dim[_acenter]-dim[_astart]) * dim[_fnw])) * zoom_factor
+            node_height_down = (
+                (math.sin(dim[_aend]-dim[_acenter]) * dim[_fnw])) * zoom_factor
         elif treemode == 'r':
             node_height = fpath.boundingRect().height() * zoom_factor
             node_height_up = node_height / 2.0
@@ -269,7 +283,7 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
         # terminal node
         if (node_height_up < COLLAPSE_RESOLUTION) \
            or node_height_down < COLLAPSE_RESOLUTION \
-           or node_height/len(node.children) < 3:
+           or node_height/(len(node.children)+1) < 3:
             curr = int(dim[_max_leaf_idx] + 1)
             draw_collapsed = True
             is_terminal = True
@@ -280,7 +294,7 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
         else:
             curr += 1
             is_terminal = False
-              
+
         # If it gets to here, draw the node
         pp.save()
         DRAWN += 1
@@ -293,37 +307,43 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
 
             # if node was not visited yet, compute face dimensions
             if not np.any(dim[_btw:_bah+1]):
-                face_pos_sizes = layout.compute_face_dimensions(node, node._temp_faces)
+                face_pos_sizes = layout.compute_face_dimensions(
+                    node, node._temp_faces)
                 dim[_btw:_bah+1] = face_pos_sizes
 
         if draw_collapsed:
             pp.setPen(QPen(QColor("LightSteelBlue")))
-            pp.drawPath(M.map(fpath))            
+            pp.drawPath(M.map(fpath))
         else:
             if treemode == "c":
-                parent_radius = img_data[int(dim[_parent])][_rad] if nid else tree_image.root_open
+                parent_radius = img_data[int(
+                    dim[_parent])][_rad] if nid else tree_image.root_open
 
                 # Draw arc line connecting children
                 if not dim[_is_leaf] and len(node.children) > 1:
                     acen_0 = tree_image.img_data[node.children[0]._id][_acenter]
                     acen_1 = tree_image.img_data[node.children[-1]._id][_acenter]
                     pp.setPen(QColor(node.img_style.vt_line_color))
-                    vLinePath = get_arc_path(dim[_rad], dim[_rad], [acen_0, acen_1])
+                    vLinePath = get_arc_path(
+                        dim[_rad], dim[_rad], [acen_0, acen_1])
                     pp.drawPath(M.map(vLinePath))
 
-                hLinePath = get_arc_path(parent_radius, parent_radius+branch_length, [dim[_acenter]])
+                hLinePath = get_arc_path(
+                    parent_radius, parent_radius+branch_length, [dim[_acenter]])
                 pp.setPen(QColor(node.img_style.hz_line_color))
                 pp.drawPath(M.map(hLinePath))
 
-                new_rad, new_angle = get_qt_corrected_angle(parent_radius, dim[_acenter])
+                new_rad, new_angle = get_qt_corrected_angle(
+                    parent_radius, dim[_acenter])
                 pp.translate(cx * zoom_factor, cy * zoom_factor)
                 pp.rotate(np.degrees(new_angle))
                 #pp.translate(new_rad * zoom_factor, 0)
                 endx = draw_faces(pp, new_rad * zoom_factor, 0, node, zoom_factor, tree_image,
-                                       is_collapsed=False, target_positions = set([0, 1, 2, 3]))
+                                  is_collapsed=False, target_positions=set([0, 1, 2, 3]))
 
             elif treemode == "r":
-                parent_radius = img_data[int(dim[_parent])][_xend] if nid else tree_image.root_open
+                parent_radius = img_data[int(
+                    dim[_parent])][_xend] if nid else tree_image.root_open
                 new_rad = parent_radius
                 # Draw vertical line connecting children
                 if not dim[_is_leaf] and len(node.children) > 1:
@@ -337,27 +357,29 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
                 pp.drawLine(M.map(QLineF(parent_radius, dim[_acenter],
                                          parent_radius+branch_length, dim[_acenter])))
 
-                pp.translate(parent_radius*zoom_factor, dim[_ycenter]*zoom_factor)
+                pp.translate(parent_radius*zoom_factor,
+                             dim[_ycenter]*zoom_factor)
 
                 endx = draw_faces(pp, 0, 0, node, zoom_factor, tree_image,
-                                       is_collapsed=False, target_positions = set([0, 1, 2, 3]))
+                                  is_collapsed=False, target_positions=set([0, 1, 2, 3]))
         pp.restore()
 
         # If the node is terminal, it should be used to adjust the aligned face
         # start_x position dynamically. If the end_x position of the terminal
         # node is visiable, then it should be considered, otherwise skip it.
-        if is_terminal:            
+        if is_terminal:
             terminal_nodes.append(node)
             endpos = (dim[_rad] * zoom_factor) + endx
 
             matrix = QTransform()
             if treemode == "c":
                 matrix.translate(cx * zoom_factor, cy * zoom_factor)
-                middle_a = np.degrees(dim[_astart] + (dim[_aend] - dim[_astart])/2)
+                middle_a = np.degrees(
+                    dim[_astart] + (dim[_aend] - dim[_astart])/2)
                 matrix.rotate(middle_a)
-                node_y_middle = 0 
+                node_y_middle = 0
                 node_end = matrix.map(QPointF(endpos, node_y_middle))
-                
+
             elif treemode == "r":
                 #endpos = (dim[_xend] * zoom_factor) + endx
                 #print(dim[_xend], dim[_fnw])
@@ -366,24 +388,26 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
 
             if scene_rect.contains(node_end):
                 visible_leaves.append(node)
-                # Debug 
+                # Debug
                 #temppath = QPainterPath()
                 #temppath.addRect(QRectF(endpos, node_y_middle, 1, 1))
                 # if treemode == "c":
                 #     pp.drawPath(matrix.map(temppath))
-                # else: 
+                # else:
                 #     pp.drawPath(temppath)
-                #pp.setPen(QPen(QColor("Green")))
-                #pp.drawPath(M.map(fpath))
-             
-                if endpos > start_x_aligned_faces: 
+                # pp.setPen(QPen(QColor("Green")))
+                # pp.drawPath(M.map(fpath))
+
+                if endpos > start_x_aligned_faces:
                     start_x_aligned_faces = max(start_x_aligned_faces, endpos)
                     farthest_fpath = fpath
-            
-    if farthest_fpath: 
+
+    print("DRAWN", DRAWN, len(terminal_nodes))
+    
+    if farthest_fpath:
         pp.setPen(QPen(QColor("Red")))
         pp.drawPath(M.map(farthest_fpath))
-             
+
     # Draw aligned faces
     for node in terminal_nodes:
         dim = tree_image.img_data[node._id]
@@ -391,21 +415,20 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
         if treemode == "c":
             #new_rad, new_angle = get_qt_corrected_angle(start_x_aligned_faces, dim[_acenter])
             pp.translate(cx*zoom_factor, cy*zoom_factor)
-            #pp.rotate(np.degrees(new_angle))
+            # pp.rotate(np.degrees(new_angle))
             pp.rotate(np.degrees(dim[_acenter]))
             endx = draw_faces(pp, start_x_aligned_faces, 0, node, zoom_factor,
-                              tree_image, is_collapsed=False, target_positions = [4])
+                              tree_image, is_collapsed=False, target_positions=[4])
         elif treemode == "r":
             pp.translate(start_x_aligned_faces, dim[_ycenter]*zoom_factor)
             endx = draw_faces(pp, 0, 0, node, zoom_factor,
-                              tree_image, is_collapsed=False, target_positions = [4])
-
+                              tree_image, is_collapsed=False, target_positions=[4])
 
         pp.restore()
 
+
 def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
                target_positions=None):
-
 
     dim = tree_image.img_data[node._id]
     branch_length = dim[_blen]
@@ -414,7 +437,8 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
     if not facegrid:
         return
 
-    correct_rotation = True if (tree_mode == 'c' and dim[_acenter] > R90 and dim[_acenter] < R270) else False
+    correct_rotation = True if (
+        tree_mode == 'c' and dim[_acenter] > R90 and dim[_acenter] < R270) else False
 
     # Apertures top-branch and bottom-branch
     a_top = dim[_acenter] - dim[_astart]
@@ -426,64 +450,67 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
     # Calculates basic info on how to start drawing each facegrid position block
     pos2params = {}
     for pos in range(5):
-        if pos == 0: # btop
+        if pos == 0:  # btop
             facegrid_width = dim[_btw]
             facegrid_height = dim[_bth]
             available_pos_width = branch_length * zoom_factor
-            start_x = x # IDEA: align to right
+            start_x = x  # IDEA: align to right
             if tree_mode == 'c':
-                available_pos_height = get_aperture(start_x, a_top, MAX_SCREEN_SIZE)
+                available_pos_height = get_aperture(
+                    start_x, a_top, MAX_SCREEN_SIZE)
             elif tree_mode == 'r':
-                available_pos_height = a_top * zoom_factor 
+                available_pos_height = a_top * zoom_factor
 
-        elif pos == 1: # bbottom
+        elif pos == 1:  # bbottom
             facegrid_width = dim[_bbw]
             facegrid_height = dim[_bbh]
             available_pos_width = branch_length * zoom_factor
-            start_x = x # IDEA: align to right
+            start_x = x  # IDEA: align to right
             if tree_mode == 'c':
-                available_pos_height = get_aperture(start_x, a_bot, MAX_SCREEN_SIZE)
+                available_pos_height = get_aperture(
+                    start_x, a_bot, MAX_SCREEN_SIZE)
             elif tree_mode == 'r':
-                available_pos_height = a_bot * zoom_factor 
+                available_pos_height = a_bot * zoom_factor
 
-        elif pos == 2: # branch right
+        elif pos == 2:  # branch right
             facegrid_width = dim[_brw]
             facegrid_height = dim[_brh]
             available_pos_width = dim[_brw] * zoom_factor
             start_x = x + (branch_length * zoom_factor)
             if tree_mode == 'c':
                 available_pos_height = min(get_aperture(start_x, a_top, MAX_SCREEN_SIZE) * 2,
-                                            get_aperture(start_x, a_bot, MAX_SCREEN_SIZE) * 2)
+                                           get_aperture(start_x, a_bot, MAX_SCREEN_SIZE) * 2)
             elif tree_mode == 'r':
-                available_pos_height = (a_top + a_bot) * zoom_factor 
+                available_pos_height = (a_top + a_bot) * zoom_factor
 
-        elif pos == 3: # float
+        elif pos == 3:  # float
             facegrid_width = 0
             facegrid_height = 0
             available_pos_width = 0
-            start_x = x 
-            available_pos_height= 0
+            start_x = x
+            available_pos_height = 0
 
-        elif pos == 4: # aligned
+        elif pos == 4:  # aligned
             facegrid_width = dim[_baw]
             facegrid_height = dim[_bah]
             available_pos_width = MAX_SCREEN_SIZE
-            start_x = x 
+            start_x = x
             if tree_mode == 'c':
                 available_pos_height = min(get_aperture(start_x, a_top, MAX_SCREEN_SIZE) * 2,
-                                            get_aperture(start_x, a_bot, MAX_SCREEN_SIZE) * 2)
+                                           get_aperture(start_x, a_bot, MAX_SCREEN_SIZE) * 2)
             elif tree_mode == 'r':
-                available_pos_height = (a_top + a_bot) * zoom_factor 
+                available_pos_height = (a_top + a_bot) * zoom_factor
             #print("aligned", node.name, facegrid_width, facegrid_height, available_pos_height)
         # saves important data of each pos
-        pos2params[pos] = [start_x, available_pos_width, available_pos_height, facegrid_width, facegrid_height]
+        pos2params[pos] = [start_x, available_pos_width,
+                           available_pos_height, facegrid_width, facegrid_height]
 
     # calculate face information per pos and columns (face list, column width
     # and height)
     pos2colfaces = {}
     poscol2width = {}
     poscol2height = {}
-    
+
     for faceidx, (face, pos, row, col, fw, fh) in enumerate(facegrid):
         if target_positions is not None and pos not in target_positions:
             continue
@@ -495,30 +522,31 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
 
     # Set up each face position and available space, and call draw_face
     for pos, columns in pos2colfaces.items():
-        (start_x, avail_pos_width, avail_pos_height, pos_width, pos_height) =  pos2params[pos]
-        
+        (start_x, avail_pos_width, avail_pos_height,
+         pos_width, pos_height) = pos2params[pos]
+
         # TODO: Skip if facegrid too small
 
-        for col, selected_faces in columns.items(): 
+        for col, selected_faces in columns.items():
 
             col_height = poscol2height[(pos, col)]
             col_width = poscol2width[(pos, col)]
-            avail_col_width  = min(col_width, 
-                                   ((col_width / pos_width) * avail_pos_width))
-            avail_col_height  = min(col_height, 
-                                    ((col_height / pos_height) * avail_pos_height))
+            avail_col_width = min(col_width,
+                                  ((col_width / pos_width) * avail_pos_width))
+            avail_col_height = min(col_height,
+                                   ((col_height / pos_height) * avail_pos_height))
 
-            start_y = 0 # We assume painter 0,0 coords are placed at the node center 
-            if pos == 0: # branch top
+            start_y = 0  # We assume painter 0,0 coords are placed at the node center
+            if pos == 0:  # branch top
                 start_y -= avail_col_height
-            elif pos == 1: # branch bottom
+            elif pos == 1:  # branch bottom
                 start_y = start_y
-            elif pos == 2 or pos == 4: # branch right or aligned
-                start_y -=  avail_col_height / 2.0
-            elif pos == 3: # branch float
-                start_y -=  col_height
+            elif pos == 2 or pos == 4:  # branch right or aligned
+                start_y -= avail_col_height / 2.0
+            elif pos == 3:  # branch float
+                start_y -= col_height
 
-            for faceidx in selected_faces:  
+            for faceidx in selected_faces:
                 face, _pos, _row, _col, fw, fh = facegrid[faceidx]
                 avail_face_height = (fh / col_height) * avail_col_height
 
@@ -526,7 +554,7 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
                 x_face_zoom_factor = (avail_col_width / fw)
 
                 face_zoom_factor = min(x_face_zoom_factor, y_face_zoom_factor)
-                if 0 and not node.children: 
+                if 0 and not node.children:
                     print(node.name)
                     print(" aph: ", avail_pos_height)
                     print(" ach: ", avail_col_height)
@@ -544,9 +572,9 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
                     print()
                     print(" zoom_factor", face_zoom_factor)
                     print("------")
-                
+
                 # ======================+
-                # DRAW FACE 
+                # DRAW FACE
                 face.node = node
 
                 face.arc_start = dim[_astart]
@@ -567,26 +595,22 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
                     pp.translate(zoom_half_fw, zoom_half_fh)
                     pp.rotate(180)
                     pp.translate(-(zoom_half_fw), -(zoom_half_fh))
-                                  
-                face._draw(pp, 0, 0, face_zoom_factor)
+
+                face._draw(pp, 0, 0, face_zoom_factor,
+                           w=available_pos_width, h=avail_col_width)
 
                 if restore_rot_painter:
                     pp.restore()
 
-                # END OF DRAW FACE 
+                # END OF DRAW FACE
                 # =======================
-                start_y += avail_face_height 
+                start_y += avail_face_height
 
             start_x += avail_col_width
             if pos == 2 or pos == 4:
                 endx += avail_col_width
 
     return endx
-
-
-
-
-
 
 
 # @timeit
@@ -678,7 +702,7 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
 
 #             new_rad, new_angle = get_qt_corrected_angle(dim[_fnw], dim[_acenter])
 #             anode_x, anode_y = get_cart_coords(new_rad*zoom_factor, new_angle, cx*zoom_factor, cy*zoom_factor)
-            
+
 #             if scene_rect.contains(anode_x, anode_y):
 #                 visible_leaves.append(node)
 #                 endx = dim[_fnw] * zoom_factor

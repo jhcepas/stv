@@ -1,21 +1,22 @@
-import pyximport; pyximport.install()
-
-import sys
-import random
-import math
-import numpy as np
-from argparse import ArgumentParser
-from .ctree import Tree
-#from .. import Tree
-from .style import TreeStyle, add_face_to_node
-from .face import  RectFace, TextFace, AttrFace, LabelFace, CircleLabelFace, GradientFace, HeatmapArcFace, HeatmapFace, SeqMotifFace
-from .main import TreeImage, gui
-from . import common, seqio
-from .common import *
-from .utils import colorify
-from .alg import SmartAlg
-
 import logging
+from .alg import SmartAlg
+from .utils import colorify
+from .common import *
+from . import common, seqio
+from .main import TreeImage, gui
+from .face import RectFace, TextFace, AttrFace, LabelFace, CircleLabelFace, GradientFace, HeatmapArcFace, HeatmapFace, SeqMotifFace
+from .style import TreeStyle, add_face_to_node
+from .ctree import Tree
+from argparse import ArgumentParser
+import numpy as np
+import math
+import random
+import sys
+import pyximport
+pyximport.install()
+
+#from .. import Tree
+
 
 # Create a custom logger
 logger = logging.getLogger("smartview")
@@ -40,41 +41,57 @@ BLOCK_SEQ_FACE = None
 N2LEAVES = None
 N2CONTENT = None
 
+
 def populate_args(parser):
     tree_input_args = parser.add_mutually_exclusive_group(required=True)
-    tree_input_args.add_argument("-t", dest="src_trees", type=str, help="target tree in newick format")
-    tree_input_args.add_argument("-s", dest="size", type=int, help="Random tree size (for testing purposes)")
-
+    tree_input_args.add_argument(
+        "-t", dest="src_trees", type=str, help="target tree in newick format")
+    tree_input_args.add_argument(
+        "-s", dest="size", type=int, help="Random tree size (for testing purposes)")
 
     parser.add_argument("-a", dest="alg", help="Bind alignment")
 
-    parser.add_argument("-m", dest='mode', default='c', help="(c)icular or (r)ect ")
-
+    parser.add_argument("-m", dest='mode', default='c',
+                        help="(c)icular or (r)ect ")
 
     circ_layout_args = parser.add_argument_group('tree layout options')
-    circ_layout_args.add_argument('--arc_span', dest="arc_span", type=float, default=360, help='In degrees')
-    circ_layout_args.add_argument('--arc_start', dest="arc_start", type=float, default=0, help='In degrees')
+    circ_layout_args.add_argument(
+        '--arc_span', dest="arc_span", type=float, default=360, help='In degrees')
+    circ_layout_args.add_argument(
+        '--arc_start', dest="arc_start", type=float, default=0, help='In degrees')
 
-    parser.add_argument("-z", dest="zoom_factor", type=float, help="initial zoom level")
-    parser.add_argument("-l", dest="layout", type=str, help="layout function to use", default="basic_layout")
-    parser.add_argument("--debug", dest="debug", action="store_true", help="enable debug mode")
-    parser.add_argument("--mem", dest="track_mem", action="store_true", help="tracks memory usage")
-    parser.add_argument("--profile", dest="profile", action="store_true", help="tracks cpu time")
-    parser.add_argument("--timeit", dest="track_time", action="store_true", help="tracks memory usage")
+    parser.add_argument("-z", dest="zoom_factor",
+                        type=float, help="initial zoom level")
+    parser.add_argument("-l", dest="layout", type=str,
+                        help="layout function to use", default="basic_layout")
+    parser.add_argument("--debug", dest="debug",
+                        action="store_true", help="enable debug mode")
+    parser.add_argument("--mem", dest="track_mem",
+                        action="store_true", help="tracks memory usage")
+    parser.add_argument("--profile", dest="profile",
+                        action="store_true", help="tracks cpu time")
+    parser.add_argument("--timeit", dest="track_time",
+                        action="store_true", help="tracks memory usage")
     parser.add_argument("--nogui", dest="nogui", action="store_true")
-    parser.add_argument("--ultrametric", dest="ultrametric", action="store_true", help="convert to untrametric")
-    parser.add_argument("--standardize", dest="standardize", action="store_true", help="stand")
-    parser.add_argument("--randbranches", dest="randbranches", action="store_true", help="stand")
-    parser.add_argument("--softrandbranches", dest="softrandbranches", action="store_true", help="stand")
+    parser.add_argument("--ultrametric", dest="ultrametric",
+                        action="store_true", help="convert to untrametric")
+    parser.add_argument("--standardize", dest="standardize",
+                        action="store_true", help="stand")
+    parser.add_argument("--randbranches", dest="randbranches",
+                        action="store_true", help="stand")
+    parser.add_argument(
+        "--softrandbranches", dest="softrandbranches", action="store_true", help="stand")
     parser.add_argument("-C", dest="cmode", action="store_true")
     parser.add_argument("--tilesize", dest="tilesize", type=int, default=800)
     parser.add_argument("--scale", dest="scale", type=float, default=None)
-    parser.add_argument("--newick_format", dest="nwformat", type=int, default=0)
+    parser.add_argument("--newick_format", dest="nwformat",
+                        type=int, default=0)
     parser.add_argument("--heatmap", dest="heatmap", action="store_true")
 
 
 def link_to_table():
     pass
+
 
 nameF = AttrFace("name", fsize=10, fgcolor='royalBlue', ftype='Arial')
 nameF2 = AttrFace("name", fsize=16, fgcolor='indianred', ftype='Arial')
@@ -101,6 +118,7 @@ f5 = RectFace(20, 10, bgcolor="steelblue")
 
 gradF = GradientFace(width=50, node_attr="custom")
 gradF.only_if_leaf = True
+
 
 def real_layout(node):
     if node.is_leaf():
@@ -131,13 +149,15 @@ def real_layout(node):
         #add_face_to_node(circleF, node, column=5, position="branch-right")
     add_face_to_node(gradF, node, column=10, position="branch-right")
 
+
 def alg_layout(node):
-    if ALG and node in ALG:        
+    if ALG and node in ALG:
         add_face_to_node(BLOCK_SEQ_FACE, node, column=10, position="aligned")
+
 
 def test_layout(node):
     node.img_style.size = 1
-    #f.margin_left=20
+    # f.margin_left=20
     add_face_to_node(f, node, column=0, position="branch-right")
     add_face_to_node(f, node, column=0, position="branch-right")
     #add_face_to_node(rectF, node, column=1, position="branch-right")
@@ -151,6 +171,7 @@ def test_layout(node):
     add_face_to_node(ornot, node, column=1, position="branch-bottom")
     add_face_to_node(mundo, node, column=2, position="branch-bottom")
     add_face_to_node(mundo, node, column=1, position="branch-bottom")
+
 
 def crouded_layout(node):
     if node.is_leaf():
@@ -166,9 +187,11 @@ def crouded_layout(node):
         if node.name:
             add_face_to_node(nameF, node, column=0, position="branch-top")
         add_face_to_node(distF, node, column=0, position="branch-bottom")
-        add_face_to_node(TextFace(str(N2LEAVES[node]), fsize=13), node, column=0, position="branch-top")
+        add_face_to_node(
+            TextFace(str(N2LEAVES[node]), fsize=13), node, column=0, position="branch-top")
 #        add_face_to_node(TextFace("%0.2f" % n2dist[n], fsize=13), node, column=0, position="branch-top")
 #            add_face_to_node(nameF, node, column=0, position="aligned")
+
 
 def basic_layout(node):
     if node.is_leaf():
@@ -176,6 +199,7 @@ def basic_layout(node):
     else:
         if node.name:
             add_face_to_node(nameF, node, column=0, position="branch-top")
+
 
 def stacked_layout(node, dim=None):
     if node.is_leaf():
@@ -196,7 +220,8 @@ def stacked_layout(node, dim=None):
         if node.name:
             add_face_to_node(nameF, node, column=0, position="branch-top")
         add_face_to_node(distF, node, column=0, position="branch-bottom")
-        add_face_to_node(TextFace(str(N2LEAVES[node]), fsize=13), node, column=0, position="branch-top")
+        add_face_to_node(
+            TextFace(str(N2LEAVES[node]), fsize=13), node, column=0, position="branch-top")
 #        add_face_to_node(TextFace("%0.2f" % n2dist[n], fsize=13), node, column=0, position="branch-top")
 #            add_face_to_node(nameF, node, column=0, position="aligned")
 
@@ -205,8 +230,8 @@ def tol_layout(node, dim=None):
     nameF = TextFace(node.name, fgcolor="indianRed", fsize=16)
     # if node.rank:
     #     rankF = TextFace(node.sci_name, fgcolor="orange", fsize=10)
-    distF = TextFace("%0.2f" %node.dist, fgcolor="#888888", fsize=8)
-    sizeF = TextFace(" (size: %d)" %N2LEAVES[node], fsize=8)
+    distF = TextFace("%0.2f" % node.dist, fgcolor="#888888", fsize=8)
+    sizeF = TextFace(" (size: %d)" % N2LEAVES[node], fsize=8)
 
     add_face_to_node(distF, node, column=0, position="branch-bottom")
     if node.is_leaf():
@@ -226,12 +251,15 @@ def tol_layout(node, dim=None):
             add_face_to_node(nameF, node, column=0, position="branch-top")
             add_face_to_node(sizeF, node, column=1, position="branch-bottom")
 
+
 def rect_layout(node):
     if node.is_leaf():
         add_face_to_node(rectF, node, column=0, position="branch-right")
 
+
 def clean_layout(node):
     pass
+
 
 def run(args):
     global N2LEAVES, N2CONTENT, ALG, MATRIX, BLOCK_SEQ_FACE
@@ -257,10 +285,8 @@ def run(args):
     elif args.src_trees:
         t = Tree(args.src_trees, format=args.nwformat)
 
-
     if args.standardize:
         t.standardize()
-
 
     if args.randbranches:
         for n in t.children[0].traverse():
@@ -272,9 +298,6 @@ def run(args):
         for n in t.traverse():
             n.dist = random.randint(50, 80)/100.0
 
-
-
-
     N2LEAVES = {}
     precount = 0
     for post, n in t.iter_prepostorder():
@@ -283,11 +306,12 @@ def run(args):
         else:
             n._id = precount
             if not n.name:
-                n.name = "Node:%06d" %(n._id)
+                n.name = "Node:%06d" % (n._id)
             precount += 1
             if not n.children:
                 N2LEAVES[n] = 1
-    logger.info(colorify("Loaded tree: %d leaves and %d nodes" %(N2LEAVES[t], precount), "lblue"))
+    logger.info(colorify("Loaded tree: %d leaves and %d nodes" %
+                         (N2LEAVES[t], precount), "lblue"))
 
     N2CONTENT = t.get_cached_content()
 
@@ -305,14 +329,16 @@ def run(args):
         #         mean = np.array([MATRIX[ch._id] for ch in n.children]).mean(axis=0)
         #         MATRIX[n._id] = mean
         #         #print(MATRIX[n._id])
-        MATRIX[n.children[0]._id] = np.array([1,1,1,1,1,0.1,0.1,0.1,0.1,0.1])
-        MATRIX[n.children[-1]._id] = np.array([0.1,0.1,0.1,0.1,0.1,1,1,1,1,1])
+        MATRIX[n.children[0]._id] = np.array(
+            [1, 1, 1, 1, 1, 0.1, 0.1, 0.1, 0.1, 0.1])
+        MATRIX[n.children[-1]._id] = np.array(
+            [0.1, 0.1, 0.1, 0.1, 0.1, 1, 1, 1, 1, 1])
 
         for n in t.iter_descendants():
             for ch in n.children:
-                rand = np.array([1-(random.randint(0,1)/10.) for x in range(10)])
+                rand = np.array([1-(random.randint(0, 1)/10.)
+                                 for x in range(10)])
                 MATRIX[ch._id] = MATRIX[n._id] * rand
-
 
     ts = TreeStyle()
 
@@ -321,21 +347,26 @@ def run(args):
         global ALG, BLOCK_SEQ_FACE
         alg_dict = seqio.load_fasta(args.alg)
         ALG = SmartAlg(alg_dict, N2CONTENT)
-        BLOCK_SEQ_FACE = SeqMotifFace(ALG, seqtype='aa', seq_format="()")
+        BLOCK_SEQ_FACE = SeqMotifFace(
+            ALG, seqtype='aa', seq_format="()", gap_format="blank")
         ts.layout_fn.append(alg_layout)
 
     ts.mode = args.mode
     ts.arc_span = args.arc_span
     ts.arc_start = args.arc_start
     if args.scale:
+        for n in t.traverse():
+            n.dist *= args.scale
         ts.scale = args.scale
 
-    gui.start_app() # need to have a QtApp initiated for some operations
+    gui.start_app()  # need to have a QtApp initiated for some operations
 
     tree_image = TreeImage(t, ts)
 
     if args.profile:
-        import cProfile, pstats, io
+        import cProfile
+        import pstats
+        import io
         pr = cProfile.Profile()
         pr.enable()
 
@@ -348,11 +379,12 @@ def run(args):
         sortby = 'cumulative'
         ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
         ps.print_stats()
-        print (s.getvalue())
+        print(s.getvalue())
 
     if args.track_mem:
-        print (repr(t))
-        print (h.heap())
+        print(repr(t))
+        print(h.heap())
+
 
 def main():
     parser = ArgumentParser()

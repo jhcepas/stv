@@ -141,7 +141,7 @@ class Face(object):
     def _height(self):
         pass
 
-    def _draw(self, painter, x, y, zoom_factor):
+    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
         pass
 
     def _pre_draw(self):
@@ -169,7 +169,7 @@ class HeatmapArcFace(Face):
     def _size(self):
         return self.width, 1
 
-    def _draw(self, painter, x, y, zoom_factor):
+    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
         painter.save()
         painter.scale(zoom_factor, zoom_factor)
         painter.translate(-self.img_rad*2, -self.img_rad)
@@ -240,7 +240,7 @@ class HeatmapFace(Face):
     def _size(self):
         return self.rect_width * len(self.values), self.rect_height
 
-    def _draw(self, painter, x, y, zoom_factor):
+    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
         painter.save()
         painter.scale(zoom_factor, zoom_factor)
         x = 0
@@ -277,7 +277,7 @@ class RectFace(Face):
     def _size(self):
         return self.rect_width, self.rect_height
 
-    def _draw(self, painter, x, y, zoom_factor):
+    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
         painter.save()
         painter.scale(zoom_factor, zoom_factor)
         painter.setPen(QColor(self.fgcolor))
@@ -343,7 +343,7 @@ class TextFace(Face):
         text_rect = fm.boundingRect(self.text)
         return text_rect.width(), text_rect.height()
 
-    def _draw(self, painter, x, y, zoom_factor):
+    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
         painter.save()
         painter.scale(zoom_factor, zoom_factor)
         painter.setPen(QPen(QColor(self.fgcolor)))
@@ -399,7 +399,7 @@ class LabelFace(Face):
     def _size(self):
         return self.width, 0.0
 
-    def _draw(self, painter, x, y, zoom_factor):
+    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
         pass
 
 class GradientFace(Face):
@@ -423,7 +423,7 @@ class GradientFace(Face):
         value = getattr(self.node, self.node_attr)
         self.fill_color = colors.random_color(h=0.3, s=0.5, l=value)
 
-    def _draw(self, painter, x, y, zoom_factor):
+    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
         pass
 
 class CircleLabelFace(Face):
@@ -450,7 +450,7 @@ class CircleLabelFace(Face):
     def _height(self):
         return 0.0
 
-    def _draw(self, painter, x, y, zoom_factor):
+    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
 
         if self.solid:
             painter.setBrush(QColor(self.color))
@@ -603,13 +603,13 @@ class SeqMotifFace(Face):
     def _size(self):
         return self._width(), self._height()
 
-    def _draw(self, painter, x, y, zoom_factor):
+    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
         sequence = self.node2seq[self.node]
         chunks = self.get_chunks(sequence)
 
         painter.save()
         painter.translate(x, y)
-        painter.scale(zoom_factor, zoom_factor)
+        painter.scale(1, zoom_factor)
 
         # Calculate max height of all elements in this motif object
         max_h = max([reg[4] for index, reg
