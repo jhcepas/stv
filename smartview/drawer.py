@@ -19,7 +19,7 @@ import logging
 logger = logging.getLogger("smartview")
 
 
-COLLAPSE_RESOLUTION = 10
+COLLAPSE_RESOLUTION = 40
 MAX_SCREEN_SIZE = 999999999999999
 
 
@@ -313,7 +313,7 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
 
         if draw_collapsed:
             pp.setPen(QPen(QColor("LightSteelBlue")))
-            pp.drawPath(M.map(fpath))
+            pp.drawPath(M.map(path))
         else:
             if treemode == "c":
                 parent_radius = img_data[int(
@@ -381,29 +381,17 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
                 node_end = matrix.map(QPointF(endpos, node_y_middle))
 
             elif treemode == "r":
-                #endpos = (dim[_xend] * zoom_factor) + endx
-                #print(dim[_xend], dim[_fnw])
                 node_y_middle = dim[_acenter] * zoom_factor
                 node_end = QPointF(endpos, node_y_middle)
 
             if scene_rect.contains(node_end):
                 visible_leaves.append(node)
-                # Debug
-                #temppath = QPainterPath()
-                #temppath.addRect(QRectF(endpos, node_y_middle, 1, 1))
-                # if treemode == "c":
-                #     pp.drawPath(matrix.map(temppath))
-                # else:
-                #     pp.drawPath(temppath)
-                # pp.setPen(QPen(QColor("Green")))
-                # pp.drawPath(M.map(fpath))
-
                 if endpos > start_x_aligned_faces:
                     start_x_aligned_faces = max(start_x_aligned_faces, endpos)
                     farthest_fpath = fpath
 
     print("DRAWN", DRAWN, len(terminal_nodes))
-    
+
     if farthest_fpath:
         pp.setPen(QPen(QColor("Red")))
         pp.drawPath(M.map(farthest_fpath))

@@ -1,5 +1,5 @@
 import logging
-from .alg import SmartAlg
+from .alg import SparseAlg, TreeAlignment, Alg
 from .utils import colorify
 from .common import *
 from . import common, seqio
@@ -152,6 +152,8 @@ def real_layout(node):
 
 def alg_layout(node):
     if ALG and node in ALG:
+        # add_face_to_node(TextFace(node.name), node,
+        #                 column=9, position="aligned")
         add_face_to_node(BLOCK_SEQ_FACE, node, column=10, position="aligned")
 
 
@@ -345,10 +347,11 @@ def run(args):
     ts.layout_fn = globals()[args.layout]
     if args.alg:
         global ALG, BLOCK_SEQ_FACE
-        alg_dict = seqio.load_fasta(args.alg)
-        ALG = SmartAlg(alg_dict, N2CONTENT)
+        #alg_dict = seqio.load_fasta(args.alg)
+        alg_dict = Alg(args.alg)
+        ALG = TreeAlignment(alg_dict, N2CONTENT)
         BLOCK_SEQ_FACE = SeqMotifFace(
-            ALG, seqtype='aa', seq_format="()", gap_format="blank")
+            ALG, seqtype='aa', seq_format="seq", gap_format="blank", poswidth=3, total_width=None)
         ts.layout_fn.append(alg_layout)
 
     ts.mode = args.mode
@@ -357,7 +360,7 @@ def run(args):
     if args.scale:
         for n in t.traverse():
             n.dist *= args.scale
-        ts.scale = args.scale
+        #ts.scale = args.scale
 
     gui.start_app()  # need to have a QtApp initiated for some operations
 

@@ -9,10 +9,12 @@ from .utils import timeit, debug
 
 # Pick two colors. Values from 0 to 1. See "hue" at
 # http://en.wikipedia.org/wiki/HSL_and_HSV
+
+
 def get_color_gradient():
 
-    COLOR1= 0.67
-    COLOR2= 0.3
+    COLOR1 = 0.67
+    COLOR2 = 0.3
     COLOR_INTENSITY = 0.6
 
     def gradient(hue):
@@ -22,35 +24,38 @@ def get_color_gradient():
 
         # each gradient must contain 100 lightly descendant colors
         colors = []
-        rgb2hex = lambda rgb: '#%02x%02x%02x' % rgb
+        def rgb2hex(rgb): return '#%02x%02x%02x' % rgb
         l_factor = (max_lightness-min_lightness) / 100.
         l = min_lightness
-        while l<=max_lightness:
+        while l <= max_lightness:
             l += l_factor
-            rgb =  rgb2hex(tuple([int(x*255) for x in colorsys.hls_to_rgb(hue, l, base_value)]))
+            rgb = rgb2hex(
+                tuple([int(x*255) for x in colorsys.hls_to_rgb(hue, l, base_value)]))
             colors.append(rgb)
         return colors
 
     def color_scale():
         colors = []
-        for c in  gradient(COLOR1):
-            color=QColor(c)
+        for c in gradient(COLOR1):
+            color = QColor(c)
             colors.append(color)
         colors.append(QColor("white"))
-        for c in  reversed(gradient(COLOR2)):
-            color=QColor(c)
+        for c in reversed(gradient(COLOR2)):
+            color = QColor(c)
             colors.append(color)
         return colors
 
     return color_scale()
 
+
 GRADIENT = get_color_gradient()
+
 
 def get_arc_path(rect1, rect2, rad_angles):
     angles = list(map(np.degrees, rad_angles))
     path = QPainterPath()
     span = angles[-1] - angles[0]
-    if 0 and span < 0.01: # solves precision problems drawing small arcs
+    if 0 and span < 0.01:  # solves precision problems drawing small arcs
         path.arcMoveTo(rect1, -angles[0])
         i1 = path.currentPosition()
         path.arcMoveTo(rect1, -angles[-1])
@@ -81,7 +86,6 @@ def get_arc_path(rect1, rect2, rad_angles):
     return path
 
 
-
 class Face(object):
     __slots__ = ["node",
                  "arc_start",
@@ -97,12 +101,13 @@ class Face(object):
                  "border_top", "border_bottom", "border_left", "border_right",
                  "fill_color",
                  "outter_border_top", "outter_border_bottom", "outter_border_left", "outter_border_right",
-                 "max_height","max_width",
+                 "max_height", "max_width",
                  "only_if_leaf",
-    ]
+                 ]
+
     def __repr__(self):
         print(type(self.__hash__()))
-        return "'%s' (%s)" %(self.__class__, hex(int(self.__hash__())))
+        return "'%s' (%s)" % (self.__class__, hex(int(self.__hash__())))
 
     def __init__(self):
         self.only_if_leaf = None
@@ -150,6 +155,7 @@ class Face(object):
     def _size(self):
         pass
 
+
 class HeatmapArcFace(Face):
     __slots__ = ['width', 'values', 'h']
 
@@ -180,7 +186,7 @@ class HeatmapArcFace(Face):
         step = (self.width) / float(len(self.values))
         offset = 0
         for v in self.values:
-            #color = random_color(l=self.h, s=0.7, h=v)
+            # color = random_color(l=self.h, s=0.7, h=v)
 
             color = GRADIENT[int(v*200)]
 
@@ -191,11 +197,11 @@ class HeatmapArcFace(Face):
             r2 = QRectF(-offset, -offset,
                         (self.img_rad+offset)*2, (self.img_rad+offset)*2)
 
-            #if self.node.name == 'aaaaaaaaac':
-                 # painter.setPen(QColor("green"))
-                 # painter.drawRect(r2)
-                 # painter.setPen(QColor("yellow"))
-                 # painter.drawRect(r1)
+            # if self.node.name == 'aaaaaaaaac':
+            # painter.setPen(QColor("green"))
+            # painter.drawRect(r2)
+            # painter.setPen(QColor("yellow"))
+            # painter.drawRect(r1)
 
             if self.node.children:
                 painter.setOpacity(0.5)
@@ -203,22 +209,22 @@ class HeatmapArcFace(Face):
             painter.setPen(QColor("#777777"))
             painter.setBrush(QColor(color))
 
-
             # if 'aaaaaaaaac' in self.node.get_leaf_names():
             #     painter.setBrush(QColor(random_color(h=0.9)))
             #     painter.setPen(QColor("#777777"))
 
             span = self.arc_end - self.arc_start
-            #path = get_arc_path(r1, r2, [span/2, -span/2])
-            path = get_arc_path(r1, r2, [self.arc_start-self.arc_center, self.arc_end-self.arc_center])
+            # path = get_arc_path(r1, r2, [span/2, -span/2])
+            path = get_arc_path(
+                r1, r2, [self.arc_start-self.arc_center, self.arc_end-self.arc_center])
             painter.drawPath(path)
 
         painter.restore()
 
 
-
 class HeatmapFace(Face):
-    __slots__ = ['rect_width', 'rect_height', 'rect_label', "fgcolor", 'bgcolor', 'values']
+    __slots__ = ['rect_width', 'rect_height',
+                 'rect_label', "fgcolor", 'bgcolor', 'values']
 
     def __init__(self, values, width, height, label=None, fgcolor="steelblue",
                  bgcolor="steelblue"):
@@ -246,7 +252,8 @@ class HeatmapFace(Face):
         x = 0
         for v in self.values:
             color = colors.random_color(l=0.5, s=0.5)
-            painter.fillRect(QRectF(x, y, self.rect_width, self.rect_height), QColor(color))
+            painter.fillRect(QRectF(x, y, self.rect_width,
+                                    self.rect_height), QColor(color))
             painter.setPen(QColor("black"))
             painter.drawRect(QRectF(x, y, self.rect_width, self.rect_height))
             x += self.rect_width
@@ -254,7 +261,8 @@ class HeatmapFace(Face):
 
 
 class RectFace(Face):
-    __slots__ = ['rect_width', 'rect_height', 'rect_label', 'rect_fgcolor', 'rect_bgcolor', "fgcolor", 'bgcolor']
+    __slots__ = ['rect_width', 'rect_height', 'rect_label',
+                 'rect_fgcolor', 'rect_bgcolor', "fgcolor", 'bgcolor']
 
     def __init__(self, width, height, label=None, fgcolor="steelblue",
                  bgcolor="steelblue"):
@@ -282,15 +290,18 @@ class RectFace(Face):
         painter.scale(zoom_factor, zoom_factor)
         painter.setPen(QColor(self.fgcolor))
         if self.bgcolor:
-            painter.fillRect(QRectF(x, y, self.rect_width, self.rect_height), QColor(self.bgcolor))
+            painter.fillRect(QRectF(x, y, self.rect_width,
+                                    self.rect_height), QColor(self.bgcolor))
             painter.setPen(QColor("black"))
             painter.drawRect(QRectF(x, y, self.rect_width, self.rect_height))
         else:
             painter.drawRect(QRectF(x, y, self.rect_width, self.rect_height))
         painter.restore()
 
+
 class TextFace(Face):
-    __slots__ = ['_text', 'fsize', 'ftype', 'fgcolor', 'fstyle', 'tight_text', "_text_size", "min_fsize"]
+    __slots__ = ['_text', 'fsize', 'ftype', 'fgcolor',
+                 'fstyle', 'tight_text', "_text_size", "min_fsize"]
 
     # def __repr__(self):
     #     return "Text Face [%s] (%s)" %(self.text, hex(self.__hash__()))
@@ -354,7 +365,7 @@ class TextFace(Face):
         else:
             painter.setFont(self._get_font())
             painter.drawText(r, self.text)
-            #painter.drawText(x, y+self._height(), self.text)
+            # painter.drawText(x, y+self._height(), self.text)
         painter.restore()
 
     def _get_font(self):
@@ -362,9 +373,9 @@ class TextFace(Face):
         return QFont(self.ftype, pointSize=self.fsize, italic=italic)
 
 
-
 class AttrFace(TextFace):
-    __slots__ = ['_text', 'fsize', 'ftype', 'fgcolor', 'fstyle', 'tight_text', "_text_size", "min_fsize"]
+    __slots__ = ['_text', 'fsize', 'ftype', 'fgcolor',
+                 'fstyle', 'tight_text', "_text_size", "min_fsize"]
 
     @property
     def text(self):
@@ -402,8 +413,10 @@ class LabelFace(Face):
     def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
         pass
 
+
 class GradientFace(Face):
-    __slots__ = ["width", "node_attr", "max_value", "min_value", "center_value"]
+    __slots__ = ["width", "node_attr",
+                 "max_value", "min_value", "center_value"]
 
     def __init__(self, width, node_attr):
         Face.__init__(self)
@@ -425,6 +438,7 @@ class GradientFace(Face):
 
     def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
         pass
+
 
 class CircleLabelFace(Face):
     __slots__ = ["size", "color", "solid", "value", "attr", "attr_transform"]
@@ -476,7 +490,8 @@ class SeqMotifFace(Face):
         ::
 
           motifs = [[seq.start, seq.end, shape, width, height, fgcolor, bgcolor, text_label],
-                   [seq.start, seq.end, shape, width, height, fgcolor, bgcolor, text_label],
+                   [seq.start, seq.end, shape, width,
+                       height, fgcolor, bgcolor, text_label],
                    ...
                   ]
 
@@ -511,7 +526,7 @@ class SeqMotifFace(Face):
     """
     AA2IMG = {}
     for aa, color in colors.aabgcolors.items():
-        ii= QImage(20, 20, QImage.Format_ARGB32_Premultiplied)
+        ii = QImage(20, 20, QImage.Format_ARGB32_Premultiplied)
         ii.fill(QColor(color).rgb())
         AA2IMG[aa] = ii
 
@@ -520,7 +535,7 @@ class SeqMotifFace(Face):
 
     def __init__(self, node2seq, seqtype="aa",
                  gap_format="line", seq_format="()",
-                 height=10, width=10,
+                 posheight=10, poswidth=10, total_width=None,
                  fgcolor='slategrey', bgcolor='slategrey', gapcolor='black'):
 
         Face.__init__(self)
@@ -532,12 +547,14 @@ class SeqMotifFace(Face):
         self.gap_format = gap_format
         self.seq_format = seq_format
 
-        self.h = height
-        self.w = width
+        self.posheight = posheight
+        self.poswidth = poswidth
+        self.total_width = total_width
+
         self.fgcolor = fgcolor
         self.bgcolor = bgcolor
 
-        _pp = QPainter(self.BLOCK)        
+        _pp = QPainter(self.BLOCK)
         _pp.setPen(QColor(self.bgcolor))
         _pp.setBrush(QColor(self.bgcolor))
         _pp.drawRoundedRect(0, 0, 10, 10, 3, 3)
@@ -551,54 +568,17 @@ class SeqMotifFace(Face):
                 typ = self.seq_format
             else:
                 typ = self.gap_format
-            chunks.append([pos, pos+len(reg)-1, typ, self.w, self.h, self.fgcolor, self.bgcolor, reg])
+            chunks.append((pos, pos+len(reg)-1, typ))
             pos += len(reg)
-       
+
         return chunks
-
-
-    def complete_regions(self):
-        # complete missing regions
-        current_seq_pos = 0
-        for index, mf in enumerate(motifs):
-            start, end, typ, w, h, fg, bg, name = mf
-            if start > current_seq_pos:
-                pos = current_seq_pos
-                for reg in re.split('([^-]+)', seq[current_seq_pos:start]):
-                    if reg:
-                        if reg.startswith("-") and self.seq_format != "seq":
-                            self.regions.append([pos, pos+len(reg)-1, self.gap_format,
-                                                 1, 1, self.gapcolor, None, None])
-                        else:
-                            self.regions.append([pos, pos+len(reg)-1, self.seq_format,
-                                                 self.w, self.h,
-                                                 self.fgcolor, self.bgcolor, None])
-                    pos += len(reg)
-                current_seq_pos = start
-
-            self.regions.append(mf)
-            current_seq_pos = end + 1
-
-        if len(seq) > current_seq_pos:
-            pos = current_seq_pos
-            for reg in re.split('([^-]+)', seq[current_seq_pos:]):
-                if reg:
-                    if reg.startswith("-") and self.seq_format != "seq":
-                        self.regions.append([pos, pos+len(reg)-1, self.gap_format, 1, 1, self.gapcolor, None, None])
-                    else:
-                        self.regions.append([pos, pos+len(reg)-1, self.seq_format,
-                                             self.w, self.h,
-                                             self.fgcolor, self.bgcolor, None])
-                    pos += len(reg)
-
-        #print ('\n'.join(map(str, self.regions)))
 
     def _width(self):
         seq = self.node2seq[self.node]
-        return self.w * len(seq)
+        return self.poswidth * len(seq)
 
     def _height(self):
-        return self.h
+        return self.posheight
 
     def _size(self):
         return self._width(), self._height()
@@ -609,61 +589,25 @@ class SeqMotifFace(Face):
 
         painter.save()
         painter.translate(x, y)
-        painter.scale(1, zoom_factor)
 
-        # Calculate max height of all elements in this motif object
-        max_h = max([reg[4] for index, reg
-                     in enumerate(chunks)])
-        y_center = max_h / 2
+        if self.total_width:
+            real_w = len(sequence) * self.poswidth
+            xfactor = (self.total_width) / real_w
+        else:
+            xfactor = 1
 
-        max_x_pos = 0
-        current_seq_end = 0
-        
-        seq_x_correction = {}
-        for seq_start, seq_end, typ, wf, h, fg, bg, name in chunks:
-            if typ == "seq":
-                seq_x_correction[(seq_start, seq_end)] = wf * self.scale_factor
+        painter.scale(xfactor, zoom_factor)
 
-        for index, (seq_start, seq_end, typ, wf, h, fg, bg, name) in enumerate(chunks):
-            painter.setPen(QColor(fg))
-            painter.setBrush(QColor(bg))
+        painter.setPen(QColor(self.fgcolor))
+        painter.setBrush(QColor(self.bgcolor))
+
+        for index, (seq_start, seq_end, typ) in enumerate(chunks):
 
             # this are the actual coordinates mapping to the sequence
-            opacity = 1
-            w = (seq_end - seq_start) + 1
-            xstart = seq_start
+            w = ((seq_end - seq_start) + 1) * self.poswidth
 
-            if self.scale_factor:
-                w *= self.scale_factor
-                if wf:
-                    wf *= self.scale_factor
-                xstart *= self.scale_factor
-
-            # this loop corrects x-positions for overlaping motifs and takes
-            # into account the different scales used for different motif types,
-            # i.e. seq
-            for (old_start, old_end), correction in seq_x_correction.items():
-                seq_range = None
-                if seq_start > old_start:
-                    seq_range = min(old_end, seq_start) - old_start
-                    xstart -= seq_range
-                    xstart += (seq_range * correction)
-                elif seq_end > old_start:
-                    seq_range = min(old_end, seq_end) - old_start
-                # corrects also the width for the overlaping part
-                if seq_range:
-                    if seq_start < old_end or seq_end < seq_start:
-                        w -= seq_range
-                        w += (seq_range * correction)
-
-            if seq_start < current_seq_end:
-                opacity = self.overlaping_motif_opacity
-
-            # expected width of the object to be drawn
-            ystart = y_center - (h/2)
-
-            if typ == "-" or typ == "line":                
-                painter.drawLine(0, h/2, w, h/2)                
+            if typ == "-" or typ == "line":
+                painter.drawLine(0, h/2, w, h/2)
             elif typ == " " or typ == "blank":
                 pass
             elif typ == "o":
@@ -681,14 +625,15 @@ class SeqMotifFace(Face):
             elif typ == "[]":
                 painter.drawRect(0, 0, w, h)
             elif typ == "()":
-                painter.drawRoundedRect(0, 0, w, h, 3, 3)
-                #painter.drawImage(0, 0, self.BLOCK, sw=w, sh=h)
+                pass
+                # painter.drawRoundedRect(0, 0, w, h, 3, 3)
+                painter.drawImage(0, 0, self.BLOCK, sw=w, sh=h)
             elif typ == "seq" and sequence:
-                w, h = self._draw_sequence(painter, sequence[seq_start:seq_end+1],
-                                            poswidth=self.w, posheight=self.h)
+                self._draw_sequence(painter, sequence[seq_start:seq_end+1],
+                                    poswidth=self.poswidth, posheight=self.posheight)
             else:
-                raise ValueError("Unknown Seq type: %s" %typ)
-            
+                raise ValueError("Unknown Seq type: %s" % typ)
+
             painter.translate(w, 0)
 
             # if name and i:
@@ -706,7 +651,6 @@ class SeqMotifFace(Face):
             #     #y_txt_start = (max_h/2.0) - (h/2.0)
             #     txt_item.setParentItem(i)
             #     #txt_item.setPos(0, ystart)
-
 
             # if i:
             #     i.setParentItem(self.item)
@@ -737,32 +681,33 @@ class SeqMotifFace(Face):
             #     if opacity < 1:
             #         i.setOpacity(opacity)
 
-            max_x_pos = max(max_x_pos, xstart + w)
-            current_seq_end = max(seq_end, current_seq_end)
+            # max_x_pos = max(max_x_pos, xstart + w)
+            # current_seq_end = max(seq_end, current_seq_end)
 
         painter.restore()
-        
 
     def _draw_sequence(self, p, seq, seqtype="aa", poswidth=10, posheight=10,
-                    draw_text=False):
-        
+                       draw_text=False):
+
         x, y = 0, 0
         for letter in seq:
-            #letter = letter.upper()
+            # letter = letter.upper()
             if draw_text and poswidth >= 8:
-                p.drawImage(x, 0, self.AA2IMG[letter])#, max(1, poswidth), posheight)
+                # , max(1, poswidth), posheight)
+                p.drawImage(x, 0, self.AA2IMG[letter])
                 qfont.setPixelSize(min(posheight, poswidth))
                 p.setFont(qfont)
                 p.setBrush(QBrush(QColor("black")))
                 qfont = QFont("Courier")
                 p.drawText(x, 0, poswidth, posheight,
-                        Qt.AlignCenter |  Qt.AlignVCenter,
-                        letter)
+                           Qt.AlignCenter | Qt.AlignVCenter,
+                           letter)
             elif letter == "-" or letter == ".":
                 pass
-                #p.drawImage(x, 0, self.AA2IMG['-'])#, max(1, poswidth), posheight)
-            else:                                   
-                p.drawImage(x, 0, self.AA2IMG[letter], sw=poswidth, sh=posheight)
-    
-            x += poswidth            
+                # p.drawImage(x, 0, self.AA2IMG['-'])#, max(1, poswidth), posheight)
+            else:
+                p.drawImage(x, 0, self.AA2IMG[letter],
+                            sw=poswidth, sh=posheight)
+
+            x += poswidth
         return x, posheight
