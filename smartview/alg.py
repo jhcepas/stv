@@ -186,7 +186,7 @@ class TreeAlignment(object):
             self.consensus[node] = self.calculate_consensus(sequences)
         return self.consensus[node]
 
-    @timeit
+    #@timeit
     def calculate_consensus(self, sequences):
         m = None                
         for seq in sequences:

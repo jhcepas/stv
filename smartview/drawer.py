@@ -19,9 +19,8 @@ import logging
 logger = logging.getLogger("smartview")
 
 
-COLLAPSE_RESOLUTION = 10
-MAX_SCREEN_SIZE = 999999999999999
-
+COLLAPSE_RESOLUTION = 20
+MAX_SCREEN_SIZE = 4000
 
 def pol2cart(rho, phi):
     x = rho * np.cos(phi)
@@ -180,14 +179,14 @@ def get_tile_img(pp, tree_image, zoom_factor, treemode, tile_rect):
 
 
 @timeit
-def draw_region(tree_image, pp, zoom_factor, scene_rect):
+def draw_tree_scene_region(pp, tree_image, zoom_factor, scene_rect):
     """ Draws a region of the scene. 
 
         scene_rect represents the target rectangle in the transformed scene
         (zoomed and translated) that needs to be drawn.  
 
         """
-
+    
     img_data = tree_image.img_data
     treemode = tree_image.tree_style.mode
     if treemode == 'c':
@@ -223,6 +222,11 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
         M.scale(zoom_factor, zoom_factor)
 
     pp.drawRect(scene_rect)
+    
+    pp.save()
+    # Lets draw tree scene
+    pp.setClipRect(scene_rect)
+    
     # DEBUG INFO
     DRAWN, OUTSIDE, COLLAPSED, ITERS = 0, 0, 0, 0
 
@@ -253,15 +257,30 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
             collision_paths[nid] = [path, fpath]
         else:
             path, fpath = collision_paths[nid]
-
-        # If node and their descendants are not visible, skip them
-        if not fpath.intersects(m_scene_rect):
+        
+        not_visible = False
+        top_right = fpath.controlPointRect().topRight()               
+        y_range = QRectF(m_scene_rect.x(), top_right.y(), MAX_SCREEN_SIZE, fpath.controlPointRect().height())
+        if not m_scene_rect.intersects(y_range):            
+            # if the node is outside the vertical range, skip it (no draw no
+            # visiable terminal nodes)
             new_curr = max(int(dim[_max_leaf_idx]+1), curr)
-            terminal_nodes.append(node)
             OUTSIDE += 1
             curr = new_curr
             continue
-
+        elif not fpath.intersects(m_scene_rect):
+            # if in the y range, but not in the x range. Don't draw it, but
+            # keeps the iteration to find terminal nodes.
+            not_visible = True
+            
+        # If node and their descendants are not visible, skip them
+        # if not fpath.intersects(m_scene_rect):
+        #     new_curr = max(int(dim[_max_leaf_idx]+1), curr)
+        #     #terminal_nodes.append(node)
+        #     OUTSIDE += 1
+        #     curr = new_curr
+        #     continue
+        
         # Calculate how much space is there at this zoom for drawing the node
         if treemode == 'c' and dim[_fnh] >= R180:
             node_height = MAX_SCREEN_SIZE
@@ -289,12 +308,18 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
             # it as a collapsed terminal, and skip the subtree down.              
             curr = int(dim[_max_leaf_idx] + 1)
             draw_collapsed = True
-            is_terminal = True
-            COLLAPSED += 1
+            is_terminal = True            
+            COLLAPSED += 1            
         else:
             curr += 1
             is_terminal = False
 
+        if is_terminal:
+            terminal_nodes.append(node)
+
+        if not_visible: 
+            continue
+            
         # If it gets to here, draw the node
         pp.save()
         DRAWN += 1
@@ -367,50 +392,73 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
         # If the node is terminal, it should be used to adjust the aligned face
         # start_x position dynamically. If the end_x position of the terminal
         # node is visiable, then it should be considered, otherwise skip it.
-        if is_terminal:
-            terminal_nodes.append(node)
-            endpos = (dim[_rad] * zoom_factor) + endx
+        # if is_terminal:
+        #     terminal_nodes.append(node)
+            #endpos = (dim[_rad] * zoom_factor) + endx
 
-            matrix = QTransform()
-            if treemode == "c":
-                matrix.translate(cx * zoom_factor, cy * zoom_factor)
-                middle_a = np.degrees(
-                    dim[_astart] + (dim[_aend] - dim[_astart])/2)
-                matrix.rotate(middle_a)
-                node_y_middle = 0
-                node_end = matrix.map(QPointF(endpos, node_y_middle))
+            # matrix = QTransform()
+            # if treemode == "c":
+            #     matrix.translate(cx * zoom_factor, cy * zoom_factor)
+            #     middle_a = np.degrees(
+            #         dim[_astart] + (dim[_aend] - dim[_astart])/2)
+            #     matrix.rotate(middle_a)
+            #     node_y_middle = 0
+            #     node_end = matrix.map(QPointF(endpos, node_y_middle))
 
-            elif treemode == "r":
-                node_y_middle = dim[_acenter] * zoom_factor
-                node_end = QPointF(endpos, node_y_middle)
+            # elif treemode == "r":
+            #     node_y_middle = dim[_acenter] * zoom_factor
+            #     node_end = QPointF(endpos, node_y_middle)
 
-            if scene_rect.contains(node_end):
-                visible_leaves.append(node)
-                if endpos > start_x_aligned_faces:
-                    start_x_aligned_faces = max(start_x_aligned_faces, endpos)
-                    farthest_fpath = fpath
+            # if scene_rect.contains(node_end):
+            #     visible_leaves.append(node)
+            #     if endpos > start_x_aligned_faces:
+            #         start_x_aligned_faces = max(start_x_aligned_faces, endpos)
+            #         farthest_fpath = fpath
 
     print("OUTSIDE:", OUTSIDE, "DRAWN:", DRAWN, "TERMINAL:", len(terminal_nodes))
 
-    if farthest_fpath:
-        pp.setPen(QPen(QColor("Red")))
-        pp.drawPath(M.map(farthest_fpath))
+    # if farthest_fpath:
+    #     pp.setPen(QPen(QColor("Red")))
+    #     pp.drawPath(M.map(farthest_fpath))
 
+    # Lets draw tree scene
+    pp.restore()
+    return terminal_nodes
+
+
+def draw_aligned_faces(pp, terminal_nodes, tree_image, zoom_factor, scene_rect):    
+    #pp.setClipRect(scene_rect)
+    img_data = tree_image.img_data
+    treemode = tree_image.tree_style.mode
     # Draw aligned faces
-    for node in terminal_nodes:
+    
+    for node in terminal_nodes:        
         dim = tree_image.img_data[node._id]
+        if not node._temp_faces:
+            node._temp_faces = None
+            for func in tree_image.tree_style.layout_fn:
+                func(node)
+
+            # if node was not visited yet, compute face dimensions
+            if not np.any(dim[_btw:_bah+1]):
+                face_pos_sizes = layout.compute_face_dimensions(
+                    node, node._temp_faces)
+                dim[_btw:_bah+1] = face_pos_sizes
+                
         pp.save()
         if treemode == "c":
             #new_rad, new_angle = get_qt_corrected_angle(start_x_aligned_faces, dim[_acenter])
-            pp.translate(cx*zoom_factor, cy*zoom_factor)
+            #pp.translate(cx*zoom_factor, cy*zoom_factor)
             # pp.rotate(np.degrees(new_angle))
-            pp.rotate(np.degrees(dim[_acenter]))
-            endx = draw_faces(pp, start_x_aligned_faces, 0, node, zoom_factor,
-                              tree_image, is_collapsed=False, target_positions=[4])
-        elif treemode == "r":
-            pp.translate(start_x_aligned_faces, dim[_ycenter]*zoom_factor)
-            endx = draw_faces(pp, 0, 0, node, zoom_factor,
-                              tree_image, is_collapsed=False, target_positions=[4])
+            # pp.rotate(np.degrees(dim[_acenter]))
+            # endx = draw_faces(pp, start_x_aligned_faces, 0, node, zoom_factor,
+            #                   tree_image, is_collapsed=False, target_positions=[4])
+            pass
+        elif treemode == "r":                        
+            pp.translate(0, dim[_ycenter]*zoom_factor)
+            #pp.fillRect(0, 0, 3, 3, QColor("blue"))
+            draw_faces(pp, 0, 0, node, zoom_factor,
+                       tree_image, is_collapsed=False, target_positions=[4])
 
         pp.restore()
 

@@ -51,7 +51,7 @@ def populate_args(parser):
 
     parser.add_argument("-a", dest="alg", help="Bind alignment")
 
-    parser.add_argument("-m", dest='mode', default='c',
+    parser.add_argument("-m", dest='mode', default='r',
                         help="(c)icular or (r)ect ")
 
     circ_layout_args = parser.add_argument_group('tree layout options')

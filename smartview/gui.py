@@ -75,11 +75,17 @@ class TreeCanvas(QOpenGLWidget):
         self.zoom_factor = zoom_factor
         self.matrix = QTransform()
         self.click_pos = None
-        self.setGeometry(0, 0, 250, 250)
+        
         self.setMouseTracking(True)
-
         self.scene_start = QPoint(0, 0)
-
+        self.tree_panel_percent = 0.4 
+        self.tree_panel_endx = None
+        self.adjust_panels()
+        
+    def adjust_panels(self):
+        r = self.geometry()
+        self.tree_panel_endx = r.width() * self.tree_panel_percent 
+        #print("endx", self.tree_panel_endx)
     def keyPressEvent(self, e):
         print("Key press")
         super().keyPressEvent(e)
@@ -91,9 +97,10 @@ class TreeCanvas(QOpenGLWidget):
 
     def mouseReleaseEvent(self, e):
         release_pos = e.pos()
-        if self.click_pos != release_pos:
+        if self.click_pos is not None and self.click_pos != release_pos:
             diff = self.click_pos - release_pos
             self.scene_start -= diff
+            self.click_pos = None
         self.update()
         print("Release", e.pos())
         super().mouseReleaseEvent(e)
@@ -103,18 +110,25 @@ class TreeCanvas(QOpenGLWidget):
         super().mouseMoveEvent(e)
 
     def mousePressEvent(self, e):
-        self.click_pos = e.pos()
-        print("Press", self.click_pos)
+        self.click_pos = None
+        if e.x() < self.tree_panel_endx: 
+            self.click_pos = e.pos()
+
+        print("Press", e.pos())
         return super().mousePressEvent(e)
 
     def resizeEvent(self, e):
         print("resize")
+        self.adjust_panels()
         return super().resizeEvent(e)
 
     def wheelEvent(self, e):
         print("wheel")
         mouse_pos = e.pos()
-        # if mouse_pos.x() < self.scene_start.x():
+        if mouse_pos.x() > self.tree_panel_endx: 
+            return 
+        
+        #if mouse_pos.x() < self.scene_start.x():
         #     return
         # if mouse_pos.y() < self.scene_start.y():
         #     return
@@ -142,35 +156,44 @@ class TreeCanvas(QOpenGLWidget):
         pp.setRenderHint(QPainter.Antialiasing)
         pp.setRenderHint(QPainter.TextAntialiasing)
         pp.setRenderHint(QPainter.SmoothPixmapTransform)
-        # pp.setTransform(self.matrix)
-        # Paint on tile
-
-        width = self.width()
+        r = self.geometry()
+      
+        tree_scene_width = (self.width() * self.tree_panel_percent)         
+        aligned_panel_startx = tree_scene_width
         height = self.height()
+              
         if self.scene_start.x() >= 0:
-            xstart = 0
+            xstart = 0            
+            tree_scene_width -= self.scene_start.x()
         else:
-            xstart = -1 * self.scene_start.x()
-
+            xstart = -1 * self.scene_start.x()                        
         if self.scene_start.y() >= 0:
             ystart = 0
         else:
             ystart = -1 * self.scene_start.y()
-
+      
+        
+        tree_scene_rect = QRectF(xstart, ystart, tree_scene_width, height)        
+       
+        print("tree scene rect:", tree_scene_rect)
+        pp.setPen(QColor('green'))
+        pp.drawLine(aligned_panel_startx, 0, aligned_panel_startx, height)
+        
+        pp.save()
         pp.translate(self.scene_start.x(), self.scene_start.y())
-
-        target_scene_rect = QRectF(xstart, ystart, width, height)
-        print("target", target_scene_rect)
-        #pp.scale(self.zoom_factor, self.zoom_factor)
-        pp.setClipRect(target_scene_rect)
-        drawer.draw_region(self.tree_image, pp,
-                           self.zoom_factor, target_scene_rect)
+        terminal_nodes = drawer.draw_tree_scene_region(pp, self.tree_image, 
+                                                        self.zoom_factor, tree_scene_rect)
         pp.setPen(QColor('red'))
-        pp.drawRect(xstart+1, ystart+1, width-2, height-2)
+        pp.drawRect(xstart+1, ystart+1, tree_scene_width-2, height-2)
 
-        #pp.scale(self.zoom_factor, self.zoom_factor)
-        #ii = QImage("/Users/jhc/_Devel/smartview/smartview/test.png")
-        #        pp.drawImage(0, 0, ii)
+        pp.restore()
+        
+        pp.save()
+        pp.translate(aligned_panel_startx, self.scene_start.y())
+        meta_scene_rect = QRectF(xstart, ystart, tree_scene_width, height)        
+        
+        drawer.draw_aligned_faces(pp, terminal_nodes, self.tree_image, self.zoom_factor, meta_scene_rect)        
+        pp.restore()
         pp.endNativePainting()
 
 
@@ -179,7 +202,7 @@ class TreeGUI(QMainWindow):
         self.tree_image = tree_image
         QMainWindow.__init__(self, *args)
         # self.showMaximized()
-        self.setGeometry(0, 0, 300, 300)
+        self.setGeometry(0, 0, 600, 600)
 
         self.canvas = TreeCanvas(self.tree_image, 1.0)
         self.splitter = QSplitter()

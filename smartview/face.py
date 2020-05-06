@@ -584,9 +584,13 @@ class SeqMotifFace(Face):
         return self._width(), self._height()
 
     def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
-        sequence = self.node2seq[self.node]
+        sequence = self.node2seq[self.node]        
+        
+        max_visiable_pos = int(np.ceil(w / self.poswidth))
+        sequence = sequence[0:max_visiable_pos]
         chunks = self.get_chunks(sequence)
-
+        #print('------------------------', max_visiable_pos, orig_len, w, self.poswidth)
+                
         painter.save()
         painter.translate(x, y)
 
@@ -596,7 +600,7 @@ class SeqMotifFace(Face):
         else:
             xfactor = 1
 
-        painter.scale(xfactor, zoom_factor)
+        #painter.scale(xfactor, zoom_factor)
 
         painter.setPen(QColor(self.fgcolor))
         painter.setBrush(QColor(self.bgcolor))
