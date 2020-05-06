@@ -1,5 +1,5 @@
 import logging
-from .alg import SparseAlg, TreeAlignment, Alg
+from .alg import SparseAlg, TreeAlignment, Alg, DiskHashAlg
 from .utils import colorify
 from .common import *
 from . import common, seqio
@@ -348,8 +348,11 @@ def run(args):
     if args.alg:
         global ALG, BLOCK_SEQ_FACE
         #alg_dict = seqio.load_fasta(args.alg)
-        alg_dict = Alg(args.alg)
+        #alg_dict = Alg(args.alg)
+        alg_dict = DiskHashAlg(50, "alg.db")
+        alg_dict.load_fasta(args.alg)
         ALG = TreeAlignment(alg_dict, N2CONTENT)
+        #ALG.load_seqs(t, alg_dict)
         BLOCK_SEQ_FACE = SeqMotifFace(
             ALG, seqtype='aa', seq_format="seq", gap_format="blank", poswidth=3, total_width=None)
         ts.layout_fn.append(alg_layout)

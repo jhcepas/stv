@@ -19,7 +19,7 @@ import logging
 logger = logging.getLogger("smartview")
 
 
-COLLAPSE_RESOLUTION = 40
+COLLAPSE_RESOLUTION = 10
 MAX_SCREEN_SIZE = 999999999999999
 
 
@@ -279,18 +279,18 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
             node_height_up = node_height / 2.0
             node_height_down = node_height / 2.0
 
-        # Decides if the node is small enough to be considered a collapsed
-        # terminal node
-        if (node_height_up < COLLAPSE_RESOLUTION) \
+        if dim[_is_leaf]:
+            curr += 1
+            is_terminal = True
+        elif (node_height_up < COLLAPSE_RESOLUTION) \
            or node_height_down < COLLAPSE_RESOLUTION \
            or node_height/(len(node.children)+1) < 3:
+            # If this is an internal node which is being drawn very samll, draw
+            # it as a collapsed terminal, and skip the subtree down.              
             curr = int(dim[_max_leaf_idx] + 1)
             draw_collapsed = True
             is_terminal = True
             COLLAPSED += 1
-        elif dim[_is_leaf]:
-            curr += 1
-            is_terminal = True
         else:
             curr += 1
             is_terminal = False
@@ -390,7 +390,7 @@ def draw_region(tree_image, pp, zoom_factor, scene_rect):
                     start_x_aligned_faces = max(start_x_aligned_faces, endpos)
                     farthest_fpath = fpath
 
-    print("DRAWN", DRAWN, len(terminal_nodes))
+    print("OUTSIDE:", OUTSIDE, "DRAWN:", DRAWN, "TERMINAL:", len(terminal_nodes))
 
     if farthest_fpath:
         pp.setPen(QPen(QColor("Red")))
