@@ -352,7 +352,7 @@ def add_face_to_node(face, node, column, row=None, position="branch-right"):
         # Faces container
         # [Face, pos, col, row, fw, fh]
         f = [face, poscode, row, column, 0, 0]
-        if  node._temp_faces is None:
+        if node._temp_faces is None:
             node._temp_faces = [f]
         else:
             node._temp_faces.append(f)
@@ -361,5 +361,5 @@ def add_face_to_node(face, node, column, row=None, position="branch-right"):
     return face
          
 class FaceContainer(list):
-    def add_face(face, row, column):        
-        self.__append__([face, row, columnm, 0, 0])
+    def add_face(self, face, row, column):        
+        self.__append__([face, row, column, 0, 0])

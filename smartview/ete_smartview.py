@@ -367,7 +367,7 @@ def run(args):
         ALG = TreeAlignment(alg_dict, N2CONTENT)
         #ALG.load_seqs(t, alg_dict)
         BLOCK_SEQ_FACE = SeqMotifFace(
-            ALG, seqtype='aa', seq_format="seq", gap_format="blank", poswidth=3, total_width=None)
+            ALG, seqtype='aa', seq_format="seq", gap_format="blank", poswidth=1, total_width=None)
         ts.layout_fn.append(alg_layout)
 
     ts.mode = args.mode
@@ -379,7 +379,7 @@ def run(args):
     elif args.logscale:         
         for n in t.traverse():
             n.dist = np.log(1+n.dist) * 10       
-
+            n.dist = 5
     gui.start_app()  # need to have a QtApp initiated for some operations
 
     tree_image = TreeImage(t, ts)

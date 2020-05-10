@@ -338,7 +338,7 @@ class BaseTextFace(Face):
         self.rotable = True
         self.min_fsize = min_fsize
         self.formatter = formatter
-        
+
     def _width(self):
         fm = QFontMetrics(self._get_font())
         text_rect = fm.boundingRect(self.text)
@@ -377,26 +377,26 @@ class TextFace(BaseTextFace):
 
     @property
     def text(self):
-        if self.formatter:             
+        if self.formatter:
             text = self.formatter %self._text
-        else: 
+        else:
             text = self._text
         return self._text
 
     def __init__(self, text, **textface_args):
         super().__init__(self, **textface_args)
         self._text = text
-        
+
 
 class AttrFace(BaseTextFace):
     __slots__ = BaseTextFace.__slots__ + ["_attr"]
-    
+
     @property
     def text(self):
         text = getattr(self.node, self._attr)
-        if self.formatter:             
+        if self.formatter:
             text = self.formatter %text
-        else: 
+        else:
             text = str(text)
         return text
 
@@ -567,7 +567,7 @@ class SeqMotifFace(Face):
         _pp = QPainter(self.BLOCK)
         _pp.setPen(QColor(self.bgcolor))
         _pp.setBrush(QColor(self.bgcolor))
-        _pp.drawRoundedRect(0, 0, 10, 10, 3, 3)
+        _pp.drawRect(0, 0, 10, 10)
         _pp.end()
 
     def get_chunks(self, seq):
@@ -593,16 +593,19 @@ class SeqMotifFace(Face):
     def _size(self):
         return self._width(), self._height()
 
-    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
-        sequence = self.node2seq[self.node]        
-        
-        max_visiable_pos = int(np.ceil(w / self.poswidth))
+    def _draw(self, painter, node, avail_w=None, avail_h=None):
+        sequence = self.node2seq[self.node]
+
+        posheight = avail_h
+        poswidth = self.poswidth
+
+        max_visiable_pos = int(np.ceil(avail_w / poswidth))
         sequence = sequence[0:max_visiable_pos]
         chunks = self.get_chunks(sequence)
         #print('------------------------', max_visiable_pos, orig_len, w, self.poswidth)
-                
+
         painter.save()
-        painter.translate(x, y)
+        #painter.translate(x, y)
 
         if self.total_width:
             real_w = len(sequence) * self.poswidth
@@ -637,72 +640,25 @@ class SeqMotifFace(Face):
             elif typ == "<>":
                 pass
             elif typ == "[]":
-                painter.drawRect(0, 0, w, h)
+                painter.drawImage(QRectF(0, 0, w, posheight), self.BLOCK)
+
             elif typ == "()":
                 pass
                 # painter.drawRoundedRect(0, 0, w, h, 3, 3)
-                painter.drawImage(0, 0, self.BLOCK, sw=w, sh=h)
+                painter.drawImage(QRectF(0, 0, w, posheight), self.BLOCK)
+
             elif typ == "seq" and sequence:
                 self._draw_sequence(painter, sequence[seq_start:seq_end+1],
-                                    poswidth=self.poswidth, posheight=self.posheight)
+                                    poswidth=poswidth, posheight=posheight)
             else:
                 raise ValueError("Unknown Seq type: %s" % typ)
 
             painter.translate(w, 0)
 
-            # if name and i:
-            #     family, fsize, fcolor, text = name.split("|")
-            #     #qfmetrics = QFontMetrics(qfont)
-            #     #txth = qfmetrics.height()
-            #     #txtw = qfmetrics.width(text)
-            #     txt_item = TextLabelItem(text, w, h,
-            #                              fsize=fsize, ffam=family, fcolor=fcolor)
-            #     # enlarges circle domains to fit text
-            #     #if typ == "o":
-            #     #    min_r = math.hypot(txtw/2.0, txth/2.0)
-            #     #    txtw = max(txtw, min_r*2)
-
-            #     #y_txt_start = (max_h/2.0) - (h/2.0)
-            #     txt_item.setParentItem(i)
-            #     #txt_item.setPos(0, ystart)
-
-            # if i:
-            #     i.setParentItem(self.item)
-            #     i.setPos(xstart, ystart)
-
-            #     if bg:
-            #         if bg.startswith("rgradient:"):
-            #             bg = bg.replace("rgradient:", "")
-            #             try:
-            #                 c1, c2 = bg.split("|")
-            #             except ValueError:
-            #                 c1, c2 = bg, "white"
-            #             rect = i.boundingRect()
-            #             gr = QRadialGradient(rect.center(), rect.width()/2)
-            #             gr.setColorAt(0, QColor(c2))
-            #             gr.setColorAt(1, QColor(c1))
-            #             color = gr
-            #         else:
-            #             color = QColor(bg)
-            #         try:
-            #             i.setBrush(color)
-            #         except:
-            #             pass
-
-            #     if fg:
-            #         i.setPen(QColor(fg))
-
-            #     if opacity < 1:
-            #         i.setOpacity(opacity)
-
-            # max_x_pos = max(max_x_pos, xstart + w)
-            # current_seq_end = max(seq_end, current_seq_end)
-
         painter.restore()
 
     def _draw_sequence(self, p, seq, seqtype="aa", poswidth=10, posheight=10,
                        draw_text=False):
-
         x, y = 0, 0
         for letter in seq:
             # letter = letter.upper()
@@ -720,8 +676,7 @@ class SeqMotifFace(Face):
                 pass
                 # p.drawImage(x, 0, self.AA2IMG['-'])#, max(1, poswidth), posheight)
             else:
-                p.drawImage(x, 0, self.AA2IMG[letter],
-                            sw=poswidth, sh=posheight)
+                p.drawImage(QRectF(x, 0, poswidth, posheight), self.AA2IMG[letter])
 
             x += poswidth
         return x, posheight

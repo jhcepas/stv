@@ -78,7 +78,7 @@ class TreeCanvas(QOpenGLWidget):
         self.meta_click_pos = None
 
         self.scene_start = QPoint(0, 0)
-        self.meta_start = QPoint(0, 0)        
+        self.meta_start = QPoint(0, 0)
         self.tree_panel_percent = 0.2
         self.tree_panel_endx = None
         self.adjust_panels()
@@ -107,23 +107,23 @@ class TreeCanvas(QOpenGLWidget):
             diff = self.meta_click_pos - release_pos
             self.meta_start -= diff
             self.scene_start -= QPoint(0, diff.y())
-            
+
         self.tree_click_pos = None
         self.meta_click_pos = None
-        
+
         self.update()
         print("Release", e.pos())
         super().mouseReleaseEvent(e)
 
-    def mouseMoveEvent(self, e):       
+    def mouseMoveEvent(self, e):
         super().mouseMoveEvent(e)
 
-    def mousePressEvent(self, e):        
+    def mousePressEvent(self, e):
         self.meta_click_pos = None
         self.tree_click_pos = None
         if e.x() < self.tree_panel_endx:
             self.tree_click_pos = e.pos()
-        else: 
+        else:
             self.meta_click_pos = e.pos()
 
         print("Press", e.pos())
@@ -142,14 +142,14 @@ class TreeCanvas(QOpenGLWidget):
             # if zooming is initiated from the meta panel, assume the end x
             # position of the tree panel as anchoring point
             mouse_pos = QPoint(self.tree_panel_endx, mouse_pos.y())
-            
+
         factor = (-e.angleDelta().y() / 360.0)
         if abs(factor) >= 1:
             factor = 0.0
 
         scale_factor = 1 - factor
 
-        self.zoom(mouse_pos, scale_factor)        
+        self.zoom(mouse_pos, scale_factor)
         self.update()
 
     def zoom(self, mouse_pos, scale_factor):
@@ -176,7 +176,7 @@ class TreeCanvas(QOpenGLWidget):
             tree_scene_width -= self.scene_start.x()
         else:
             xstart = -1 * self.scene_start.x()
-            
+
         if self.scene_start.y() >= 0:
             ystart = 0
             height -= self.scene_start.y()
@@ -196,9 +196,8 @@ class TreeCanvas(QOpenGLWidget):
         pp.drawRect(xstart+1, ystart+1, tree_scene_width-2, height-2)
         pp.restore()
 
-        # Draw the meta panel
-        pp.save()                
-        
+        pp.save()
+
         pp.translate(aligned_panel_startx, self.scene_start.y())
         meta_scene_width = (self.width() * (1-self.tree_panel_percent))
         if self.meta_start.x() >= 0:
@@ -206,12 +205,11 @@ class TreeCanvas(QOpenGLWidget):
             meta_scene_width -= self.meta_start.x()
         else:
             meta_scene_xstart = -1 * self.meta_start.x()
-        
+
         meta_scene_rect = QRectF(meta_scene_xstart, ystart, meta_scene_width, height)
-        drawer.draw_aligned_faces(pp, terminal_nodes, self.tree_image, self.zoom_factor, meta_scene_rect)
+        drawer.draw_aligned_panel_region(pp, terminal_nodes, self.tree_image, self.zoom_factor, meta_scene_rect)
         pp.restore()
         pp.endNativePainting()
-
 
 class TreeGUI(QMainWindow):
     def __init__(self, tree_image, zoom_factor=1, *args):

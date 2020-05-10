@@ -181,13 +181,13 @@ def get_tile_img(pp, tree_image, zoom_factor, treemode, tile_rect):
 
 @timeit
 def draw_tree_scene_region(pp, tree_image, zoom_factor, scene_rect):
-    """ Draws a region of the scene. 
+    """ Draws a region of the scene.
 
         scene_rect represents the target rectangle in the transformed scene
-        (zoomed and translated) that needs to be drawn.  
+        (zoomed and translated) that needs to be drawn.
 
         """
-    
+
     img_data = tree_image.img_data
     treemode = tree_image.tree_style.mode
     if treemode == 'c':
@@ -223,11 +223,11 @@ def draw_tree_scene_region(pp, tree_image, zoom_factor, scene_rect):
         M.scale(zoom_factor, zoom_factor)
 
     pp.drawRect(scene_rect)
-    
+
     pp.save()
     # Lets draw tree scene
     pp.setClipRect(scene_rect)
-    
+
     # DEBUG INFO
     DRAWN, OUTSIDE, COLLAPSED, ITERS = 0, 0, 0, 0
 
@@ -258,22 +258,28 @@ def draw_tree_scene_region(pp, tree_image, zoom_factor, scene_rect):
             collision_paths[nid] = [path, fpath]
         else:
             path, fpath = collision_paths[nid]
-        
+
         not_visible = False
-        top_right = fpath.controlPointRect().topRight()               
-        y_range = QRectF(m_scene_rect.x(), top_right.y(), MAX_SCREEN_SIZE, fpath.controlPointRect().height())
-        if not m_scene_rect.intersects(y_range):            
+        brect = fpath.boundingRect()
+        top_left = brect.topLeft()
+        y_range = QRectF(m_scene_rect.x()+1, top_left.y(), brect.width(), brect.height())
+        if not m_scene_rect.intersects(y_range):
             # if the node is outside the vertical range, skip it (no draw no
             # visiable terminal nodes)
             new_curr = max(int(dim[_max_leaf_idx]+1), curr)
             OUTSIDE += 1
             curr = new_curr
+
+            y_range = QRectF(m_scene_rect.x()+1, top_left.y(), brect.width(), brect.height())
+            pp.setPen(QPen(QColor("red")))
+            pp.drawRect(M.mapRect(y_range))
+
             continue
         elif not fpath.intersects(m_scene_rect):
             # if in the y range, but not in the x range. Don't draw it, but
             # keeps the iteration to find terminal nodes.
             not_visible = True
-            
+
         # If node and their descendants are not visible, skip them
         # if not fpath.intersects(m_scene_rect):
         #     new_curr = max(int(dim[_max_leaf_idx]+1), curr)
@@ -281,7 +287,7 @@ def draw_tree_scene_region(pp, tree_image, zoom_factor, scene_rect):
         #     OUTSIDE += 1
         #     curr = new_curr
         #     continue
-        
+
         # Calculate how much space is there at this zoom for drawing the node
         if treemode == 'c' and dim[_fnh] >= R180:
             node_height = MAX_SCREEN_SIZE
@@ -295,7 +301,6 @@ def draw_tree_scene_region(pp, tree_image, zoom_factor, scene_rect):
             node_height_down = (
                 (math.sin(dim[_aend]-dim[_acenter]) * dim[_fnw])) * zoom_factor
         elif treemode == 'r':
-            brect = fpath.boundingRect()
             node_height = brect.height() * zoom_factor
             node_width = brect.width() * zoom_factor
             node_height_up = node_height / 2.0
@@ -309,11 +314,11 @@ def draw_tree_scene_region(pp, tree_image, zoom_factor, scene_rect):
            or node_width < W_COLLAPSE_RESOLUTION \
            or node_height/(len(node.children)+1) < 3:
             # If this is an internal node which is being drawn very samll, draw
-            # it as a collapsed terminal, and skip the subtree down.              
+            # it as a collapsed terminal, and skip the subtree down.
             curr = int(dim[_max_leaf_idx] + 1)
             draw_collapsed = True
-            is_terminal = True            
-            COLLAPSED += 1            
+            is_terminal = True
+            COLLAPSED += 1
         else:
             curr += 1
             is_terminal = False
@@ -321,9 +326,13 @@ def draw_tree_scene_region(pp, tree_image, zoom_factor, scene_rect):
         if is_terminal:
             terminal_nodes.append(node)
 
-        if not_visible: 
+        if not_visible:
+            # if is_terminal:
+            #     y_range = QRectF(m_scene_rect.x()+1, top_left.y(), brect.width(), brect.height())
+            #     pp.setPen(QPen(QColor("orange")))
+            #     pp.drawRect(M.mapRect(y_range))
             continue
-            
+
         # If it gets to here, draw the node
         pp.save()
         DRAWN += 1
@@ -342,6 +351,7 @@ def draw_tree_scene_region(pp, tree_image, zoom_factor, scene_rect):
 
         if draw_collapsed:
             pp.setPen(QPen(QColor("LightSteelBlue")))
+
             #pp.save()
             #pp.translate(1, 0)
             pp.drawPath(M.map(fpath))
@@ -349,7 +359,7 @@ def draw_tree_scene_region(pp, tree_image, zoom_factor, scene_rect):
             #pp.drawLine(M.map(QLineF(parent_radius, dim[_acenter],
             #            parent_radius+branch_length, dim[_acenter])))
             #pp.restore()
-            
+
         else:
             if treemode == "c":
                 parent_radius = img_data[int(
@@ -436,27 +446,78 @@ def draw_tree_scene_region(pp, tree_image, zoom_factor, scene_rect):
     pp.restore()
     return terminal_nodes
 
+def get_face_dimensions(node, facegrid, target_pos=None):
+    """ Given a list of faces, calculate the size of each faceposition and column """
 
-def draw_aligned_faces(pp, terminal_nodes, tree_image, zoom_factor, scene_rect):    
-    print(scene_rect)
+    if facegrid is None:
+        facegrid = []
+
+
+    listdict = lambda: defaultdict(list)
+    poscol2w = defaultdict(listdict)
+    poscol2h = defaultdict(listdict)
+    poscol2faces = defaultdict(listdict)
+
+    for index, (f, pos, row, col, _, _) in enumerate(facegrid):
+        f.node = node
+        fw, fh = f._size()
+        fw += f.margin_right + f.margin_left
+        fh += f.margin_top + f.margin_bottom
+
+        # correct dimensions in case face is rotated
+        if f.rotation:
+            if f.rotation == 90 or f.rotation == 270:
+                fw, fh = fh, fw
+            elif f.rotation == 180:
+                pass
+            else:
+                x0 =  fw / 2.0
+                y0 =  fh / 2.0
+                theta = (f.rotation * math.pi) / 180
+                trans = lambda x, y: (x0+(x-x0) * math.cos(theta) + (y-y0) * math.sin(theta),
+                                      y0-(x-x0) * math.sin(theta) + (y-y0) * math.cos(theta))
+                coords = (trans(0,0), trans(0,fh), trans(fw,0), trans(fw,fh))
+                x_coords = [e[0] for e in coords]
+                y_coords = [e[1] for e in coords]
+                fw = max(x_coords) - min(x_coords)
+                fh = max(y_coords) - min(y_coords)
+
+        # Update overal grid data
+        poscol2w[pos][col].append(fw)
+        poscol2h[pos][col].append(fh)
+        poscol2faces[pos][col].append([f, fw, fh])
+
+    # Calculate total facegrid size
+    pos2dim = {}
+    for fpos in FACE_POS_INDEXES:
+        total_w = sum([max(v) for v in list(poscol2w[fpos].values())]) if fpos in poscol2w else 0.0
+        total_h = max([sum(v) for v in list(poscol2h[fpos].values())]) if fpos in poscol2h else 0.0
+        pos2dim[fpos] = (total_w, total_h)
+
+    return pos2dim, poscol2w, poscol2h, poscol2faces
+
+def draw_aligned_panel_region(pp, terminal_nodes, tree_image, zoom_factor, scene_rect):
     #pp.setClipRect(scene_rect)
     img_data = tree_image.img_data
     treemode = tree_image.tree_style.mode
-    # Draw aligned faces
-    
-    for node in terminal_nodes:        
+
+    for node in terminal_nodes:
         dim = tree_image.img_data[node._id]
-        if not node._temp_faces:
-            node._temp_faces = None
+        avail_h = dim[_fnh] * zoom_factor
+        avail_w = MAX_SCREEN_SIZE
+
+        if node._temp_faces is None:
             for func in tree_image.tree_style.layout_fn:
                 func(node)
-
             # if node was not visited yet, compute face dimensions
             if not np.any(dim[_btw:_bah+1]):
                 face_pos_sizes = layout.compute_face_dimensions(
                     node, node._temp_faces)
                 dim[_btw:_bah+1] = face_pos_sizes
-                
+
+        # if node was not visited yet, compute face dimensions
+        pos2dim, poscol2w, poscol2h, poscol2faces = get_face_dimensions(node, node._temp_faces)
+
         pp.save()
         if treemode == "c":
             #new_rad, new_angle = get_qt_corrected_angle(start_x_aligned_faces, dim[_acenter])
@@ -464,15 +525,36 @@ def draw_aligned_faces(pp, terminal_nodes, tree_image, zoom_factor, scene_rect):
             # pp.rotate(np.degrees(new_angle))
             # pp.rotate(np.degrees(dim[_acenter]))
             # endx = draw_faces(pp, start_x_aligned_faces, 0, node, zoom_factor,
-            #                   tree_image, is_collapsed=False, target_positions=[4])
+            #
             pass
-        elif treemode == "r":                        
+        elif treemode == "r":
             pp.translate(0, dim[_ycenter]*zoom_factor)
-            #pp.fillRect(0, 0, 3, 3, QColor("blue"))
-            draw_faces(pp, 0, 0, node, zoom_factor,
-                       tree_image, is_collapsed=False, target_positions=[4], 
-                       target_rect=scene_rect)
+            for col, colfaces in poscol2faces[4].items():
+                col_w = max(poscol2w[4][col])
+                col_h = sum(poscol2h[4][col])
+                draw_face_column(pp, node, colfaces, col_w, col_h, avail_w, avail_h)
         pp.restore()
+
+def draw_face_column(pp, node, colfaces, col_w, col_h, avail_w, avail_h):
+    pp.save()
+    xpos = 0
+    ypos = 0 - (avail_h/2)
+    pp.translate(0, -avail_h/2)
+    xmax = 0
+
+    for face, fw, fh in colfaces:
+        percent_height = fh / col_h
+
+        avail_face_h = avail_h * percent_height
+        face_face_w = avail_w
+
+        if xpos > avail_w or ypos > avail_h:
+            break
+
+        face._draw(pp, node, avail_w=avail_w, avail_h=avail_face_h)
+        ypos += avail_face_h
+        pp.translate(0, avail_face_h)
+    pp.restore()
 
 
 def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
@@ -626,9 +708,9 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
                 if target_rect and not target_rect.intersects(QRectF(start_x, start_y, avail_col_width, avail_face_height)):
                     #draw = False
                     pass
-                    
 
-                if draw:                     
+
+                if draw:
                     # ======================+
                     # DRAW FACE
                     face.node = node
@@ -660,7 +742,7 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
 
                     # END OF DRAW FACE
                     # =======================
-                    
+
                 start_y += avail_face_height
 
             start_x += avail_col_width
