@@ -44,10 +44,11 @@ def update_rect_positions(img_data, cached_prepostorder,
             dim[_yend] = node_yend
             dim[_ycenter] = node_ycenter
             dim[_xend] = current_x
-
+            dim[_fnh] = node_yend - node_ystart
             for ch in node.children:
                 dim[_fnw] = max(dim[_fnw], img_data[ch._id][_fnw])
-                dim[_fnh] += img_data[ch._id][_fnh]
+                #dim[_fnh] += img_data[ch._id][_fnh]
+                
             dim[_fnw] += node_width
             current_x -= node_width
         else:

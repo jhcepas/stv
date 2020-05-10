@@ -104,7 +104,7 @@ class Alg(dict):
 
     def consensus(self, items):
         return self[items[0]]
-
+    
 import diskhash
 import tqdm 
 
@@ -141,7 +141,10 @@ class DiskHashAlg(dict):
     
     def __getitem__(self, item):
         byteseq = self.db.lookup(item) 
-        seq = b''.join(byteseq)
+        if byteseq: 
+            seq = b''.join(byteseq)
+        else: 
+            seq = b''
         return seq.decode('utf-8')
     
 
@@ -190,6 +193,8 @@ class TreeAlignment(object):
     def calculate_consensus(self, sequences):
         m = None                
         for seq in sequences:
+            if not seq: 
+                continue
             #seq = seq[:1000]
             counter = np.zeros((len(seq), 24), dtype="int32")            
             for i, site in enumerate(seq):                 

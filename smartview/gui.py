@@ -74,17 +74,20 @@ class TreeCanvas(QOpenGLWidget):
         self.tree_image = tree_image
         self.zoom_factor = zoom_factor
         self.matrix = QTransform()
-        self.click_pos = None
-        
-        self.setMouseTracking(True)
+        self.tree_click_pos = None
+        self.meta_click_pos = None
+
         self.scene_start = QPoint(0, 0)
-        self.tree_panel_percent = 0.4 
+        self.meta_start = QPoint(0, 0)        
+        self.tree_panel_percent = 0.2
         self.tree_panel_endx = None
         self.adjust_panels()
-        
+
+        self.setMouseTracking(True)
+
     def adjust_panels(self):
         r = self.geometry()
-        self.tree_panel_endx = r.width() * self.tree_panel_percent 
+        self.tree_panel_endx = r.width() * self.tree_panel_percent
         #print("endx", self.tree_panel_endx)
     def keyPressEvent(self, e):
         print("Key press")
@@ -97,50 +100,56 @@ class TreeCanvas(QOpenGLWidget):
 
     def mouseReleaseEvent(self, e):
         release_pos = e.pos()
-        if self.click_pos is not None and self.click_pos != release_pos:
-            diff = self.click_pos - release_pos
+        if self.tree_click_pos is not None and self.tree_click_pos != release_pos:
+            diff = self.tree_click_pos - release_pos
             self.scene_start -= diff
-            self.click_pos = None
+        elif self.meta_click_pos is not None and self.meta_click_pos != release_pos:
+            diff = self.meta_click_pos - release_pos
+            self.meta_start -= diff
+            self.scene_start -= QPoint(0, diff.y())
+            
+        self.tree_click_pos = None
+        self.meta_click_pos = None
+        
         self.update()
         print("Release", e.pos())
         super().mouseReleaseEvent(e)
 
-    def mouseMoveEvent(self, e):
-        #print("move", e.pos())
+    def mouseMoveEvent(self, e):       
         super().mouseMoveEvent(e)
 
-    def mousePressEvent(self, e):
-        self.click_pos = None
-        if e.x() < self.tree_panel_endx: 
-            self.click_pos = e.pos()
+    def mousePressEvent(self, e):        
+        self.meta_click_pos = None
+        self.tree_click_pos = None
+        if e.x() < self.tree_panel_endx:
+            self.tree_click_pos = e.pos()
+        else: 
+            self.meta_click_pos = e.pos()
 
         print("Press", e.pos())
         return super().mousePressEvent(e)
 
     def resizeEvent(self, e):
         print("resize")
+        print(self.geometry())
         self.adjust_panels()
         return super().resizeEvent(e)
 
     def wheelEvent(self, e):
         print("wheel")
         mouse_pos = e.pos()
-        if mouse_pos.x() > self.tree_panel_endx: 
-            return 
-        
-        #if mouse_pos.x() < self.scene_start.x():
-        #     return
-        # if mouse_pos.y() < self.scene_start.y():
-        #     return
-
+        if mouse_pos.x() > self.tree_panel_endx:
+            # if zooming is initiated from the meta panel, assume the end x
+            # position of the tree panel as anchoring point
+            mouse_pos = QPoint(self.tree_panel_endx, mouse_pos.y())
+            
         factor = (-e.angleDelta().y() / 360.0)
         if abs(factor) >= 1:
             factor = 0.0
 
         scale_factor = 1 - factor
 
-        self.zoom(mouse_pos, scale_factor)
-        print(self.scene_start, self.zoom_factor, scale_factor)
+        self.zoom(mouse_pos, scale_factor)        
         self.update()
 
     def zoom(self, mouse_pos, scale_factor):
@@ -157,42 +166,49 @@ class TreeCanvas(QOpenGLWidget):
         pp.setRenderHint(QPainter.TextAntialiasing)
         pp.setRenderHint(QPainter.SmoothPixmapTransform)
         r = self.geometry()
-      
-        tree_scene_width = (self.width() * self.tree_panel_percent)         
+
+        tree_scene_width = (self.width() * self.tree_panel_percent)
         aligned_panel_startx = tree_scene_width
         height = self.height()
-              
+
         if self.scene_start.x() >= 0:
-            xstart = 0            
+            xstart = 0
             tree_scene_width -= self.scene_start.x()
         else:
-            xstart = -1 * self.scene_start.x()                        
+            xstart = -1 * self.scene_start.x()
+            
         if self.scene_start.y() >= 0:
             ystart = 0
+            height -= self.scene_start.y()
         else:
             ystart = -1 * self.scene_start.y()
-      
-        
-        tree_scene_rect = QRectF(xstart, ystart, tree_scene_width, height)        
-       
+
+        tree_scene_rect = QRectF(xstart, ystart, tree_scene_width, height)
+
         print("tree scene rect:", tree_scene_rect)
         pp.setPen(QColor('green'))
         pp.drawLine(aligned_panel_startx, 0, aligned_panel_startx, height)
-        
         pp.save()
         pp.translate(self.scene_start.x(), self.scene_start.y())
-        terminal_nodes = drawer.draw_tree_scene_region(pp, self.tree_image, 
+        terminal_nodes = drawer.draw_tree_scene_region(pp, self.tree_image,
                                                         self.zoom_factor, tree_scene_rect)
         pp.setPen(QColor('red'))
         pp.drawRect(xstart+1, ystart+1, tree_scene_width-2, height-2)
-
         pp.restore()
+
+        # Draw the meta panel
+        pp.save()                
         
-        pp.save()
         pp.translate(aligned_panel_startx, self.scene_start.y())
-        meta_scene_rect = QRectF(xstart, ystart, tree_scene_width, height)        
+        meta_scene_width = (self.width() * (1-self.tree_panel_percent))
+        if self.meta_start.x() >= 0:
+            meta_scene_xstart = 0
+            meta_scene_width -= self.meta_start.x()
+        else:
+            meta_scene_xstart = -1 * self.meta_start.x()
         
-        drawer.draw_aligned_faces(pp, terminal_nodes, self.tree_image, self.zoom_factor, meta_scene_rect)        
+        meta_scene_rect = QRectF(meta_scene_xstart, ystart, meta_scene_width, height)
+        drawer.draw_aligned_faces(pp, terminal_nodes, self.tree_image, self.zoom_factor, meta_scene_rect)
         pp.restore()
         pp.endNativePainting()
 

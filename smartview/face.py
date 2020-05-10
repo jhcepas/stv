@@ -299,9 +299,9 @@ class RectFace(Face):
         painter.restore()
 
 
-class TextFace(Face):
-    __slots__ = ['_text', 'fsize', 'ftype', 'fgcolor',
-                 'fstyle', 'tight_text', "_text_size", "min_fsize"]
+class BaseTextFace(Face):
+    __slots__ = ['fsize', 'ftype', 'fgcolor',
+                 'fstyle', 'tight_text', "_text_size", "min_fsize", "formatter"]
 
     # def __repr__(self):
     #     return "Text Face [%s] (%s)" %(self.text, hex(self.__hash__()))
@@ -310,8 +310,8 @@ class TextFace(Face):
     def text(self):
         return self._text
 
-    def __init__(self, text, ftype="Arial", fsize=10, fgcolor="black",
-                 fstyle='normal', tight_text=False, min_fsize=4):
+    def __init__(self, ftype="Arial", fsize=10, fgcolor="black",
+                 fstyle='normal', tight_text=False, min_fsize=4, formatter=None):
         """Static text Face object
 
         .. currentmodule:: ete3
@@ -329,7 +329,6 @@ class TextFace(Face):
         visualization in scenes with a lot of text faces.
         """
         Face.__init__(self)
-        self._text = text
         self.ftype = ftype
         self.fsize = fsize
         self.fgcolor = fgcolor
@@ -338,7 +337,8 @@ class TextFace(Face):
         self._text_size = None
         self.rotable = True
         self.min_fsize = min_fsize
-
+        self.formatter = formatter
+        
     def _width(self):
         fm = QFontMetrics(self._get_font())
         text_rect = fm.boundingRect(self.text)
@@ -372,27 +372,37 @@ class TextFace(Face):
         italic = (self.fstyle == "italic")
         return QFont(self.ftype, pointSize=self.fsize, italic=italic)
 
-
-class AttrFace(TextFace):
-    __slots__ = ['_text', 'fsize', 'ftype', 'fgcolor',
-                 'fstyle', 'tight_text', "_text_size", "min_fsize"]
+class TextFace(BaseTextFace):
+    __slots__ = BaseTextFace.__slots__ + ["_text"]
 
     @property
     def text(self):
-        return str(getattr(self.node, self._text))
+        if self.formatter:             
+            text = self.formatter %self._text
+        else: 
+            text = self._text
+        return self._text
 
-    def __init__(self, attribute, ftype="Arial", fsize=10, fgcolor="black", fstyle='normal', tight_text=False, min_fsize=4):
-        Face.__init__(self)
-        self._text = attribute
-        self.ftype = ftype
-        self.fsize = fsize
-        self.fgcolor = fgcolor
-        self.fstyle = fstyle
-        self.tight_text = tight_text
-        self._text_size = None
-        self.rotable = True
-        self.min_fsize = fsize
+    def __init__(self, text, **textface_args):
+        super().__init__(self, **textface_args)
+        self._text = text
+        
 
+class AttrFace(BaseTextFace):
+    __slots__ = BaseTextFace.__slots__ + ["_attr"]
+    
+    @property
+    def text(self):
+        text = getattr(self.node, self._attr)
+        if self.formatter:             
+            text = self.formatter %text
+        else: 
+            text = str(text)
+        return text
+
+    def __init__(self, attribute, **textface_args):
+        self._attr = attribute
+        super().__init__(**textface_args)
 
 class LabelFace(Face):
     __slots__ = ["width"]

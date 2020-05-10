@@ -233,7 +233,7 @@ def adjust_lengths_by_size(tree_image, stop=None):
 
         if sorted_leaves:
             leaves = [i[1] for i in sorted_leaves]
-            dist, most_dist = sorted([(n2rootdist[lf], lf) for lf in leaves])[-1]
+            dist, most_dist = sorted([(n2rootdist[lf], lf) for lf in leaves], key=lambda x: x[0])[-1]
 
             aperture = tree_image.img_data[seed._id][_fnh]
             if aperture < R180:

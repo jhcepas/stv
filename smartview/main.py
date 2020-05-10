@@ -107,7 +107,7 @@ class TreeImage(object):
     def adjust_branch_lengths(self, adjust_fn = None):
         if not adjust_fn:
             adjust_fn = layout.default_adjust_branch
-        adjust_fn(self)
+        #adjust_fn(self)
 
         self.root_open = 0.0
         self.scale = 1.0

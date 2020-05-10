@@ -54,6 +54,13 @@ def populate_args(parser):
     parser.add_argument("-m", dest='mode', default='r',
                         help="(c)icular or (r)ect ")
 
+
+    parser.add_argument("-b", dest='branch_mode', default=None,
+                        help="")
+    parser.add_argument("--scale", dest="scale", type=float, default=None)
+    parser.add_argument("--newick_format", dest="nwformat",
+                        type=int, default=0)
+
     circ_layout_args = parser.add_argument_group('tree layout options')
     circ_layout_args.add_argument(
         '--arc_span', dest="arc_span", type=float, default=360, help='In degrees')
@@ -77,27 +84,29 @@ def populate_args(parser):
                         action="store_true", help="convert to untrametric")
     parser.add_argument("--standardize", dest="standardize",
                         action="store_true", help="stand")
+    parser.add_argument("--logscale", dest="logscale",
+                        action="store_true", help="log scale")
+    
+    parser.add_argument("--midpoint", dest="midpoint",
+                        action="store_true", help="stand")
+
     parser.add_argument("--randbranches", dest="randbranches",
                         action="store_true", help="stand")
     parser.add_argument(
         "--softrandbranches", dest="softrandbranches", action="store_true", help="stand")
     parser.add_argument("-C", dest="cmode", action="store_true")
     parser.add_argument("--tilesize", dest="tilesize", type=int, default=800)
-    parser.add_argument("--scale", dest="scale", type=float, default=None)
-    parser.add_argument("--newick_format", dest="nwformat",
-                        type=int, default=0)
     parser.add_argument("--heatmap", dest="heatmap", action="store_true")
 
 
 def link_to_table():
     pass
 
-
-nameF = AttrFace("name", fsize=10, fgcolor='royalBlue', ftype='Arial')
+nameF = AttrFace("name", fsize=11, fgcolor='royalBlue', ftype='Arial')
 nameF2 = AttrFace("name", fsize=16, fgcolor='indianred', ftype='Arial')
 nameF3 = AttrFace("name", fsize=8, fgcolor='grey', ftype='Arial')
 #nameF.margin_right = 10
-distF = AttrFace("dist", fsize=12)
+distF = AttrFace("dist", fsize=10, fgcolor="grey", formatter="%0.3g")
 supportF = AttrFace("support", fsize=16)
 labelF = LabelFace(70)
 labelF.fill_color = "thistle"
@@ -200,7 +209,8 @@ def basic_layout(node):
         add_face_to_node(nameF, node, column=0, position="branch-right")
     else:
         if node.name:
-            add_face_to_node(nameF, node, column=0, position="branch-top")
+            add_face_to_node(distF, node, column=0, position="branch-bottom")
+            #add_face_to_node(nameF, node, column=0, position="branch-top")
 
 
 def stacked_layout(node, dim=None):
@@ -287,6 +297,9 @@ def run(args):
     elif args.src_trees:
         t = Tree(args.src_trees, format=args.nwformat)
 
+    if args.midpoint:
+        t.set_outgroup(t.get_midpoint_outgroup())
+
     if args.standardize:
         t.standardize()
 
@@ -349,7 +362,7 @@ def run(args):
         global ALG, BLOCK_SEQ_FACE
         #alg_dict = seqio.load_fasta(args.alg)
         #alg_dict = Alg(args.alg)
-        alg_dict = DiskHashAlg(50, "alg.db")
+        alg_dict = DiskHashAlg(200, "alg.db")
         alg_dict.load_fasta(args.alg)
         ALG = TreeAlignment(alg_dict, N2CONTENT)
         #ALG.load_seqs(t, alg_dict)
@@ -363,7 +376,9 @@ def run(args):
     if args.scale:
         for n in t.traverse():
             n.dist *= args.scale
-        #ts.scale = args.scale
+    elif args.logscale:         
+        for n in t.traverse():
+            n.dist = np.log(1+n.dist) * 10       
 
     gui.start_app()  # need to have a QtApp initiated for some operations
 

@@ -19,7 +19,8 @@ import logging
 logger = logging.getLogger("smartview")
 
 
-COLLAPSE_RESOLUTION = 20
+COLLAPSE_RESOLUTION = 5
+W_COLLAPSE_RESOLUTION = 5
 MAX_SCREEN_SIZE = 4000
 
 def pol2cart(rho, phi):
@@ -294,7 +295,9 @@ def draw_tree_scene_region(pp, tree_image, zoom_factor, scene_rect):
             node_height_down = (
                 (math.sin(dim[_aend]-dim[_acenter]) * dim[_fnw])) * zoom_factor
         elif treemode == 'r':
-            node_height = fpath.boundingRect().height() * zoom_factor
+            brect = fpath.boundingRect()
+            node_height = brect.height() * zoom_factor
+            node_width = brect.width() * zoom_factor
             node_height_up = node_height / 2.0
             node_height_down = node_height / 2.0
 
@@ -303,6 +306,7 @@ def draw_tree_scene_region(pp, tree_image, zoom_factor, scene_rect):
             is_terminal = True
         elif (node_height_up < COLLAPSE_RESOLUTION) \
            or node_height_down < COLLAPSE_RESOLUTION \
+           or node_width < W_COLLAPSE_RESOLUTION \
            or node_height/(len(node.children)+1) < 3:
             # If this is an internal node which is being drawn very samll, draw
             # it as a collapsed terminal, and skip the subtree down.              
@@ -338,7 +342,14 @@ def draw_tree_scene_region(pp, tree_image, zoom_factor, scene_rect):
 
         if draw_collapsed:
             pp.setPen(QPen(QColor("LightSteelBlue")))
-            pp.drawPath(M.map(path))
+            #pp.save()
+            #pp.translate(1, 0)
+            pp.drawPath(M.map(fpath))
+            #parent_radius = img_data[int(dim[_parent])][_rad] if nid else tree_image.root_open
+            #pp.drawLine(M.map(QLineF(parent_radius, dim[_acenter],
+            #            parent_radius+branch_length, dim[_acenter])))
+            #pp.restore()
+            
         else:
             if treemode == "c":
                 parent_radius = img_data[int(
@@ -427,6 +438,7 @@ def draw_tree_scene_region(pp, tree_image, zoom_factor, scene_rect):
 
 
 def draw_aligned_faces(pp, terminal_nodes, tree_image, zoom_factor, scene_rect):    
+    print(scene_rect)
     #pp.setClipRect(scene_rect)
     img_data = tree_image.img_data
     treemode = tree_image.tree_style.mode
@@ -458,13 +470,13 @@ def draw_aligned_faces(pp, terminal_nodes, tree_image, zoom_factor, scene_rect):
             pp.translate(0, dim[_ycenter]*zoom_factor)
             #pp.fillRect(0, 0, 3, 3, QColor("blue"))
             draw_faces(pp, 0, 0, node, zoom_factor,
-                       tree_image, is_collapsed=False, target_positions=[4])
-
+                       tree_image, is_collapsed=False, target_positions=[4], 
+                       target_rect=scene_rect)
         pp.restore()
 
 
 def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
-               target_positions=None):
+               target_positions=None, target_rect=None):
 
     dim = tree_image.img_data[node._id]
     branch_length = dim[_blen]
@@ -609,37 +621,46 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
                     print(" zoom_factor", face_zoom_factor)
                     print("------")
 
-                # ======================+
-                # DRAW FACE
-                face.node = node
 
-                face.arc_start = dim[_astart]
-                face.arc_end = dim[_aend]
-                face.arc_center = dim[_acenter]
-                face.img_rad = _rad
+                draw = True
+                if target_rect and not target_rect.intersects(QRectF(start_x, start_y, avail_col_width, avail_face_height)):
+                    #draw = False
+                    pass
+                    
 
-                face._pre_draw()
+                if draw:                     
+                    # ======================+
+                    # DRAW FACE
+                    face.node = node
 
-                pp.translate(start_x, start_y)
+                    face.arc_start = dim[_astart]
+                    face.arc_end = dim[_aend]
+                    face.arc_center = dim[_acenter]
+                    face.img_rad = _rad
 
-                restore_rot_painter = False
-                if correct_rotation and face.rotable:
-                    restore_rot_painter = True
-                    pp.save()
-                    zoom_half_fw = ((fw * face_zoom_factor)/2)
-                    zoom_half_fh = ((fh * face_zoom_factor)/2)
-                    pp.translate(zoom_half_fw, zoom_half_fh)
-                    pp.rotate(180)
-                    pp.translate(-(zoom_half_fw), -(zoom_half_fh))
+                    face._pre_draw()
 
-                face._draw(pp, 0, 0, face_zoom_factor,
-                           w=available_pos_width, h=avail_col_width)
+                    pp.translate(start_x, start_y)
 
-                if restore_rot_painter:
-                    pp.restore()
+                    restore_rot_painter = False
+                    if correct_rotation and face.rotable:
+                        restore_rot_painter = True
+                        pp.save()
+                        zoom_half_fw = ((fw * face_zoom_factor)/2)
+                        zoom_half_fh = ((fh * face_zoom_factor)/2)
+                        pp.translate(zoom_half_fw, zoom_half_fh)
+                        pp.rotate(180)
+                        pp.translate(-(zoom_half_fw), -(zoom_half_fh))
 
-                # END OF DRAW FACE
-                # =======================
+                    face._draw(pp, 0, 0, face_zoom_factor,
+                                w=available_pos_width, h=avail_col_width)
+
+                    if restore_rot_painter:
+                        pp.restore()
+
+                    # END OF DRAW FACE
+                    # =======================
+                    
                 start_y += avail_face_height
 
             start_x += avail_col_width
