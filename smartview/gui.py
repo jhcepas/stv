@@ -1,11 +1,16 @@
 
 from . import drawer
+from . import drawer_noqt
+import json
+import os
+
 from . import layout
 from .common import *
 from .utils import timeit, debug
 import time
 from multiprocessing import Pool, Queue, Process
 import numpy as np
+import bottle
 
 import signal
 import math
@@ -68,6 +73,75 @@ def display(tree_image, win_name="ETE", donotshow=False, zoom_factor=1):
     _QApp.exec_()
 
 
+class Painter(object):
+    def __init__(self):
+        self.stack = []
+
+    def drawRect(self, x, y, w, h, fgcolor, bgcolor):
+        self.stack.append(["r", x, y, w, h])
+
+    def drawLine(self, x1, y1, x2, y2, color):
+        self.stack.append(["l", x1, y1, x2, y2, color])
+
+
+def start_server(tree_image):
+    app = bottle.Bottle()
+
+    @app.error(405)
+    def method_not_allowed(res):
+        if bottle.request.method == 'OPTIONS':
+            new_res = bottle.HTTPResponse()
+            new_res.set_header('Access-Control-Allow-Origin', '*')
+            return new_res
+        res.headers['Allow'] += ', OPTIONS'
+        return bottle.request.app.default_error_handler(res)
+
+    @app.hook('after_request')
+    def enable_cors():
+        """
+        You need to add some headers to each request.
+        Don't use the wildcard '*' for Access-Control-Allow-Origin in production.
+        """
+        bottle.response.headers['Access-Control-Allow-Origin'] = '*'
+        bottle.response.headers['Access-Control-Allow-Methods'] = 'PUT, GET, POST, DELETE, OPTIONS'
+        bottle.response.headers['Access-Control-Allow-Headers'] = 'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
+
+    @app.get("/get_scene_region/<scene>/", method=['GET', 'OPTIONS'])
+    def get_scene_region(scene):
+        print(scene)
+        zoom_factor, tree_xstart, tree_ystart, tree_w, tree_h = map(float,
+                                                                    scene.split(','))
+        target_tree_scene = QRectF(tree_xstart, tree_ystart, tree_w, tree_h)
+
+        zoom_factor = max(0.00001, float(zoom_factor))
+
+        t1 = time.time()
+        bottle.response.content_type = 'application/json'
+        ii = QImage(1000, 1000,
+                    QImage.Format_ARGB32_Premultiplied)
+        ii.fill(QColor(Qt.white).rgb())
+        pp = QPainter()
+        pp.begin(ii)
+        print(tree_image)
+        painter = Painter()
+
+        terminal_nodes = drawer_noqt.draw_tree_scene_region(pp, painter, tree_image,
+                                                            zoom_factor, target_tree_scene)
+        pp.end()
+        # return json.dumps({"items": [["r", 10, 10, 200, 200]]})
+        print("web return:", time.time() - t1,
+              len(painter.stack), len(terminal_nodes))
+        return json.dumps({"items": painter.stack})
+
+    @app.get("/static/<filepath>")
+    def webfile(filepath):
+        basepath = "/Users/jhc/_Devel/smartview/pixigui"
+        print(os.path.join(basepath, filepath))
+        return bottle.static_file(filepath, root=basepath)
+
+    bottle.run(app, address="localhost", port=8090, debug=True, reload=True)
+
+
 class TreeCanvas(QOpenGLWidget):
     def __init__(self, tree_image, zoom_factor):
         super().__init__()
@@ -83,12 +157,21 @@ class TreeCanvas(QOpenGLWidget):
         self.tree_panel_endx = None
         self.adjust_panels()
 
+        self.format = QGLFormat()
+        self.format.setSamples(4)
         self.setMouseTracking(True)
+
+    def initializeGL(self):
+        GL.glEnable(GL.GL_DEPTH_TEST)
+        GL.glEnable(GL.GL_MULTISAMPLE)
+        GL.glEnable(GL.GL_LINE_SMOOTH)
+        print(": init-------------------------------------------------")
 
     def adjust_panels(self):
         r = self.geometry()
         self.tree_panel_endx = r.width() * self.tree_panel_percent
         #print("endx", self.tree_panel_endx)
+
     def keyPressEvent(self, e):
         print("Key press")
         super().keyPressEvent(e)
@@ -191,7 +274,7 @@ class TreeCanvas(QOpenGLWidget):
         pp.save()
         pp.translate(self.scene_start.x(), self.scene_start.y())
         terminal_nodes = drawer.draw_tree_scene_region(pp, self.tree_image,
-                                                        self.zoom_factor, tree_scene_rect)
+                                                       self.zoom_factor, tree_scene_rect)
         pp.setPen(QColor('red'))
         pp.drawRect(xstart+1, ystart+1, tree_scene_width-2, height-2)
         pp.restore()
@@ -206,10 +289,13 @@ class TreeCanvas(QOpenGLWidget):
         else:
             meta_scene_xstart = -1 * self.meta_start.x()
 
-        meta_scene_rect = QRectF(meta_scene_xstart, ystart, meta_scene_width, height)
-        drawer.draw_aligned_panel_region(pp, terminal_nodes, self.tree_image, self.zoom_factor, meta_scene_rect)
+        meta_scene_rect = QRectF(
+            meta_scene_xstart, ystart, meta_scene_width, height)
+        drawer.draw_aligned_panel_region(
+            pp, terminal_nodes, self.tree_image, self.zoom_factor, meta_scene_rect)
         pp.restore()
         pp.endNativePainting()
+
 
 class TreeGUI(QMainWindow):
     def __init__(self, tree_image, zoom_factor=1, *args):

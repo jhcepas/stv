@@ -536,7 +536,8 @@ class SeqMotifFace(Face):
     """
     AA2IMG = {}
     for aa, color in colors.aabgcolors.items():
-        ii = QImage(20, 20, QImage.Format_ARGB32_Premultiplied)
+        #ii = QImage(20, 20, QImage.Format_ARGB32_Premultiplied)
+        ii = QImage(20, 20, QImage.Format_RGB32)
         ii.fill(QColor(color).rgb())
         AA2IMG[aa] = ii
 
@@ -594,13 +595,13 @@ class SeqMotifFace(Face):
         return self._width(), self._height()
 
     def _draw(self, painter, node, avail_w=None, avail_h=None):
-        sequence = self.node2seq[self.node]
-
         posheight = avail_h
         poswidth = self.poswidth
 
-        max_visiable_pos = int(np.ceil(avail_w / poswidth))
-        sequence = sequence[0:max_visiable_pos]
+        max_visible_pos = int(np.ceil(avail_w / poswidth))
+        #sequence = sequence[0:max_visible_pos]
+        sequence = self.node2seq.get_seq(self.node, 0, max_visible_pos)        
+        
         chunks = self.get_chunks(sequence)
         #print('------------------------', max_visiable_pos, orig_len, w, self.poswidth)
 
@@ -660,23 +661,28 @@ class SeqMotifFace(Face):
     def _draw_sequence(self, p, seq, seqtype="aa", poswidth=10, posheight=10,
                        draw_text=False):
         x, y = 0, 0
+        rectangles = []
         for letter in seq:
             # letter = letter.upper()
-            if draw_text and poswidth >= 8:
-                # , max(1, poswidth), posheight)
-                p.drawImage(x, 0, self.AA2IMG[letter])
-                qfont.setPixelSize(min(posheight, poswidth))
-                p.setFont(qfont)
-                p.setBrush(QBrush(QColor("black")))
-                qfont = QFont("Courier")
-                p.drawText(x, 0, poswidth, posheight,
-                           Qt.AlignCenter | Qt.AlignVCenter,
-                           letter)
-            elif letter == "-" or letter == ".":
+            # if draw_text and poswidth >= 8:
+            #     # , max(1, poswidth), posheight)
+            #     p.drawImage(x, 0, self.AA2IMG[letter])
+            #     qfont.setPixelSize(min(posheight, poswidth))
+            #     p.setFont(qfont)
+            #     p.setBrush(QBrush(QColor("black")))
+            #     qfont = QFont("Courier")
+            #     p.drawText(x, 0, poswidth, posheight,
+            #                Qt.AlignCenter | Qt.AlignVCenter,
+            #                letter)
+            if letter == "-" or letter == ".":
                 pass
                 # p.drawImage(x, 0, self.AA2IMG['-'])#, max(1, poswidth), posheight)
             else:
-                p.drawImage(QRectF(x, 0, poswidth, posheight), self.AA2IMG[letter])
+                r = QRectF(x, 0, poswidth, posheight)
+                #rectangles.append(r)
+                p.drawImage(r, self.AA2IMG[letter])
 
             x += poswidth
+            
+        #p.drawRects(rectangles)
         return x, posheight

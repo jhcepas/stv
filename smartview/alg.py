@@ -177,15 +177,15 @@ class TreeAlignment(object):
                 max_vector = counter.argmax(axis=1)
                 self.consensus[node] = ''.join([IDX2AA[v] for v in max_vector])
 
-    def get_consensus(self, node):
+    def get_consensus(self, node, start=None, end=None):
         if node not in self.consensus:
             if self.consensus_method == 'random10':
                 leaves = self.n2content[node]
                 if len(leaves) > 10:
                     leaves = random.sample(leaves, 10)
-                sequences = [self.alg[leaf.name] for leaf in leaves]
+                sequences = [self.alg[leaf.name][start:end] for leaf in leaves]                
             elif self.consensus_method == 'full':
-                sequences = [self.alg[leaf.name] for leaf in self.n2content[node]]
+                sequences = [self.alg[leaf.name][start:end] for leaf in self.n2content[node]]
             self.consensus[node] = self.calculate_consensus(sequences)
         return self.consensus[node]
 
@@ -194,8 +194,7 @@ class TreeAlignment(object):
         m = None
         for seq in sequences:
             if not seq:
-                continue
-            #seq = seq[:1000]
+                continue            
             counter = np.zeros((len(seq), 24), dtype="int32")
             for i, site in enumerate(seq):
                 residx = AA2IDX[site]
@@ -206,6 +205,12 @@ class TreeAlignment(object):
                 m += counter
         max_vector = m.argmax(axis=1)
         return ''.join([IDX2AA[v] for v in max_vector])
+
+    def get_seq(self, node, start, end):
+        if node.children:
+            return self.get_consensus(node, start, end)
+        else:
+            return self.alg[node.name][start:end]
 
     def __contains__(self, item):
         r = item in self.n2content if self.n2content else False

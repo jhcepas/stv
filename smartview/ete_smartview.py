@@ -1,3 +1,7 @@
+import bottle
+from random import randint
+from json import dumps
+import time
 import logging
 from .alg import SparseAlg, TreeAlignment, Alg, DiskHashAlg
 from .utils import colorify
@@ -54,7 +58,6 @@ def populate_args(parser):
     parser.add_argument("-m", dest='mode', default='r',
                         help="(c)icular or (r)ect ")
 
-
     parser.add_argument("-b", dest='branch_mode', default=None,
                         help="")
     parser.add_argument("--scale", dest="scale", type=float, default=None)
@@ -86,7 +89,7 @@ def populate_args(parser):
                         action="store_true", help="stand")
     parser.add_argument("--logscale", dest="logscale",
                         action="store_true", help="log scale")
-    
+
     parser.add_argument("--midpoint", dest="midpoint",
                         action="store_true", help="stand")
 
@@ -101,6 +104,7 @@ def populate_args(parser):
 
 def link_to_table():
     pass
+
 
 nameF = AttrFace("name", fsize=11, fgcolor='royalBlue', ftype='Arial')
 nameF2 = AttrFace("name", fsize=16, fgcolor='indianred', ftype='Arial')
@@ -367,7 +371,7 @@ def run(args):
         ALG = TreeAlignment(alg_dict, N2CONTENT)
         #ALG.load_seqs(t, alg_dict)
         BLOCK_SEQ_FACE = SeqMotifFace(
-            ALG, seqtype='aa', seq_format="seq", gap_format="blank", poswidth=1, total_width=None)
+            ALG, seqtype='aa', seq_format="seq", gap_format="blank", poswidth=3, total_width=None)
         ts.layout_fn.append(alg_layout)
 
     ts.mode = args.mode
@@ -376,9 +380,9 @@ def run(args):
     if args.scale:
         for n in t.traverse():
             n.dist *= args.scale
-    elif args.logscale:         
+    elif args.logscale:
         for n in t.traverse():
-            n.dist = np.log(1+n.dist) * 10       
+            n.dist = np.log(1+n.dist) * 10
             n.dist = 5
     gui.start_app()  # need to have a QtApp initiated for some operations
 
@@ -393,6 +397,8 @@ def run(args):
 
     if not args.nogui:
         gui.display(tree_image, zoom_factor=args.zoom_factor)
+    else:
+        gui.start_server(tree_image)
 
     if args.profile:
         pr.disable()

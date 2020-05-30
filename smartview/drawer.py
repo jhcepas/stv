@@ -21,7 +21,7 @@ logger = logging.getLogger("smartview")
 
 COLLAPSE_RESOLUTION = 5
 W_COLLAPSE_RESOLUTION = 5
-MAX_SCREEN_SIZE = 4000
+MAX_SCREEN_SIZE = 500
 
 def pol2cart(rho, phi):
     x = rho * np.cos(phi)
