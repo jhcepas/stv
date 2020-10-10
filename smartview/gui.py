@@ -135,7 +135,8 @@ def start_server(tree_image):
 
     @app.get("/static/<filepath>")
     def webfile(filepath):
-        basepath = "/Users/jhc/_Devel/smartview/pixigui"
+        import pathlib
+        basepath = os.path.join(pathlib.Path(__file__).parent.absolute(), '../pixigui')                
         print(os.path.join(basepath, filepath))
         return bottle.static_file(filepath, root=basepath)
 
