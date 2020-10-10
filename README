@@ -19,6 +19,10 @@ pip install -e .
 
 Then open http://localhost:8090/static/gui.html 
 
+**You can drag with the mouse to move scene, but zoom in and out in the web version is only possible with keystrokes Z and X**
+
+
+
 or, with an alignment:
 `smartview -t examples/HmuY.aln2.tree -a examples/HmuY.aln2 --nogui`
 
