@@ -2,7 +2,7 @@ from collections import defaultdict
 import numpy as np
 
 from .utils import timeit
-from . import (layout, circular_layout, rect_layout, gui, links)
+from . import (layout, layout_circular, layout_rect, gui, links)
 from .common import *
 
 import math
@@ -91,20 +91,20 @@ class TreeImage(object):
     @timeit
     def adjust_apertures(self):
         if self.tree_style.mode == 'r':
-            rect_layout.update_rect_positions(img_data=self.img_data,
+            layout_rect.update_rect_positions(img_data=self.img_data,
                                               cached_prepostorder=self.cached_prepostorder,
                                               cached_preorder=self.cached_preorder,
                                               leaf_apertures=self.leaf_apertures)
 
         elif self.tree_style.mode == "c":
-            circular_layout.update_node_angles(img_data=self.img_data,
+            layout_circular.update_node_angles(img_data=self.img_data,
                                                arc_start=self.tree_style.arc_start,
                                                cached_prepostorder=self.cached_prepostorder,
                                                cached_preorder=self.cached_preorder,
                                                leaf_apertures=self.leaf_apertures)
 
 
-    def adjust_branch_lengths(self, adjust_fn = None):
+    def adjust_branch_lengths(self, adjust_fn=None):
         if not adjust_fn:
             adjust_fn = layout.default_adjust_branch
         #adjust_fn(self)
@@ -115,7 +115,7 @@ class TreeImage(object):
 
         if self.tree_style.mode == 'c':
             #aligned_region_width = layout.compute_aligned_region_width(self)
-            max_leaf_radius = circular_layout.update_node_radius(self.img_data,
+            max_leaf_radius = layout_circular.update_node_radius(self.img_data,
                                                                  self.cached_prepostorder, self.cached_preorder,
                                                                  self.scale, self.root_open)
 
