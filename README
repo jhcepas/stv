@@ -1,3 +1,11 @@
-# Test command
+# Test commands
+
+## with tree and alg
 
 smartview -t examples/HmuY.aln2.tree -a examples/HmuY.aln2 --scale 10
+
+## a random big tree (100k tips)
+
+smartview -s 100000 --scale 10
+
+
