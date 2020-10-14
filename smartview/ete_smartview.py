@@ -2,7 +2,7 @@ import logging
 from .alg import SparseAlg, TreeAlignment, Alg, DiskHashAlg
 from .utils import colorify
 from .common import *
-from . import common, seqio
+from . import common
 from .main import TreeImage, gui
 from .face import RectFace, TextFace, AttrFace, LabelFace, CircleLabelFace, GradientFace, HeatmapArcFace, HeatmapFace, SeqMotifFace
 from .style import TreeStyle, add_face_to_node
