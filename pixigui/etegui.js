@@ -145,6 +145,18 @@ function mouseup(e) {
   draw_scene();
 }
 
+
+document.body.addEventListener("wheel", function(event) {
+  event.preventDefault();
+  if (event.deltaY > 0)
+    zoom_under_mouse(0.8);
+  else
+    zoom_under_mouse(1.2);
+
+  draw_scene();
+});
+
+
 function draw_scene() {
   for (var i in gui.__controllers) {
     gui.__controllers[i].updateDisplay();
