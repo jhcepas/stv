@@ -56,15 +56,15 @@ tree_scene
   .on("mousemove", mousemove)
   .on("pointerup", mouseup);
 
-alg_scene = new PIXI.Container();
-const alg_graphics = new PIXI.Graphics();
-alg_scene.addChild(alg_graphics);
-app.stage.addChild(alg_scene);
+// alg_scene = new PIXI.Container();
+// const alg_graphics = new PIXI.Graphics();
+// alg_scene.addChild(alg_graphics);
+// app.stage.addChild(alg_scene);
 
-alg_graphics.lineStyle(1, 0x0000ff, 1, 0.5, false);
-alg_graphics.beginFill(0xaa00bb);
-alg_graphics.drawRect(0, 0, 20, 20);
-alg_graphics.endFill(0xaa00bb);
+// alg_graphics.lineStyle(1, 0x0000ff, 1, 0.5, false);
+// alg_graphics.beginFill(0xaa00bb);
+// alg_graphics.drawRect(0, 0, 20, 20);
+// alg_graphics.endFill(0xaa00bb);
 
 var Data = function () {
   this.hello = "texto";
