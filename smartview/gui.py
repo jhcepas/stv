@@ -158,6 +158,14 @@ class TreeCanvas(QOpenGLWidget):
         dis = (mouse_pos - self.scene_start) * (scale_factor - 1)
         self.scene_start -= dis
 
+    def initializeGL(self):
+        #self.qglClearColor("white")
+        
+#        GL.glEnable(GL_LIGHTING);glEnable(GL_LIGHT0);
+        GL.glClearColor(1, 1, 1, 1); 
+#        GL.glEnable(GL.GL_DEPTH_TEST);    
+
+        
     def paintGL(self):
         print("Painting")
         pp = QPainter(self)
