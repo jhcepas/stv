@@ -8,9 +8,6 @@ const app = new PIXI.Application({
   forceCanvas: false,
 });
 
-function test() {
-  console.log("TEST");
-}
 
 document.onkeydown = function (evt) {
   evt = evt || window.event;
@@ -39,7 +36,7 @@ app.renderer.backgroundColor = 0xffffff;
 
 var cont = new PIXI.Container();
 
-document.getElementById("canvas-placeholder").appendChild(app.view);
+document.body.appendChild(app.view);
 
 const graphics = new PIXI.Graphics();
 tree_scene = new PIXI.Container();
@@ -50,7 +47,7 @@ tree_scene.interactive = true;
 tree_scene.buttonMode = true;
 
 console.log(tree_scene);
-//tree_scene.on("mouseover", test);
+
 tree_scene
   .on("pointerdown", mousedown)
   .on("mousemove", mousemove)
@@ -146,55 +143,39 @@ function mouseup(e) {
 }
 
 
-document.body.addEventListener("wheel", function(event) {
+document.body.addEventListener("wheel", event => {
   event.preventDefault();
-  if (event.deltaY > 0)
-    zoom_under_mouse(0.8);
-  else
-    zoom_under_mouse(1.2);
-
+  const zoom = (event.deltaY > 0 ? 0.8 : 1.2);
+  zoom_under_mouse(zoom);
   draw_scene();
-});
+}, {passive: false});
 
 
 function draw_scene() {
-  for (var i in gui.__controllers) {
-    gui.__controllers[i].updateDisplay();
-  }
+  gui.__controllers.forEach(c => c.updateDisplay());
 
   r = get_tree_scene_rect();
   var query =
     "" + mydata.zoom_factor + "," + r[0] + "," + r[1] + "," + r[2] + "," + r[3];
 
   console.log(query);
-  axios
-    .get("/get_scene_region/" + query + "/")
-    .then(function (response) {
-      console.log("drawn");
-      items = response["data"]["items"];
+  fetch("/get_scene_region/" + query + "/")
+    .then(response => response.json())
+    .then(data => {
       graphics.clear();
 
-      for (var i = 0; i < items.length; i++) {
-        item = items[i];
-        //item[1] += Math.random() * 50;
-        stroke = 1; //+ Math.random() * 20;
+      data.items.forEach(item => {
         if (item["0"] == "r") {
-          graphics.lineStyle(stroke, 0xc1d6f7, 1, 0, false, "square");
+          graphics.lineStyle(1, 0xc1d6f7, 1, 0, false, "square");
           graphics.drawRect(item[1], item[2], item[3], item[4]);
-          // ycenter = item[2] + item[4] / 2;
-          // graphics.moveTo(item[1], ycenter);
-          // graphics.lineTo(item[1] + item[3], item[2]);
-          // graphics.lineTo(item[1] + item[3], item[2] + item[4]);
-          // graphics.lineTo(item[1], ycenter);
         } else if (item["0"] == "l") {
-          graphics.lineStyle(stroke, 0x000000, 1, 1, false, "square");
+          graphics.lineStyle(1, 0x000000, 1, 1, false, "square");
           graphics.moveTo(item[1], item[2]);
           graphics.lineTo(item[3], item[4]);
         }
-      }
+      });
     })
     .catch(function (error) {
-      // handle error
       console.log(error);
     })
     .then(function () {
@@ -223,6 +204,7 @@ sprite.y = 1000;
 console.log(sprite);
 app.stage.addChild(sprite);
 //app.stage.addChild(gra);
+
 draw_scene();
 
 // app.ticker.add(() => {

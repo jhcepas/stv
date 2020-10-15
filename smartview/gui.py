@@ -7,6 +7,7 @@ import os
 from . import layout
 from .common import *
 from .utils import timeit, debug
+
 import time
 from multiprocessing import Pool, Queue, Process
 import numpy as np
@@ -18,7 +19,6 @@ from collections import defaultdict
 
 from PyQt5 import QtCore
 from PyQt5.QtGui import *
-
 
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -108,35 +108,36 @@ def start_server(tree_image):
 
     @app.get("/get_scene_region/<scene>/", method=['GET', 'OPTIONS'])
     def get_scene_region(scene):
-        print(scene)
-        zoom_factor, tree_xstart, tree_ystart, tree_w, tree_h = map(float,
-                                                                    scene.split(','))
-        target_tree_scene = QRectF(tree_xstart, tree_ystart, tree_w, tree_h)
+        print('  --> scene:', scene)
+        zoom, x, y, w, h = map(float, scene.split(','))
+        target_tree_scene = QRectF(x, y, w, h)
 
-        zoom_factor = max(0.00001, float(zoom_factor))
+        zoom = max(0.00001, zoom)
 
         t1 = time.time()
         bottle.response.content_type = 'application/json'
-        ii = QImage(1000, 1000,
-                    QImage.Format_ARGB32_Premultiplied)
+        ii = QImage(1000, 1000, QImage.Format_ARGB32_Premultiplied)
         ii.fill(QColor(Qt.white).rgb())
         pp = QPainter()
         pp.begin(ii)
-        print(tree_image)
         painter = Painter()
 
         terminal_nodes = drawer_noqt.draw_tree_scene_region(pp, painter, tree_image,
-                                                            zoom_factor, target_tree_scene)
+                                                            zoom, target_tree_scene)
         pp.end()
         # return json.dumps({"items": [["r", 10, 10, 200, 200]]})
+
+        # TODO: call here drawer.py draw_aligned_panel_region() and send the
+        # results to pixi.
+
         print("web return:", time.time() - t1,
               len(painter.stack), len(terminal_nodes))
         return json.dumps({"items": painter.stack})
 
-    @app.get("/static/<filepath>")
+    @app.get("/static/<filepath:path>")
     def webfile(filepath):
         import pathlib
-        basepath = os.path.join(pathlib.Path(__file__).parent.absolute(), '../pixigui')                
+        basepath = os.path.join(pathlib.Path().absolute(), 'pixigui')
         print(os.path.join(basepath, filepath))
         return bottle.static_file(filepath, root=basepath)
 
