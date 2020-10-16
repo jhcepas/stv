@@ -6,6 +6,7 @@ import numpy as np
 from .utils import timeit
 from .common import *
 
+
 def get_empty_matrix(nnodes):
     '''Returns an empty matrix prepared to allocated all data for a tree image of
     "nnodes"
@@ -40,6 +41,7 @@ def update_node_dimensions(img_data, cached_prepostorder, cached_preorder,
             dim[_is_leaf] = 1 # assumes it is a leaf, fixed in postorder for internal nodes
             dim[_max_leaf_idx] = nid
             prev_id = nid
+
 
 def compute_face_dimensions(node, facegrid):
     if facegrid is None:
@@ -85,6 +87,7 @@ def compute_face_dimensions(node, facegrid):
         face_pos_sizes.extend((total_w, total_h))
     return face_pos_sizes
 
+
 def compute_aligned_region_width(tree_image):
     current_w = 0.0
     max_w = 0.0
@@ -102,6 +105,7 @@ def compute_aligned_region_width(tree_image):
             else:
                 current_w += dim[_baw]
     return max_w
+
 
 def by_size2(tree_image, stop=None):
     if stop is None:
@@ -126,6 +130,8 @@ def by_size2(tree_image, stop=None):
         else:
             for ch in n.children:
                 tree_image.img_data[n._id][_blen] =  n.dist * 3
+
+
 @timeit
 def by_size(tree_image, stop=None):
     if stop is None:
@@ -191,6 +197,7 @@ def by_size(tree_image, stop=None):
     print("leaves processed:", nleaves)
     print("new size of tree:", len(root))
     print("----------------")
+
 
 @timeit
 def adjust_lengths_by_size(tree_image, stop=None):
@@ -290,6 +297,7 @@ def adjust_lengths_by_size(tree_image, stop=None):
     for dim in tree_image.img_data:
          dim[_blen] *= 0.1
 
+
 def by_level(tree_image, stop=None):
     if stop is None:
         stop = 4
@@ -308,6 +316,7 @@ def by_level(tree_image, stop=None):
             tree_image.img_data[n._id][_blen] = n.dist * 1000
         else:
             tree_image.img_data[n._id][_blen] =  n.dist * 1.5
+
 
 def by_scale(tree_image, stop=20, sca=10):
     n2dist = {}
@@ -337,6 +346,7 @@ def by_scale(tree_image, stop=20, sca=10):
             tree_image.img_data[n._id][_blen] = maxd/2
             n2dist[n] = 0
 
+
 def by_islands(tree_image, stop=None):
     if stop is None:
         stop = 150
@@ -362,6 +372,7 @@ def by_islands(tree_image, stop=None):
             for ch in n.children:
                 tree_image.img_data[n._id][_blen] =  n.dist * 3
 
+
 def real(tree_image, stop=None):
     root = tree_image.root_node
     #distances = [n.dist for n in root.iter_descendants()]
@@ -369,5 +380,6 @@ def real(tree_image, stop=None):
 
     for n in root.traverse("preorder"):
         tree_image.img_data[n._id][_blen] =  n.dist
+
 
 default_adjust_branch=adjust_lengths_by_size

@@ -1,3 +1,15 @@
+"""
+Run ETE.
+
+It can run in interactive mode (which I do not think is working now)
+or as a web server.
+
+As a web server it will listen in port 8090 and answer to requests
+like "/get_scene_region/2,0,81,797,900" (zoom, x, y, w, h) with scenes
+to be drawn (which include tree branches and associated images --
+though the last part is not ready yet).
+"""
+
 import bottle
 from random import randint
 from json import dumps
@@ -5,15 +17,13 @@ import time
 import logging
 from .alg import SparseAlg, TreeAlignment, Alg, DiskHashAlg
 from .utils import colorify
-from .common import *
 from . import common
 from .main import TreeImage, gui
 from .face import RectFace, TextFace, AttrFace, LabelFace, CircleLabelFace, GradientFace, HeatmapArcFace, HeatmapFace, SeqMotifFace
 from .style import TreeStyle, add_face_to_node
 from .ctree import Tree
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter as fmt
 import numpy as np
-import math
 import random
 import sys
 import pyximport
@@ -46,60 +56,46 @@ N2LEAVES = None
 N2CONTENT = None
 
 
-def populate_args(parser):
+def get_args():
+    "Return the parsed command line arguments"
+    parser = ArgumentParser(description=__doc__, formatter_class=fmt)
+    add = parser.add_argument  # shortcut
+
     tree_input_args = parser.add_mutually_exclusive_group(required=True)
     tree_input_args.add_argument(
-        "-t", dest="src_trees", type=str, help="target tree in newick format")
+        "-t", "--src_trees", type=str, help="target tree in newick format")
     tree_input_args.add_argument(
-        "-s", dest="size", type=int, help="Random tree size (for testing purposes)")
+        "-s", "--size", type=int, help="random tree size (for testing purposes)")
 
-    parser.add_argument("-a", dest="alg", help="Bind alignment")
+    add("-a", "--alg", help="Bind alignment")
+    add("-m", "--mode", default='r', choices=['c', 'r'], help="(c)icular or (r)ect ")
+    add("-b", "--branch_mode", help="")
+    add("--scale", type=float)
+    add("--nwformat", type=int, default=0, help="newick format")
 
-    parser.add_argument("-m", dest='mode', default='r',
-                        help="(c)icular or (r)ect ")
-
-    parser.add_argument("-b", dest='branch_mode', default=None,
-                        help="")
-    parser.add_argument("--scale", dest="scale", type=float, default=None)
-    parser.add_argument("--newick_format", dest="nwformat",
-                        type=int, default=0)
-
-    circ_layout_args = parser.add_argument_group('tree layout options')
+    circ_layout_args = parser.add_argument_group("tree layout options")
     circ_layout_args.add_argument(
-        '--arc_span', dest="arc_span", type=float, default=360, help='In degrees')
+        "--arc_span", type=float, default=360, help="in degrees")
     circ_layout_args.add_argument(
-        '--arc_start', dest="arc_start", type=float, default=0, help='In degrees')
+        "--arc_start", type=float, default=0, help="in degrees")
 
-    parser.add_argument("-z", dest="zoom_factor",
-                        type=float, help="initial zoom level")
-    parser.add_argument("-l", dest="layout", type=str,
-                        help="layout function to use", default="basic_layout")
-    parser.add_argument("--debug", dest="debug",
-                        action="store_true", help="enable debug mode")
-    parser.add_argument("--mem", dest="track_mem",
-                        action="store_true", help="tracks memory usage")
-    parser.add_argument("--profile", dest="profile",
-                        action="store_true", help="tracks cpu time")
-    parser.add_argument("--timeit", dest="track_time",
-                        action="store_true", help="tracks memory usage")
-    parser.add_argument("--nogui", dest="nogui", action="store_true")
-    parser.add_argument("--ultrametric", dest="ultrametric",
-                        action="store_true", help="convert to untrametric")
-    parser.add_argument("--standardize", dest="standardize",
-                        action="store_true", help="stand")
-    parser.add_argument("--logscale", dest="logscale",
-                        action="store_true", help="log scale")
-
-    parser.add_argument("--midpoint", dest="midpoint",
-                        action="store_true", help="stand")
-
-    parser.add_argument("--randbranches", dest="randbranches",
-                        action="store_true", help="stand")
-    parser.add_argument(
-        "--softrandbranches", dest="softrandbranches", action="store_true", help="stand")
-    parser.add_argument("-C", dest="cmode", action="store_true")
-    parser.add_argument("--tilesize", dest="tilesize", type=int, default=800)
-    parser.add_argument("--heatmap", dest="heatmap", action="store_true")
+    add("-z", "--zoom_factor", type=float, help="initial zoom level")
+    add("-l", "--layout", help="layout function to use", default="basic_layout")
+    add("--debug", action="store_true", help="enable debug mode")
+    add("--track_mem", action="store_true", help="tracks memory usage")
+    add("--profile", action="store_true", help="tracks cpu time")
+    add("--timeit", action="store_true", help="tracks memory usage")
+    add("--nogui", action="store_true")
+    add("--ultrametric", action="store_true", help="convert to untrametric")
+    add("--standardize", action="store_true", help="stand")
+    add("--logscale", action="store_true", help="log scale")
+    add("--midpoint", action="store_true", help="stand")
+    add("--randbranches", action="store_true", help="stand")
+    add("--softrandbranches", action="store_true", help="stand")
+    add("-C", "--cmode", action="store_true")
+    add("--tilesize", type=int, default=800)
+    add("--heatmap", action="store_true")
+    return parser.parse_args()
 
 
 def link_to_table():
@@ -277,11 +273,13 @@ def clean_layout(node):
     pass
 
 
-def run(args):
+def main():
+    args = get_args()
+
     global N2LEAVES, N2CONTENT, ALG, MATRIX, BLOCK_SEQ_FACE
 
     common.CONFIG["debug"] = args.debug
-    common.CONFIG["timeit"] = args.track_time
+    common.CONFIG["timeit"] = args.timeit
     common.CONFIG["C"] = args.cmode
     common.CONFIG["tilesize"] = args.tilesize
 
@@ -413,8 +411,5 @@ def run(args):
         print(h.heap())
 
 
-def main():
-    parser = ArgumentParser()
-    populate_args(parser)
-    args = parser.parse_args()
-    run(args)
+if __name__ == '__main__':
+    main()

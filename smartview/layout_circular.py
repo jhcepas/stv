@@ -4,12 +4,14 @@ from collections import defaultdict
 from .common import *
 from .colors import *
 
+
 def iter_prepostorder(prepostorder):
     root_visited = False
     for nid in prepostorder:
         postorder = nid < 0 or nid == 0 and root_visited
         if nid == 0: root_visited = True
         yield postorder, nid
+
 
 def get_min_radius(rect_width, rect_height, parent_radius, radians):
     radius = math.hypot(parent_radius+rect_width, rect_height)
@@ -18,6 +20,7 @@ def get_min_radius(rect_width, rect_height, parent_radius, radians):
         adjacent = rect_height / math.tan(radians)
         radius = max(radius, math.hypot(adjacent+rect_width, rect_height))
     return radius
+
 
 def get_node_end_radius(parent_radius, dim, scale):
     lw = dim[_bh]/2.0
@@ -113,6 +116,7 @@ def get_optimal_circular_scale(tree_image, optimization_level="med", root_openin
 
     return best_scale,  max_rad, most_distant
 
+
 def get_optimal_scale(root, tree_image):
     img_data = tree_image.img_data
     n2minradius = {}
@@ -152,6 +156,7 @@ def get_optimal_scale(root, tree_image):
         max_rad = max(max_rad, (n2sumdist[nid] * best_scale) + (n2sumwidth[nid]))
 
     return best_scale, max_rad
+
 
 @timeit
 def update_node_radius(imgdata, cached_prepostorder,
@@ -199,6 +204,7 @@ def update_node_radius(imgdata, cached_prepostorder,
             dim[_fnw] = max([imgdata[ch._id][_fnw] for ch in node.children])
             # dim[_fnh] = dim[_aend] - dim[_astart]
     return max_radius
+
 
 @timeit
 def compute_circ_collision_paths(tree_image):
