@@ -15,17 +15,17 @@ const scene = {
   drag: {x0: 0, y0: 0, active: false}  // used when dragging the image
 };
 const data_gui = new dat.GUI();
-data_gui.add(scene, "x").onChange(() => update());
-data_gui.add(scene, "y").onChange(() => update());
-data_gui.add(scene, "zoom", 1, 100).onChange(() => update());
+data_gui.add(scene, "x").onChange(update);
+data_gui.add(scene, "y").onChange(update);
+data_gui.add(scene, "zoom", 1, 100).onChange(update);
 data_gui.add(scene, "update_on_drag").name("continuous dragging");
 
 
 // Use the mouse wheel to zoom in/out (instead of scrolling).
 document.body.addEventListener("wheel", event => {
   event.preventDefault();
-  const dz = (event.deltaY > 0 ? 1 : -1);
-  if ((scene.zoom < 100 && dz > 0) || (scene.zoom > 1 && dz < 0)) {
+  const dz = (event.deltaY > 0 ? 1 : -1);  // zoom change
+  if (valid_zoom_change(dz)) {
     const zoom_old = scene.zoom, zoom_new = zoom_old + dz;
     scene.zoom = zoom_new;
 
@@ -34,12 +34,17 @@ document.body.addEventListener("wheel", event => {
     // scene.y = event.clientY - (zoom_new / zoom_old) * (event.clientY - scene.y);
     // scene.x += (1 / zoom_old - 1 / zoom_new) * event.clientX;
     // scene.y += (1 / zoom_old - 1 / zoom_new) * event.clientY;
-    scene.x -= (event.clientX - scene.x) * (zoom_new - zoom_old) / zoom_old;
-    scene.y -= (event.clientY - scene.y) * (zoom_new - zoom_old) / zoom_old;
+    const a = zoom_new / zoom_old - 1;
+    scene.x -= (event.clientX - scene.x) * a;
+    scene.y -= (event.clientY - scene.y) * a;
 
     update();
   }
 }, {passive: false});  // chrome now uses passive=true otherwise
+
+function valid_zoom_change(dz) {
+  return (scene.zoom < 100 && dz > 0) || (scene.zoom > 1 && dz < 0);
+}
 
 
 // Move the tree.
