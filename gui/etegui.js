@@ -1,15 +1,24 @@
 'use strict';
 
+document.addEventListener("DOMContentLoaded", () => {
+  const div_tree = document.getElementById('div_tree');
+  update();
+});
+
+
 // Variables shown on the top-right gui (using dat.gui).
 const scene = {
   x: 0,
   y: 0,
-  zoom: 10
+  zoom: 10,
+  update_on_drag: true,
+  drag: {x0: 0, y0: 0, active: false}  // used when dragging the image
 };
 const data_gui = new dat.GUI();
-data_gui.add(scene, "x").onChange(() => update_tree());
-data_gui.add(scene, "y").onChange(() => update_tree());
-data_gui.add(scene, "zoom", 1, 100).onChange(() => update_tree());
+data_gui.add(scene, "x").onChange(() => update());
+data_gui.add(scene, "y").onChange(() => update());
+data_gui.add(scene, "zoom", 1, 100).onChange(() => update());
+data_gui.add(scene, "update_on_drag").name("continuous dragging");
 
 
 // Use the mouse wheel to zoom in/out (instead of scrolling).
@@ -28,18 +37,48 @@ document.body.addEventListener("wheel", event => {
     scene.x -= (event.clientX - scene.x) * (zoom_new - zoom_old) / zoom_old;
     scene.y -= (event.clientY - scene.y) * (zoom_new - zoom_old) / zoom_old;
 
-    data_gui.updateDisplay();
-    update_tree();
+    update();
   }
 }, {passive: false});  // chrome now uses passive=true otherwise
 
 
+// Move the tree.
+document.addEventListener("mousedown", event => {
+  scene.drag.x0 = event.clientX;
+  scene.drag.y0 = event.clientY;
+  scene.drag.active = true;
+});
+document.addEventListener("mouseup", event => {
+  const dx = event.clientX - scene.drag.x0,
+        dy = event.clientY - scene.drag.y0;
+  if (dx != 0 || dy != 0) {
+    scene.x -= dx;
+    scene.y -= dy;
+    update();
+  }
+  scene.drag.active = false;
+});
+document.addEventListener("mousemove", event => {
+  if (scene.drag.active && scene.update_on_drag) {
+    const dx = event.clientX - scene.drag.x0,
+          dy = event.clientY - scene.drag.y0;
+    scene.x -= dx;
+    scene.y -= dy;
+    scene.drag.x0 = event.clientX;
+    scene.drag.y0 = event.clientY;
+    update();
+  }
+});
+
+
 // Ask the server for a tree in the new defined region, and draw it.
-function update_tree() {
+function update() {
+  data_gui.updateDisplay();  // updates the info box on the top-right gui
+
   // Trying to replicate the bounds that Jaime requests, but not working yet!
   const x = Math.max(0, -scene.x), y = Math.max(0, -scene.y),
         w = Math.min(window.innerWidth, window.innerWidth - scene.x),
-        h = Math.min(window.innerHeight, window.innerHeight - scene.x);
+        h = Math.min(window.innerHeight, window.innerHeight - scene.y);
 
   fetch(`/get_scene_region/${scene.zoom},${x},${y},${w},${h}/`)
     .then(response => response.json())
@@ -68,8 +107,5 @@ function draw(items) {
     }
   });
   svg += '</svg>';
-  document.getElementById('div_svg').innerHTML = svg;
+  div_tree.innerHTML = svg;
 }
-
-
-update_tree();
