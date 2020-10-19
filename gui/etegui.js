@@ -24,19 +24,17 @@ data_gui.add(scene, "update_on_drag").name("continuous dragging");
 // Use the mouse wheel to zoom in/out (instead of scrolling).
 document.body.addEventListener("wheel", event => {
   event.preventDefault();
-  const dz = (event.deltaY > 0 ? 1 : -1);  // zoom change
-  if (valid_zoom_change(dz)) {
-    const zoom_old = scene.zoom, zoom_new = zoom_old + dz;
-    scene.zoom = zoom_new;
-    const a = zoom_new / zoom_old - 1;
-    scene.x -= (event.clientX - scene.x) * a;
-    scene.y -= (event.clientY - scene.y) * a;
+  const zr = (event.deltaY > 0 ? 1.25 : 0.8);  // zoom change (ratio)
+  if (valid_zoom_change(zr)) {
+    scene.x -= (zr - 1) * (event.clientX - scene.x);
+    scene.y -= (zr - 1) * (event.clientY - scene.y);
+    scene.zoom *= zr;
     update();
   }
 }, {passive: false});  // chrome now uses passive=true otherwise
 
-function valid_zoom_change(dz) {
-  return (scene.zoom < 100 && dz > 0) || (scene.zoom > 1 && dz < 0);
+function valid_zoom_change(zr) {
+  return (scene.zoom < 100 && zr > 1) || (scene.zoom > 1 && zr < 1);
 }
 
 
@@ -74,8 +72,8 @@ function update() {
   data_gui.updateDisplay();  // updates the info box on the top-right gui
 
   const x = Math.max(0, -scene.x), y = Math.max(0, -scene.y),
-        w = Math.min(window.innerWidth, window.innerWidth - scene.x),
-        h = Math.min(window.innerHeight, window.innerHeight - scene.y);
+        w = window.innerWidth - Math.max(0, scene.x),
+        h = window.innerHeight - Math.max(0, scene.y);
 
   fetch(`/get_scene_region/${scene.zoom},${x},${y},${w},${h}/`)
     .then(response => response.json())
@@ -99,7 +97,7 @@ function draw(items) {
         const x1 = d[1] + scene.x, y1 = d[2] + scene.y,
               x2 = d[3] + scene.x, y2 = d[4] + scene.y;
         svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
-                      stroke="red"/>`;
+                      stroke="black"/>`;
         break;
     }
   });
