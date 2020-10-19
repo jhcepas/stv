@@ -1,16 +1,15 @@
 'use strict';
 
-
-// Variables shown with dat.gui.
+// Variables shown on the top-right gui (using dat.gui).
 const scene = {
   x: 0,
   y: 0,
   zoom: 10
 };
-const gui = new dat.GUI();
-gui.add(scene, "x").onChange(() => update_tree());
-gui.add(scene, "y").onChange(() => update_tree());
-gui.add(scene, "zoom", 1, 100).onChange(() => update_tree());
+const data_gui = new dat.GUI();
+data_gui.add(scene, "x").onChange(() => update_tree());
+data_gui.add(scene, "y").onChange(() => update_tree());
+data_gui.add(scene, "zoom", 1, 100).onChange(() => update_tree());
 
 
 // Use the mouse wheel to zoom in/out (instead of scrolling).
@@ -20,11 +19,16 @@ document.body.addEventListener("wheel", event => {
   if ((scene.zoom < 100 && dz > 0) || (scene.zoom > 1 && dz < 0)) {
     const zoom_old = scene.zoom, zoom_new = zoom_old + dz;
     scene.zoom = zoom_new;
+
+    // Trying to replicate how Jaime changes x,y -- but not really working yet!
     // scene.x = event.clientX - (zoom_new / zoom_old) * (event.clientX - scene.x);
     // scene.y = event.clientY - (zoom_new / zoom_old) * (event.clientY - scene.y);
     // scene.x += (1 / zoom_old - 1 / zoom_new) * event.clientX;
     // scene.y += (1 / zoom_old - 1 / zoom_new) * event.clientY;
-    gui.updateDisplay();
+    scene.x -= (event.clientX - scene.x) * (zoom_new - zoom_old) / zoom_old;
+    scene.y -= (event.clientY - scene.y) * (zoom_new - zoom_old) / zoom_old;
+
+    data_gui.updateDisplay();
     update_tree();
   }
 }, {passive: false});  // chrome now uses passive=true otherwise
@@ -32,26 +36,33 @@ document.body.addEventListener("wheel", event => {
 
 // Ask the server for a tree in the new defined region, and draw it.
 function update_tree() {
-  const width = window.innerWidth;
-  const height = window.innerHeight;
+  // Trying to replicate the bounds that Jaime requests, but not working yet!
+  const x = Math.max(0, -scene.x), y = Math.max(0, -scene.y),
+        w = Math.min(window.innerWidth, window.innerWidth - scene.x),
+        h = Math.min(window.innerHeight, window.innerHeight - scene.x);
 
-  fetch(`/get_scene_region/${scene.zoom},${scene.x},${scene.y},${width},${height}/`)
+  fetch(`/get_scene_region/${scene.zoom},${x},${y},${w},${h}/`)
     .then(response => response.json())
     .then(resp_data => draw(resp_data.items))
     .catch(error => console.log(error));
 }
 
+
+// Draw all the items in the list (rectangles and lines) by creating a svg.
 function draw(items) {
   const w = window.innerWidth - 10, h = window.innerHeight - 10;
   let svg = `<svg width="${w}" height="${h}">`;
   items.forEach(d => {
     switch (d[0]) {
       case 'r':
-        svg += `<rect x="${d[1]}" y="${d[2]}" width="${d[3]}" height="${d[4]}"
+        const x = d[1] - scene.x, y = d[2] - scene.y, w = d[3], h = d[4];
+        svg += `<rect x="${x}" y="${y}" width="${w}" height="${h}"
                       fill="none" stroke="blue"/>`;
         break;
       case 'l':
-        svg += `<line x1="${d[1]}" y1="${d[2]}" x2="${d[3]}" y2="${d[4]}"
+        const x1 = d[1] - scene.x, y1 = d[2] - scene.y,
+              x2 = d[3] - scene.x, y2 = d[4] - scene.y;
+        svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
                       stroke="red"/>`;
         break;
     }
