@@ -8,8 +8,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Variables shown on the top-right gui (using dat.gui).
 const view = {
-  x: 0,
-  y: 0,
+  tl: {x: 0, y: 0},  // in-tree coordinates of the top-left point of the view
+  pos: {x: 0, y: 0},  // in-tree current pointer position
   zoom: 10,
   update_on_drag: true,
   drag: {x0: 0, y0: 0, active: false},  // used when dragging the image
@@ -18,10 +18,13 @@ const view = {
   font_family: "sans-serif"
 };
 const dgui = new dat.GUI();
-dgui.add(view, "x").onChange(update);
-dgui.add(view, "y").onChange(update);
-dgui.add(view, "zoom", 1, 100).onChange(update);
-dgui.add(view, "update_on_drag").name("continuous dragging");
+dgui.add(view.pos, "x").listen();
+dgui.add(view.pos, "y").listen();
+const dgui_ctl = dgui.addFolder("control");
+dgui_ctl.add(view.tl, "x").name("top-left x").onChange(update);
+dgui_ctl.add(view.tl, "y").name("top-left y").onChange(update);
+dgui_ctl.add(view, "zoom", 1, 100).onChange(update);
+dgui_ctl.add(view, "update_on_drag").name("continuous dragging");
 const dgui_style = dgui.addFolder("style");
 dgui_style.addColor(view, "line_color").name("line color").onChange(update);
 dgui_style.addColor(view, "rect_color").name("rectangle color").onChange(update);
@@ -36,8 +39,8 @@ document.body.addEventListener("wheel", event => {
   if (valid_zoom_change(zr)) {
     const zoom_new = view.zoom * zr,
           ppix = 1 / view.zoom - 1 / zoom_new;  // points per pixel
-    view.x += ppix * event.pageX;
-    view.y += ppix * event.pageY;
+    view.tl.x += ppix * event.pageX;
+    view.tl.y += ppix * event.pageY;
     view.zoom = zoom_new;
     update();
   }
@@ -61,8 +64,8 @@ document.addEventListener("mouseup", event => {
     const dx = event.pageX - view.drag.x0,
           dy = event.pageY - view.drag.y0;
     if (dx != 0 || dy != 0) {
-      view.x -= dx / view.zoom;
-      view.y -= dy / view.zoom;
+      view.tl.x -= dx / view.zoom;
+      view.tl.y -= dy / view.zoom;
       update();
     }
     view.drag.active = false;
@@ -72,11 +75,15 @@ document.addEventListener("mousemove", event => {
   if (view.drag.active && view.update_on_drag) {
     const dx = event.pageX - view.drag.x0,
           dy = event.pageY - view.drag.y0;
-    view.x -= dx / view.zoom;
-    view.y -= dy / view.zoom;
+    view.tl.x -= dx / view.zoom;
+    view.tl.y -= dy / view.zoom;
     view.drag.x0 = event.pageX;
     view.drag.y0 = event.pageY;
     update();
+  }
+  else {
+    view.pos.x = view.tl.x + event.pageX / view.zoom;
+    view.pos.y = view.tl.y + event.pageY / view.zoom;
   }
 });
 
@@ -85,9 +92,10 @@ document.addEventListener("mousemove", event => {
 function update() {
   dgui.updateDisplay();  // updates the info box on the top-right gui
 
-  const x = view.zoom * Math.max(0, view.x), y = view.zoom * Math.max(0, view.y),
-        w = window.innerWidth - Math.max(0, - view.zoom * view.x),
-        h = window.innerHeight - Math.max(0, - view.zoom * view.y);
+  const x = view.zoom * Math.max(0, view.tl.x),
+        y = view.zoom * Math.max(0, view.tl.y),
+        w = window.innerWidth - Math.max(0, - view.zoom * view.tl.x),
+        h = window.innerHeight - Math.max(0, - view.zoom * view.tl.y);
 
   fetch(`/get_scene_region/${view.zoom},${x},${y},${w},${h}/`)
     .then(response => response.json())
@@ -100,8 +108,8 @@ function update() {
 function draw(items) {
   const width = window.innerWidth - 10, height = window.innerHeight - 10;
   let svg = `<svg id="tree" width="${width}" height="${height}">`;
-  const x0 = view.zoom * view.x,
-        y0 = view.zoom * view.y;
+  const x0 = view.zoom * view.tl.x,
+        y0 = view.zoom * view.tl.y;
   items.forEach(d => {
     switch (d[0]) {
       case 'r':
