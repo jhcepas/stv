@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Variables shown on the top-right gui (using dat.gui).
 const view = {
-  tl: {x: 0, y: 0},  // in-tree coordinates of the top-left point of the view
+  tl: {x: 0, y: 0},  // in-tree coordinates of the top-left corner of the view
   pos: {x: 0, y: 0},  // in-tree current pointer position
   zoom: 10,
   update_on_drag: true,
@@ -38,9 +38,9 @@ document.body.addEventListener("wheel", event => {
   const zr = (event.deltaY > 0 ? 1.25 : 0.8);  // zoom change (ratio)
   if (valid_zoom_change(zr)) {
     const zoom_new = view.zoom * zr,
-          ppix = 1 / view.zoom - 1 / zoom_new;  // points per pixel
-    view.tl.x += ppix * event.pageX;
-    view.tl.y += ppix * event.pageY;
+          tppix = 1 / view.zoom - 1 / zoom_new;  // tree coordinates per pixel
+    view.tl.x += tppix * event.pageX;
+    view.tl.y += tppix * event.pageY;
     view.zoom = zoom_new;
     update();
   }
@@ -51,41 +51,48 @@ function valid_zoom_change(zr) {
 }
 
 
-// Move the tree.
+// Drag the tree around (by changing the top-left corner of the view).
 document.addEventListener("mousedown", event => {
-  if (event.target.id === "tree" || event.target.parentNode.id === "tree") {
-    view.drag.x0 = event.pageX;
-    view.drag.y0 = event.pageY;
-    view.drag.active = true;
-  }
+  if (is_tree(event.target))
+    drag_start(event);
 });
+const is_tree = elem => elem.id === "tree" || elem.parentNode.id === "tree";
+
 document.addEventListener("mouseup", event => {
-  if (view.drag.active) {
-    const dx = event.pageX - view.drag.x0,
-          dy = event.pageY - view.drag.y0;
-    if (dx != 0 || dy != 0) {
-      view.tl.x -= dx / view.zoom;
-      view.tl.y -= dy / view.zoom;
-      update();
-    }
-    view.drag.active = false;
-  }
+  if (view.drag.active)
+    drag_stop(event);
 });
+
 document.addEventListener("mousemove", event => {
   if (view.drag.active && view.update_on_drag) {
-    const dx = event.pageX - view.drag.x0,
-          dy = event.pageY - view.drag.y0;
+    drag_stop(event);
+    drag_start(event);
+  }
+
+  update_pos(event);
+});
+
+function drag_start(event) {
+  view.drag.x0 = event.pageX;
+  view.drag.y0 = event.pageY;
+  view.drag.active = true;
+}
+
+function drag_stop(event) {
+  const dx = event.pageX - view.drag.x0,  // mouse position increment
+        dy = event.pageY - view.drag.y0;
+  if (dx != 0 || dy != 0) {
     view.tl.x -= dx / view.zoom;
     view.tl.y -= dy / view.zoom;
-    view.drag.x0 = event.pageX;
-    view.drag.y0 = event.pageY;
     update();
   }
-  else {
-    view.pos.x = view.tl.x + event.pageX / view.zoom;
-    view.pos.y = view.tl.y + event.pageY / view.zoom;
-  }
-});
+  view.drag.active = false;
+}
+
+function update_pos(event) {
+  view.pos.x = view.tl.x + event.pageX / view.zoom;
+  view.pos.y = view.tl.y + event.pageY / view.zoom;
+}
 
 
 // Ask the server for a tree in the new defined region, and draw it.
