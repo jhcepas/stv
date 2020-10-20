@@ -36,7 +36,7 @@ dgui_style.add(view, "font_family",
 document.body.addEventListener("wheel", event => {
   event.preventDefault();
   const zr = (event.deltaY > 0 ? 1.25 : 0.8);  // zoom change (ratio)
-  if (valid_zoom_change(zr)) {
+  if (is_valid_zoom_change(zr)) {
     const zoom_new = view.zoom * zr,
           tppix = 1 / view.zoom - 1 / zoom_new;  // tree coordinates per pixel
     view.tl.x += tppix * event.pageX;
@@ -46,8 +46,8 @@ document.body.addEventListener("wheel", event => {
   }
 }, {passive: false});  // chrome now uses passive=true otherwise
 
-function valid_zoom_change(zr) {
-  return (view.zoom < 100 && zr > 1) || (view.zoom > 1 && zr < 1);
+function is_valid_zoom_change(zr) {
+  return (zr > 1 && view.zoom < 100) || (zr < 1 && view.zoom > 1);
 }
 
 
@@ -56,7 +56,10 @@ document.addEventListener("mousedown", event => {
   if (is_tree(event.target))
     drag_start(event);
 });
-const is_tree = elem => elem.id === "tree" || elem.parentNode.id === "tree";
+
+function is_tree(elem) {
+  return elem.id === "tree" || elem.parentNode.id === "tree";
+}
 
 document.addEventListener("mouseup", event => {
   if (view.drag.active)
