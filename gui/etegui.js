@@ -1,7 +1,9 @@
 'use strict';
 
 document.addEventListener("DOMContentLoaded", () => {
-  const div_tree = document.getElementById('div_tree');
+  const div_tree = document.getElementById("div_tree");
+  const div_minimap = document.getElementById("div_minimap");
+  create_minimap();
   update();
 });
 
@@ -15,7 +17,8 @@ const view = {
   drag: {x0: 0, y0: 0, active: false},  // used when dragging the image
   line_color: "#000",
   rect_color: "#00F",
-  font_family: "sans-serif"
+  font_family: "sans-serif",
+  minimap_show: true
 };
 const dgui = new dat.GUI();
 dgui.add(view.pos, "x").listen();
@@ -29,7 +32,15 @@ const dgui_style = dgui.addFolder("style");
 dgui_style.addColor(view, "line_color").name("line color").onChange(update);
 dgui_style.addColor(view, "rect_color").name("rectangle color").onChange(update);
 dgui_style.add(view, "font_family",
-  ["sans-serif", "serif", "cursive", "monospace"]).name("font").onChange(update);
+  ["sans-serif", "serif", "cursive", "monospace"]).name("font").onChange(() =>
+    div_tree.style.fontFamily = view.font_family);
+const dgui_minimap = dgui.addFolder("minimap");
+dgui_minimap.add(view, "minimap_show").name("active").onChange(() => {
+    const display = view.minimap_show ? "block" : "none";
+    div_minimap.style.display = div_visible_rect.style.display = display;
+    if (view.minimap_show)
+      update_minimap();
+  });
 
 
 // Use the mouse wheel to zoom in/out (instead of scrolling).
@@ -53,13 +64,9 @@ function is_valid_zoom_change(zr) {
 
 // Drag the tree around (by changing the top-left corner of the view).
 document.addEventListener("mousedown", event => {
-  if (is_tree(event.target))
+  if (div_tree.contains(event.target))
     drag_start(event);
 });
-
-function is_tree(elem) {
-  return elem.id === "tree" || elem.parentNode.id === "tree";
-}
 
 document.addEventListener("mouseup", event => {
   if (view.drag.active)
@@ -102,6 +109,13 @@ function update_pos(event) {
 function update() {
   dgui.updateDisplay();  // updates the info box on the top-right gui
 
+  update_tree();
+
+  if (view.minimap_show)
+    update_minimap();
+}
+
+function update_tree() {
   const x = view.zoom * Math.max(0, view.tl.x),
         y = view.zoom * Math.max(0, view.tl.y),
         w = window.innerWidth - Math.max(0, - view.zoom * view.tl.x),
@@ -109,17 +123,19 @@ function update() {
 
   fetch(`/get_scene_region/${view.zoom},${x},${y},${w},${h}/`)
     .then(response => response.json())
-    .then(resp_data => draw(resp_data.items))
+    .then(resp_data => div_tree.innerHTML = draw(resp_data.items))
     .catch(error => console.log(error));
 }
 
 
-// Draw all the items in the list (rectangles and lines) by creating a svg.
-function draw(items) {
-  const width = window.innerWidth - 10, height = window.innerHeight - 10;
-  let svg = `<svg id="tree" width="${width}" height="${height}">`;
-  const x0 = view.zoom * view.tl.x,
-        y0 = view.zoom * view.tl.y;
+// Return an svg with all the items in the list (rectangles and lines).
+function draw(items, x0_, y0_, width_, height_) {
+  const width = width_ || (window.innerWidth - 10),
+        height = height_ || (window.innerHeight - 10),
+        x0 = x0_ || (view.zoom * view.tl.x),
+        y0 = y0_ || (view.zoom * view.tl.y);
+
+  let svg = `<svg width="${width}" height="${height}">`;
   items.forEach(d => {
     switch (d[0]) {
       case 'r':
@@ -136,5 +152,41 @@ function draw(items) {
     }
   });
   svg += '</svg>';
-  div_tree.innerHTML = svg;
+
+  return svg;
+}
+
+
+function create_minimap() {
+  fetch('/limits/')
+    .then(response => response.json())
+    .then(limits => {
+      div_minimap.style.width = `${limits.width}px`;
+      div_minimap.style.height = `${limits.height}px`;
+
+      fetch(`/get_scene_region/1,0,0,${limits.width},${limits.height}/`)
+        .then(response => response.json())
+        .then(resp_data => {
+          div_minimap.innerHTML = draw(resp_data.items);
+          const svg = div_minimap.childNodes[0];
+          svg.style.width = `${limits.width}px`;
+          svg.style.height = `${limits.height}px`;
+        })
+        .catch(error => console.log(error));
+    })
+    .catch(error => console.log(error));
+}
+
+function update_minimap() {
+  const ww = window.innerWidth / view.zoom, wh = window.innerHeight / view.zoom,
+        mw = div_minimap.offsetWidth, mh = div_minimap.offsetHeight;
+  const x = Math.ceil(Math.max(0, Math.min(view.tl.x, mw))),
+        y = Math.ceil(Math.max(0, Math.min(view.tl.y, mh))),
+        w = Math.ceil(Math.max(1, Math.min(ww + view.tl.x, ww, mw - x))),
+        h = Math.ceil(Math.max(1, Math.min(wh + view.tl.y, wh, mh - y)));
+  const r = document.getElementById("div_visible_rect").style;
+  r.left = `${div_minimap.offsetLeft + x}px`;
+  r.top = `${div_minimap.offsetTop + y}px`;
+  r.width = `${w}px`;
+  r.height = `${h}px`;
 }
