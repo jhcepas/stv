@@ -39,7 +39,7 @@ dgui_minimap.add(view, "minimap_show").name("active").onChange(() => {
     const display = view.minimap_show ? "block" : "none";
     div_minimap.style.display = div_visible_rect.style.display = display;
     if (view.minimap_show)
-      update_minimap();
+      update_minimap_visible_rect();
   });
 
 
@@ -112,7 +112,7 @@ function update() {
   update_tree();
 
   if (view.minimap_show)
-    update_minimap();
+    update_minimap_visible_rect();
 }
 
 function update_tree() {
@@ -149,6 +149,8 @@ function draw(items, x0_, y0_, width_, height_) {
         svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
                       stroke="${view.line_color}"/>`;
         break;
+      default:
+        console.log(`Got unknown item: ${d}`);
     }
   });
   svg += '</svg>';
@@ -164,6 +166,8 @@ function create_minimap() {
       div_minimap.style.width = `${limits.width}px`;
       div_minimap.style.height = `${limits.height}px`;
 
+      update_minimap_visible_rect();
+
       fetch(`/get_scene_region/1,0,0,${limits.width},${limits.height}/`)
         .then(response => response.json())
         .then(resp_data => {
@@ -177,7 +181,7 @@ function create_minimap() {
     .catch(error => console.log(error));
 }
 
-function update_minimap() {
+function update_minimap_visible_rect() {
   const ww = window.innerWidth / view.zoom, wh = window.innerHeight / view.zoom,
         mw = div_minimap.offsetWidth, mh = div_minimap.offsetHeight;
   const x = Math.ceil(Math.max(0, Math.min(view.tl.x, mw))),
