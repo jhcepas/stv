@@ -1,5 +1,5 @@
 
-from . import drawer
+#from . import drawer
 from . import drawer_noqt
 import json
 import os
@@ -77,11 +77,17 @@ class Painter(object):
     def __init__(self):
         self.stack = []
 
-    def drawRect(self, x, y, w, h, fgcolor, bgcolor):
+    def drawRect(self, x, y, w, h, fgcolor=None, bgcolor=None):
         self.stack.append(["r", x, y, w, h])
 
     def drawLine(self, x1, y1, x2, y2, color):
         self.stack.append(["l", x1, y1, x2, y2, color])
+
+    def drawText(self, x, y, w, h, text):
+        self.stack.append(["t", x, y, w, h, text])
+
+    def drawEllipse(x, y, w, h):
+        self.stack.append(["e", x, y, w, h])
 
 
 def start_server(tree_image):

@@ -357,8 +357,8 @@ def draw_tree_scene_region(pp, painter, tree_image, zoom_factor, scene_rect):
                 pp.translate(parent_radius*zoom_factor,
                              dim[_ycenter]*zoom_factor)
 
-                # endx = draw_faces(pp, 0, 0, node, zoom_factor, tree_image,
-                #                   is_collapsed=False, target_positions=set([0, 1, 2, 3]))
+                endx = draw_faces(pp, painter, 0, 0, node, zoom_factor, tree_image,
+                                  is_collapsed=False, target_positions=set([0, 1, 2, 3]))
         pp.restore()
 
     print("OUTSIDE:", OUTSIDE, "DRAWN:", DRAWN,
@@ -485,7 +485,7 @@ def draw_face_column(pp, node, colfaces, col_w, col_h, avail_w, avail_h):
     pp.restore()
 
 
-def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
+def draw_faces(pp, painter, x, y, node, zoom_factor, tree_image, is_collapsed,
                target_positions=None, target_rect=None):
 
     dim = tree_image.img_data[node._id]
@@ -660,7 +660,7 @@ def draw_faces(pp, x, y, node, zoom_factor, tree_image, is_collapsed,
                         pp.rotate(180)
                         pp.translate(-(zoom_half_fw), -(zoom_half_fh))
 
-                    face._draw(pp, 0, 0, face_zoom_factor,
+                    face._draw(pp, painter, 0, 0, face_zoom_factor,
                                w=available_pos_width, h=avail_col_width)
 
                     if restore_rot_painter:

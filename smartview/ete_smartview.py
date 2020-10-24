@@ -19,7 +19,7 @@ from .alg import SparseAlg, TreeAlignment, Alg, DiskHashAlg
 from .utils import colorify
 from . import common
 from .main import TreeImage, gui
-from .face import RectFace, TextFace, AttrFace, LabelFace, CircleLabelFace, GradientFace, HeatmapArcFace, HeatmapFace, SeqMotifFace
+from .face_noqt import RectFace, TextFace, AttrFace, LabelFace, CircleLabelFace, GradientFace, HeatmapArcFace, HeatmapFace, SeqMotifFace
 from .style import TreeStyle, add_face_to_node
 from .ctree import Tree
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter as fmt
