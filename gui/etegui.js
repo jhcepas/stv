@@ -88,6 +88,8 @@ document.addEventListener("mousemove", event => {
   update_pos(event);
 });
 
+// TODO: use these functions to drag either the view (using the zoom) or
+// the minimap (not using the zoom).
 function drag_start(event) {
   view.drag.x0 = event.pageX;
   view.drag.y0 = event.pageY;
@@ -172,6 +174,7 @@ function draw(items, x0_, y0_, width_, height_) {
 }
 
 
+// Create a drawing on the bottom-right of the full tree at zoom 1 ("minimap").
 function create_minimap() {
   fetch('/limits/')
     .then(response => response.json())
@@ -185,15 +188,16 @@ function create_minimap() {
         .then(response => response.json())
         .then(resp_data => {
           div_minimap.innerHTML = draw(resp_data.items);
-          const svg = div_minimap.childNodes[0];
-          svg.style.width = `${limits.width}px`;
-          svg.style.height = `${limits.height}px`;
+          const s = div_minimap.childNodes[0].style;
+          s.width = `${limits.width}px`;
+          s.height = `${limits.height}px`;
         })
         .catch(error => console.log(error));
     })
     .catch(error => console.log(error));
 }
 
+// Update the minimap's rectangle that represents the current view of the tree.
 function update_minimap_visible_rect() {
   const ww = window.innerWidth / view.zoom, wh = window.innerHeight / view.zoom,
         mw = div_minimap.offsetWidth, mh = div_minimap.offsetHeight;
@@ -201,9 +205,9 @@ function update_minimap_visible_rect() {
         y = Math.ceil(Math.max(0, Math.min(view.tl.y, mh))),
         w = Math.ceil(Math.max(1, Math.min(ww + view.tl.x, ww, mw - x))),
         h = Math.ceil(Math.max(1, Math.min(wh + view.tl.y, wh, mh - y)));
-  const r = document.getElementById("div_visible_rect").style;
-  r.left = `${div_minimap.offsetLeft + x}px`;
-  r.top = `${div_minimap.offsetTop + y}px`;
-  r.width = `${w}px`;
-  r.height = `${h}px`;
+  const s = div_visible_rect.style;
+  s.left = `${div_minimap.offsetLeft + x}px`;
+  s.top = `${div_minimap.offsetTop + y}px`;
+  s.width = `${w}px`;
+  s.height = `${h}px`;
 }
