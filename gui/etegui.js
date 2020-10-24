@@ -29,17 +29,18 @@ dgui_ctl.add(view.tl, "y").name("top-left y").onChange(update);
 dgui_ctl.add(view, "zoom", 1, 100).onChange(update);
 dgui_ctl.add(view, "update_on_drag").name("continuous dragging");
 const dgui_style = dgui.addFolder("style");
+const css = document.styleSheets[0].cssRules;  // shortcut
 dgui_style.addColor(view, "line_color").name("line color").onChange(() =>
-  document.styleSheets[0].cssRules[1].style.stroke = view.line_color);
+  css[1].style.stroke = view.line_color);
 dgui_style.addColor(view, "rect_color").name("rectangle color").onChange(() =>
-  document.styleSheets[0].cssRules[2].style.stroke = view.rect_color);
+  css[2].style.stroke = view.rect_color);
 dgui_style.addColor(view, "text_color").name("text color").onChange(() =>
-  document.styleSheets[0].cssRules[3].style.fill = view.text_color);
+  css[3].style.fill = view.text_color);
 dgui_style.add(view, "font_family",
   ["sans-serif", "serif", "cursive", "monospace"]).name("font").onChange(() =>
-    document.styleSheets[0].cssRules[3].style.fontFamily = view.font_family);
+  css[3].style.fontFamily = view.font_family);
 dgui_style.add(view, "font_size", 1, 20).onChange(() =>
-  document.styleSheets[0].cssRules[3].style.fontSize = `${view.font_size}px`);
+  css[3].style.fontSize = `${view.font_size}px`);
 const dgui_minimap = dgui.addFolder("minimap");
 dgui_minimap.add(view, "minimap_show").name("active").onChange(() => {
     const display = view.minimap_show ? "block" : "none";
