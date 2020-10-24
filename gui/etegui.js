@@ -1,8 +1,6 @@
 'use strict';
 
 document.addEventListener("DOMContentLoaded", () => {
-  const div_tree = document.getElementById("div_tree");
-  const div_minimap = document.getElementById("div_minimap");
   create_minimap();
   update();
 });
