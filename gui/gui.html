@@ -5,12 +5,24 @@
     <title>ETE Explorer</title>
     <style>
       * { padding: 0; margin: 0 }
+      .line {
+        stroke: #000;
+      }
+      .rect {
+        stroke: #0A0;
+        fill: "none"
+      }
+      .text {
+        fill: #00A;
+        font-size: 0.5rem;
+      }
       .minimap {
         position: absolute;
+        border-style: double;
         right: 10px;
         bottom: 10px;
         z-index: 1;
-        background: rgba(0, 0, 0, 0.2);
+        background: #FFF;
       }
       .visible_rect {
         position: absolute;
