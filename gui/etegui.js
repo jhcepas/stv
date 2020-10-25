@@ -43,7 +43,7 @@ dgui_style.add(view, "font_size", 1, 20).onChange(() =>
   css[3].style.fontSize = `${view.font_size}px`);
 const dgui_minimap = dgui.addFolder("minimap");
 dgui_minimap.add(view, "minimap_show").name("active").onChange(() => {
-    const display = view.minimap_show ? "block" : "none";
+    const display = (view.minimap_show ? "block" : "none");
     div_minimap.style.display = div_visible_rect.style.display = display;
     if (view.minimap_show)
       update_minimap_visible_rect();
@@ -128,6 +128,8 @@ function update() {
     update_minimap_visible_rect();
 }
 
+
+// Ask the server for a tree in the new defined region, and draw it.
 function update_tree() {
   const x = view.zoom * Math.max(0, view.tl.x),
         y = view.zoom * Math.max(0, view.tl.y),
