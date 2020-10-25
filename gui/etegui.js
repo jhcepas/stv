@@ -13,6 +13,7 @@ const view = {
   zoom: 10,
   update_on_drag: true,
   drag: {x0: 0, y0: 0, element: undefined},  // used when dragging
+  select_text: false,
   line_color: "#000",
   rect_color: "#0A0",
   text_color: "#00A",
@@ -28,6 +29,8 @@ dgui_ctl.add(view.tl, "x").name("top-left x").onChange(update);
 dgui_ctl.add(view.tl, "y").name("top-left y").onChange(update);
 dgui_ctl.add(view, "zoom", 1, 100).onChange(update);
 dgui_ctl.add(view, "update_on_drag").name("continuous dragging");
+dgui_ctl.add(view, "select_text").name("select text").onChange(() =>
+  css[3].style.userSelect = (view.select_text ? "text" : "none"));
 const dgui_style = dgui.addFolder("style");
 const css = document.styleSheets[0].cssRules;  // shortcut
 dgui_style.addColor(view, "line_color").name("line color").onChange(() =>
@@ -71,6 +74,9 @@ function is_valid_zoom_change(zr) {
 
 // Drag the tree around (by changing the top-left corner of the view).
 document.addEventListener("mousedown", event => {
+  if (view.select_text)
+    return;  // if by clicking we can select text, do not start a drag too
+
   if (div_visible_rect.contains(event.target))
     view.drag.element = div_visible_rect;
   else if (div_tree.contains(event.target))
