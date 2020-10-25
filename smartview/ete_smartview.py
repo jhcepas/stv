@@ -61,23 +61,21 @@ def get_args():
     parser = ArgumentParser(description=__doc__, formatter_class=fmt)
     add = parser.add_argument  # shortcut
 
-    tree_input_args = parser.add_mutually_exclusive_group(required=True)
-    tree_input_args.add_argument(
-        "-t", "--src_trees", type=str, help="target tree in newick format")
-    tree_input_args.add_argument(
-        "-s", "--size", type=int, help="random tree size (for testing purposes)")
-
+    inputs = parser.add_mutually_exclusive_group(required=True)
+    inputs.add_argument("-t", "--tree",
+        help="file with the tree (- to read from stdin)")
+    inputs.add_argument("-s", "--size", type=int,
+        help="random tree size (for testing purposes)")
     add("-a", "--alg", help="Bind alignment")
-    add("-m", "--mode", default='r', choices=['c', 'r'], help="(c)icular or (r)ect ")
+    add("-m", "--mode", default='r', choices=['c', 'r'],
+        help="drawing mode (c: cicular, r: rectangular)")
     add("-b", "--branch_mode", help="")
     add("--scale", type=float)
-    add("--nwformat", type=int, default=0, help="newick format")
-
-    circ_layout_args = parser.add_argument_group("tree layout options")
-    circ_layout_args.add_argument(
-        "--arc_span", type=float, default=360, help="in degrees")
-    circ_layout_args.add_argument(
-        "--arc_start", type=float, default=0, help="in degrees")
+    add("--nwformat", type=int, default=0, choices=list(range(10)) + [100],
+        help="newick format (0-9,100)")
+    circ_layout = parser.add_argument_group("tree layout options")
+    circ_layout.add_argument("--arc_span", type=float, default=360, help="in degrees")
+    circ_layout.add_argument("--arc_start", type=float, default=0, help="in degrees")
 
     add("-z", "--zoom_factor", type=float, help="initial zoom level")
     add("-l", "--layout", help="layout function to use", default="basic_layout")
@@ -296,8 +294,11 @@ def main():
         t2 = Tree()
         t2.populate(args.size/2, random_branches=True)
         t = t1 + t2
-    elif args.src_trees:
-        t = Tree(args.src_trees, format=args.nwformat)
+    elif args.tree:
+        try:
+            t = Tree(args.tree, format=args.nwformat)
+        except FileNotFoundError as e:
+            sys.exit(e)
 
     if args.midpoint:
         t.set_outgroup(t.get_midpoint_outgroup())

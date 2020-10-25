@@ -199,45 +199,38 @@ class NewickError(Exception):
         #print >>sys.stderr, 'error: ' + str(value)
         Exception.__init__(self, value)
 
-def read_newick(newick, root_node=None, format=0):
-    """ Reads a newick tree from either a string or a file, and returns
-    an ETE tree structure.
+def read_newick(fname, root_node=None, format=0):
+    """Read a newick tree from a file, and return an ETE tree structure.
 
     A previously existent node object can be passed as the root of the
     tree, which means that all its new children will belong to the same
-    class as the root(This allows to work with custom TreeNode
-    objects).
+    class as the root (this allows to work with custom TreeNode objects).
 
     You can also take advantage from this behaviour to concatenate
     several tree structures.
     """
-   
+    if fname == '-':
+        f = sys.stdin
+    elif fname.endswith('.gz'):
+        import gzip
+        f = gzip.open(fname)
+    else:
+        f = open(fname)
+
+    matcher = compile_matchers(formatcode=format)
+    nw = f.read().strip()
+
     if root_node is None:
         from ..coretype.tree import TreeNode
         root_node = TreeNode()
 
-    if isinstance(newick, six.string_types):   
-        if os.path.exists(newick):
-            if newick.endswith('.gz'):
-                import gzip
-                nw = gzip.open(newick).read()
-            else:
-                nw = open(newick, 'rU').read()
-        else:
-            nw = newick
-
-        matcher = compile_matchers(formatcode=format)
-        nw = nw.strip()        
-        if not nw.startswith('(') and nw.endswith(';'):
-            return _read_node_data(nw[:-1], root_node, "single", matcher, format)
-
-        elif not nw.startswith('(') or not nw.endswith(';'):
-            raise NewickError('Unexisting tree file or Malformed newick tree structure.')
-        else:
-            return _read_newick_from_string(nw, root_node, matcher, format)
-
+    if not nw.startswith('(') and nw.endswith(';'):
+        return _read_node_data(nw[:-1], root_node, "single", matcher, format)
+    elif not nw.startswith('(') or not nw.endswith(';'):
+        raise NewickError('Unexisting tree file or Malformed newick tree structure.')
     else:
-        raise NewickError("'newick' argument must be either a filename or a newick string.")
+        return _read_newick_from_string(nw, root_node, matcher, format)
+
 
 def _read_newick_from_string(nw, root_node, matcher, formatcode):
     """ Reads a newick string in the New Hampshire format. """
@@ -359,7 +352,7 @@ def _read_node_data(subnw, current_node, node_type, matcher, formatcode):
         node = current_node
 
     subnw = subnw.strip()
-    
+
     if not subnw and node_type == 'leaf' and formatcode != 100:
         raise NewickError('Empty leaf node found')
     elif not subnw:
