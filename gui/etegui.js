@@ -12,7 +12,7 @@ const view = {
   pos: {x: 0, y: 0},  // in-tree current pointer position
   zoom: 10,
   update_on_drag: true,
-  drag: {x0: 0, y0: 0, active: false},  // used when dragging the image
+  drag: {x0: 0, y0: 0, element: undefined},  // used when dragging
   line_color: "#000",
   rect_color: "#0A0",
   text_color: "#00A",
@@ -71,50 +71,54 @@ function is_valid_zoom_change(zr) {
 
 // Drag the tree around (by changing the top-left corner of the view).
 document.addEventListener("mousedown", event => {
-  if (div_tree.contains(event.target))
-    drag_start(event);
+  if (div_visible_rect.contains(event.target))
+    view.drag.element = div_visible_rect;
+  else if (div_tree.contains(event.target))
+    view.drag.element = div_tree;
+
+  drag_start(event);
 });
 
 document.addEventListener("mouseup", event => {
-  if (view.drag.active)
+  if (view.drag.element)
     drag_stop(event);
+
+  view.drag.element = undefined;
 });
 
 document.addEventListener("mousemove", event => {
-  if (view.drag.active && view.update_on_drag) {
+  update_pointer_pos(event);
+
+  if (view.drag.element && view.update_on_drag) {
     drag_stop(event);
     drag_start(event);
   }
-
-  update_pos(event);
 });
 
-// TODO: use these functions to drag either the view (using the zoom) or
-// the minimap (not using the zoom).
 function drag_start(event) {
   view.drag.x0 = event.pageX;
   view.drag.y0 = event.pageY;
-  view.drag.active = true;
 }
 
 function drag_stop(event) {
   const dx = event.pageX - view.drag.x0,  // mouse position increment
         dy = event.pageY - view.drag.y0;
+
   if (dx != 0 || dy != 0) {
-    view.tl.x -= dx / view.zoom;
-    view.tl.y -= dy / view.zoom;
+    const scale = (view.drag.element === div_tree ? -1/view.zoom : 1);
+    view.tl.x += scale * dx;
+    view.tl.y += scale * dy;
     update();
   }
-  view.drag.active = false;
 }
 
-function update_pos(event) {
+// Update the coordinates of the pointer, as shown in the top-right gui.
+function update_pointer_pos(event) {
   view.pos.x = view.tl.x + event.pageX / view.zoom;
   view.pos.y = view.tl.y + event.pageY / view.zoom;
 }
 
 
-// Ask the server for a tree in the new defined region, and draw it.
 function update() {
   dgui.updateDisplay();  // updates the info box on the top-right gui
 
