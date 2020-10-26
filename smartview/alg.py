@@ -1,5 +1,6 @@
-import gzip
+import sys
 import os
+import gzip
 from scipy import sparse
 import numpy as np
 from collections import Counter
