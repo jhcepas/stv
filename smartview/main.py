@@ -3,7 +3,7 @@ import numpy as np
 
 from .utils import timeit
 from . import (layout, layout_circular, layout_rect, gui, links)
-from .common import *
+from .common import _fnh, _fnw
 
 import math
 
