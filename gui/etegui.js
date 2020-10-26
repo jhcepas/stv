@@ -56,7 +56,7 @@ dgui_minimap.add(view, "minimap_show").name("active").onChange(() => {
 // Use the mouse wheel to zoom in/out (instead of scrolling).
 document.body.addEventListener("wheel", event => {
   event.preventDefault();
-  const zr = (event.deltaY > 0 ? 1.25 : 0.8);  // zoom change (ratio)
+  const zr = (event.deltaY < 0 ? 1.25 : 0.8);  // zoom change (ratio)
   if (is_valid_zoom_change(zr)) {
     const zoom_new = view.zoom * zr,
           tppix = 1 / view.zoom - 1 / zoom_new;  // tree coordinates per pixel
