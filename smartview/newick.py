@@ -39,8 +39,8 @@
 
 __all__ = ["read_newick", "write_newick", "print_supported_formats"]
 
+import sys
 import re
-import os
 import six
 from six.moves import map
 import gzip
