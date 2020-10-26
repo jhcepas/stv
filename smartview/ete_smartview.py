@@ -363,15 +363,18 @@ def main():
     ts.layout_fn = globals()[args.layout]
     if args.alg:
         global ALG, BLOCK_SEQ_FACE
-        #alg_dict = seqio.load_fasta(args.alg)
-        #alg_dict = Alg(args.alg)
-        alg_dict = DiskHashAlg(200, "alg.db")
-        alg_dict.load_fasta(args.alg)
-        ALG = TreeAlignment(alg_dict, N2CONTENT)
-        #ALG.load_seqs(t, alg_dict)
-        BLOCK_SEQ_FACE = SeqMotifFace(
-            ALG, seqtype='aa', seq_format="seq", gap_format="blank", poswidth=3, total_width=None)
-        ts.layout_fn.append(alg_layout)
+        try:
+            #alg_dict = seqio.load_fasta(args.alg)
+            #alg_dict = Alg(args.alg)
+            alg_dict = DiskHashAlg(200, "alg.db")
+            alg_dict.load_fasta(args.alg)
+            ALG = TreeAlignment(alg_dict, N2CONTENT)
+            #ALG.load_seqs(t, alg_dict)
+            BLOCK_SEQ_FACE = SeqMotifFace(
+                ALG, seqtype='aa', seq_format="seq", gap_format="blank", poswidth=3, total_width=None)
+            ts.layout_fn.append(alg_layout)
+        except FileNotFoundError as e:
+            sys.exit(e)
 
     ts.mode = args.mode
     ts.arc_span = args.arc_span

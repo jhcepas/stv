@@ -7,20 +7,18 @@ import time
 import random
 from .utils import timeit
 
-def iter_fasta_seqs(source):
-    """Iter records in a FASTA file"""
-
-    if os.path.isfile(source):
-        if source.endswith('.gz'):
-            _source = gzip.open(source)
-        else:
-            _source = open(source, "r")
+def iter_fasta_seqs(fname):
+    """Yield records from a FASTA file."""
+    if fname == '-':
+        f = sys.stdin
+    elif fname.endswith('.gz'):
+        f = gzip.open(fname)
     else:
-        _source = iter(source.split("\n"))
+        f = open(fname)
 
     seq_chunks = []
     seq_name = None
-    for line in _source:
+    for line in f:
         line = line.strip()
         if line.startswith('#') or not line:
             continue
@@ -39,7 +37,7 @@ def iter_fasta_seqs(source):
                 raise Exception("Error reading sequences: Wrong format.")
             seq_chunks.append(line.replace(" ", ""))
 
-    # return last sequence
+    # yield last sequence
     if seq_name and not seq_chunks:
         raise ValueError(
             "Error parsing fasta file. %s has no sequence" % seq_name)
@@ -183,7 +181,7 @@ class TreeAlignment(object):
                 leaves = self.n2content[node]
                 if len(leaves) > 10:
                     leaves = random.sample(leaves, 10)
-                sequences = [self.alg[leaf.name][start:end] for leaf in leaves]                
+                sequences = [self.alg[leaf.name][start:end] for leaf in leaves]
             elif self.consensus_method == 'full':
                 sequences = [self.alg[leaf.name][start:end] for leaf in self.n2content[node]]
             self.consensus[node] = self.calculate_consensus(sequences)
@@ -194,7 +192,7 @@ class TreeAlignment(object):
         m = None
         for seq in sequences:
             if not seq:
-                continue            
+                continue
             counter = np.zeros((len(seq), 24), dtype="int32")
             for i, site in enumerate(seq):
                 residx = AA2IDX[site]
