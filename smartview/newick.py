@@ -282,15 +282,15 @@ def _read_newick_from_string(nw, root_node, matcher, formatcode):
     return root_node
 
 def _parse_extra_features(node, NHX_string):
-    """ Reads node's extra data form its NHX string. NHX uses this
-    format:  [&&NHX:prop1=value1:prop2=value2] """
+    """Read node extra data form its NHX string."""
+    # NHX uses this format:  [&&NHX:prop1=value1:prop2=value2]
     NHX_string = NHX_string.replace("[&&NHX:", "")
     NHX_string = NHX_string.replace("]", "")
     for field in NHX_string.split(":"):
         try:
             pname, pvalue = field.split("=")
         except ValueError as e:
-            raise NewickError('Invalid NHX format %s' %field)
+            raise NewickError("Invalid NHX format %s (%s)" % (field, e))
         node.add_feature(pname, pvalue)
 
 def compile_matchers(formatcode):
@@ -340,9 +340,7 @@ def compile_matchers(formatcode):
     return matchers
 
 def _read_node_data(subnw, current_node, node_type, matcher, formatcode):
-    """ Reads a leaf node from a subpart of the original newick
-    tree """
-
+    """Read leaf node from a subpart of the original newick tree."""
     if node_type == "leaf" or node_type == "single":
         if node_type == "leaf":
             node = current_node.add_child()
@@ -376,7 +374,7 @@ def _read_node_data(subnw, current_node, node_type, matcher, formatcode):
                 and data[2].startswith("[&&NHX"):
             _parse_extra_features(node, data[2])
     else:
-        raise NewickError("Unexpected newick format '%s' " %subnw[0:50])
+        raise NewickError("Unexpected newick format '%s'" % subnw[0:50])
     return
 
 def write_newick(rootnode, features=None, format=1, format_root_node=True,
