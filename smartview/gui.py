@@ -1,8 +1,9 @@
 
+import os
 #from . import drawer
 from . import drawer_noqt
 import json
-import os
+import pathlib
 
 from . import layout
 from .common import CONFIG, _astart, _aend, _is_leaf, _max_leaf_idx
@@ -25,8 +26,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtOpenGL import *
 
 from OpenGL import GL
-
-import random
 
 import logging
 logger = logging.getLogger("smartview")
@@ -151,7 +150,6 @@ def start_server(tree_image):
 
     @app.get("/static/<filepath:path>")
     def webfile(filepath):
-        import pathlib
         basepath = os.path.join(pathlib.Path().absolute(), 'gui')
         print(os.path.join(basepath, filepath))
         return bottle.static_file(filepath, root=basepath)
