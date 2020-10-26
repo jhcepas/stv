@@ -112,6 +112,10 @@ def start_server(tree_image):
         bottle.response.headers['Access-Control-Allow-Methods'] = 'PUT, GET, POST, DELETE, OPTIONS'
         bottle.response.headers['Access-Control-Allow-Headers'] = 'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
 
+    @app.get("/")
+    def default():
+        bottle.redirect("/static/gui.html")
+
     @app.get("/limits/")
     def get_limits():
         return json.dumps({"width": math.ceil(tree_image.width),
