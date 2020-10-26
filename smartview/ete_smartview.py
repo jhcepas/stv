@@ -10,7 +10,6 @@ to be drawn (which include tree branches and associated images --
 though the last part is not ready yet).
 """
 
-import bottle
 from random import randint
 from json import dumps
 import time
