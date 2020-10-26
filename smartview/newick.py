@@ -37,13 +37,14 @@
 #
 # #END_LICENSE#############################################################
 
+__all__ = ["read_newick", "write_newick", "print_supported_formats"]
 
 import re
 import os
 import six
 from six.moves import map
+import gzip
 
-__all__ = ["read_newick", "write_newick", "print_supported_formats"]
 
 ITERABLE_TYPES = set([list, set, tuple, frozenset])
 
@@ -125,6 +126,9 @@ NW_FORMAT = {
   100: [[None, None, False],  [None, None, False],      [None, None, False],        [None, None, False]] # Only Topology
 }
 
+class NewickError(Exception):
+    pass
+
 
 def format_node(node, node_type, format,
                 dist_formatter=None,
@@ -185,26 +189,20 @@ def format_node(node, node_type, format,
 
 
 def print_supported_formats():
-    from ..coretype.tree import TreeNode
-    t = TreeNode()
+    from .ctree import Tree
+    t = Tree()
     t.populate(4, "ABCDEFGHI")
     print(t)
     for f in NW_FORMAT:
         print("Format", f,"=", write_newick(t, features=None, format=f))
 
-class NewickError(Exception):
-    """Exception class designed for NewickIO errors."""
-    def __init__(self, value):
-        #import sys
-        #print >>sys.stderr, 'error: ' + str(value)
-        Exception.__init__(self, value)
 
 def read_newick(fname, root_node=None, format=0):
     """Read a newick tree from a file, and return an ETE tree structure.
 
     A previously existent node object can be passed as the root of the
     tree, which means that all its new children will belong to the same
-    class as the root (this allows to work with custom TreeNode objects).
+    class as the root (this allows to work with custom Tree objects).
 
     You can also take advantage from this behaviour to concatenate
     several tree structures.
@@ -212,28 +210,28 @@ def read_newick(fname, root_node=None, format=0):
     if fname == '-':
         f = sys.stdin
     elif fname.endswith('.gz'):
-        import gzip
         f = gzip.open(fname)
     else:
         f = open(fname)
 
-    matcher = compile_matchers(formatcode=format)
     nw = f.read().strip()
 
     if root_node is None:
-        from ..coretype.tree import TreeNode
-        root_node = TreeNode()
+        from .ctree import Tree
+        root_node = Tree()
+
+    matcher = compile_matchers(format)
 
     if not nw.startswith('(') and nw.endswith(';'):
         return _read_node_data(nw[:-1], root_node, "single", matcher, format)
     elif not nw.startswith('(') or not nw.endswith(';'):
-        raise NewickError('Unexisting tree file or Malformed newick tree structure.')
+        raise NewickError("Unexisting tree file or malformed newick tree structure.")
     else:
         return _read_newick_from_string(nw, root_node, matcher, format)
 
 
 def _read_newick_from_string(nw, root_node, matcher, formatcode):
-    """ Reads a newick string in the New Hampshire format. """
+    """Read a newick string in the New Hampshire format."""
     if nw.count('(') != nw.count(')'):
         raise NewickError('Parentheses do not match. Broken tree structure?')
 
@@ -297,21 +295,23 @@ def _parse_extra_features(node, NHX_string):
 
 def compile_matchers(formatcode):
     matchers = {}
+
+    fmt = NW_FORMAT[formatcode]
     for node_type in ["leaf", "single", "internal"]:
         if node_type == "leaf" or node_type == "single":
-            container1 = NW_FORMAT[formatcode][0][0]
-            container2 = NW_FORMAT[formatcode][1][0]
-            converterFn1 = NW_FORMAT[formatcode][0][1]
-            converterFn2 = NW_FORMAT[formatcode][1][1]
-            flexible1 = NW_FORMAT[formatcode][0][2]
-            flexible2 = NW_FORMAT[formatcode][1][2]
+            container1 = fmt[0][0]
+            container2 = fmt[1][0]
+            converterFn1 = fmt[0][1]
+            converterFn2 = fmt[1][1]
+            flexible1 = fmt[0][2]
+            flexible2 = fmt[1][2]
         else:
-            container1 = NW_FORMAT[formatcode][2][0]
-            container2 = NW_FORMAT[formatcode][3][0]
-            converterFn1 = NW_FORMAT[formatcode][2][1]
-            converterFn2 = NW_FORMAT[formatcode][3][1]
-            flexible1 = NW_FORMAT[formatcode][2][2]
-            flexible2 = NW_FORMAT[formatcode][3][2]
+            container1 = fmt[2][0]
+            container2 = fmt[3][0]
+            converterFn1 = fmt[2][1]
+            converterFn2 = fmt[3][1]
+            flexible1 = fmt[2][2]
+            flexible2 = fmt[3][2]
 
         if converterFn1 == str:
             FIRST_MATCH = "("+_NAME_RE+")"
