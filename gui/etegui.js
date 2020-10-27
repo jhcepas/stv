@@ -230,27 +230,27 @@ function create_minimap() {
 // Update the minimap's rectangle that represents the current view of the tree.
 function update_minimap_visible_rect() {
   const w_min = 5, h_min = 5;  // minimum size of the rectangle
-  const ceil = Math.ceil, min = Math.min, max = Math.max;  // shortcuts
+  const round = Math.round, min = Math.min, max = Math.max;  // shortcuts
 
   const wz = view.zoom, mz = view.minimap_zoom;
 
   // Transform all measures into "minimap units" (scaling accordingly).
-  const bw = 3;  // border-width from .minimap css
-  const mw = div_minimap.offsetWidth - 2 * bw,   // minimap size
-        mh = div_minimap.offsetHeight - 2 * bw;
-  const ww = mz / wz * window.innerWidth,        // window size (scaled)
-        wh = mz / wz * window.innerHeight;
-  const tx = mz * view.tl.x,            // top-left corner of visible area
-        ty = mz * view.tl.y;            //   in tree coordinates (scaled)
+  const mbw = 3, rbw = 1;  // border-width from .minimap and .visible_rect css
+  const mw = div_minimap.offsetWidth - 2 * (mbw + rbw),    // minimap size
+        mh = div_minimap.offsetHeight - 2 * (mbw + rbw);
+  const ww = round(mz / wz * window.innerWidth),  // window size (scaled)
+        wh = round(mz / wz * window.innerHeight);
+  const tx = round(mz * view.tl.x),  // top-left corner of visible area
+        ty = round(mz * view.tl.y);  //   in tree coordinates (scaled)
 
-  const x = ceil(max(0, min(tx, mw))),
-        y = ceil(max(0, min(ty, mh))),
-        w = ceil(max(w_min, ww) + min(tx, 0)),
-        h = ceil(max(h_min, wh) + min(ty, 0));
+  const x = max(0, min(tx, mw)),
+        y = max(0, min(ty, mh)),
+        w = max(w_min, ww) + min(tx, 0),
+        h = max(h_min, wh) + min(ty, 0);
 
   const rs = div_visible_rect.style;
-  rs.left = `${div_minimap.offsetLeft + bw + x}px`;
-  rs.top = `${div_minimap.offsetTop + bw + y}px`;
+  rs.left = `${div_minimap.offsetLeft + mbw + x}px`;
+  rs.top = `${div_minimap.offsetTop + mbw + y}px`;
   rs.width = `${max(1, min(w, mw - x))}px`;
   rs.height = `${max(1, min(h, mh - y))}px`;
 }
