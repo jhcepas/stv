@@ -19,7 +19,8 @@ const view = {
   text_color: "#00A",
   font_family: "sans-serif",
   font_size: 10,
-  minimap_show: true
+  minimap_show: true,
+  minimap_zoom: 1
 };
 const dgui = new dat.GUI();
 dgui.add(view.pos, "x").listen();
@@ -111,12 +112,22 @@ function drag_stop(event) {
         dy = event.pageY - view.drag.y0;
 
   if (dx != 0 || dy != 0) {
-    const scale = (view.drag.element === div_tree ? -1/view.zoom : 1);
+    const scale = get_drag_scale();
     view.tl.x += scale * dx;
     view.tl.y += scale * dy;
     update();
   }
 }
+
+function get_drag_scale() {
+  if (view.drag.element === div_tree)
+    return -1 / view.zoom;
+  else if (view.drag.element === div_visible_rect)
+    return 1 / view.minimap_zoom;
+  else
+    console.log(`Cannot find dragging scale for ${view.drag.element}.`);
+}
+
 
 // Update the coordinates of the pointer, as shown in the top-right gui.
 function update_pointer_pos(event) {
@@ -192,18 +203,24 @@ function create_minimap() {
   fetch('/limits/')
     .then(response => response.json())
     .then(limits => {
-      div_minimap.style.width = `${limits.width}px`;
-      div_minimap.style.height = `${limits.height}px`;
+      const tw = limits.width, th = limits.height;  // tree width and height
+      const w_min = 20, h_min = 20,  // minimum and maximum size of the minimap
+            w_max = 0.2 * window.innerWidth, h_max = 0.8 * window.innerHeight;
+      const z = Math.min(1, w_max / tw, h_max / th);  // zoom that accomodates
+
+      div_minimap.style.width = `${Math.ceil(Math.max(w_min, z * tw))}px`;
+      div_minimap.style.height = `${Math.ceil(Math.max(h_min, z * th))}px`;
+      view.minimap_zoom = z;
 
       update_minimap_visible_rect();
 
-      fetch(`/get_scene_region/1,0,0,${limits.width},${limits.height}/`)
+      fetch(`/get_scene_region/${z},0,0,${z * tw},${z * th}/`)
         .then(response => response.json())
         .then(resp_data => {
           div_minimap.innerHTML = draw(resp_data.items);
-          const s = div_minimap.childNodes[0].style;
-          s.width = `${limits.width}px`;
-          s.height = `${limits.height}px`;
+          const cs = div_minimap.childNodes[0].style;
+          cs.width = div_minimap.style.width;
+          cs.height = div_minimap.style.height;
         })
         .catch(error => console.log(error));
     })
@@ -212,15 +229,28 @@ function create_minimap() {
 
 // Update the minimap's rectangle that represents the current view of the tree.
 function update_minimap_visible_rect() {
-  const ww = window.innerWidth / view.zoom, wh = window.innerHeight / view.zoom,
-        mw = div_minimap.offsetWidth, mh = div_minimap.offsetHeight;
-  const x = Math.ceil(Math.max(0, Math.min(view.tl.x, mw))),
-        y = Math.ceil(Math.max(0, Math.min(view.tl.y, mh))),
-        w = Math.ceil(Math.max(1, Math.min(ww + view.tl.x, ww, mw - x))),
-        h = Math.ceil(Math.max(1, Math.min(wh + view.tl.y, wh, mh - y)));
-  const s = div_visible_rect.style;
-  s.left = `${div_minimap.offsetLeft + x}px`;
-  s.top = `${div_minimap.offsetTop + y}px`;
-  s.width = `${w}px`;
-  s.height = `${h}px`;
+  const w_min = 5, h_min = 5;  // minimum size of the rectangle
+  const ceil = Math.ceil, min = Math.min, max = Math.max;  // shortcuts
+
+  const wz = view.zoom, mz = view.minimap_zoom;
+
+  // Transform all measures into "minimap units" (scaling accordingly).
+  const bw = 3;  // border-width from .minimap css
+  const mw = div_minimap.offsetWidth - 2 * bw,   // minimap size
+        mh = div_minimap.offsetHeight - 2 * bw;
+  const ww = mz / wz * window.innerWidth,        // window size (scaled)
+        wh = mz / wz * window.innerHeight;
+  const tx = mz * view.tl.x,            // top-left corner of visible area
+        ty = mz * view.tl.y;            //   in tree coordinates (scaled)
+
+  const x = ceil(max(0, min(tx, mw))),
+        y = ceil(max(0, min(ty, mh))),
+        w = ceil(max(w_min, ww) + min(tx, 0)),
+        h = ceil(max(h_min, wh) + min(ty, 0));
+
+  const rs = div_visible_rect.style;
+  rs.left = `${div_minimap.offsetLeft + bw + x}px`;
+  rs.top = `${div_minimap.offsetTop + bw + y}px`;
+  rs.width = `${max(1, min(w, mw - x))}px`;
+  rs.height = `${max(1, min(h, mh - y))}px`;
 }
