@@ -59,7 +59,7 @@ document.body.addEventListener("wheel", event => {
   event.preventDefault();
   const zr = (event.deltaY < 0 ? 1.25 : 0.8);  // zoom change (ratio)
   if (is_valid_zoom_change(zr)) {
-    const zoom_new = view.zoom * zr,
+    const zoom_new =  zr * view.zoom,
           tppix = 1 / view.zoom - 1 / zoom_new;  // tree coordinates per pixel
     view.tl.x += tppix * event.pageX;
     view.tl.y += tppix * event.pageY;
@@ -161,13 +161,14 @@ function update_tree() {
 
 
 // Return an svg with all the items in the list (rectangles and lines).
-function draw(items, x0_, y0_, width_, height_) {
-  const width = width_ || (window.innerWidth - 10),
-        height = height_ || (window.innerHeight - 10),
-        x0 = x0_ || (view.zoom * view.tl.x),
-        y0 = y0_ || (view.zoom * view.tl.y);
+function draw(items) {
+  const padding = 5;  // use so the drawing is not bigger than the window
 
-  let svg = `<svg width="${width}" height="${height}">`;
+  let svg = `<svg width="${window.innerWidth - padding}"
+                  height="${window.innerHeight - padding}">`;
+
+  const x0 = view.zoom * view.tl.x,
+        y0 = view.zoom * view.tl.y;
   items.forEach(d => {
     if (d[0] === 'r') {       // rectangle
       const x = d[1] - x0, y = d[2] - y0, w = d[3], h = d[4];
@@ -198,7 +199,7 @@ function draw(items, x0_, y0_, width_, height_) {
 }
 
 
-// Create a drawing on the bottom-right of the full tree at zoom 1 ("minimap").
+// Create a drawing on the bottom-right of the full tree ("minimap").
 function create_minimap() {
   fetch('/limits/')
     .then(response => response.json())
