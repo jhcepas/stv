@@ -24,6 +24,9 @@ const view = {
   minimap_show: true,
   minimap_zoom: 1
 };
+
+const css = document.styleSheets[0].cssRules;  // shortcut
+
 const dgui = new dat.GUI();
 dgui.add(view.pos, "x").listen();
 dgui.add(view.pos, "y").listen();
@@ -35,27 +38,23 @@ dgui_ctl.add(view, "update_on_drag").name("continuous dragging");
 dgui_ctl.add(view, "select_text").name("select text").onChange(() =>
   css[3].style.userSelect = (view.select_text ? "text" : "none"));
 const dgui_style = dgui.addFolder("style");
-const css = document.styleSheets[0].cssRules;  // shortcut
 dgui_style.addColor(view, "line_color").name("line color").onChange(() =>
   css[1].style.stroke = view.line_color);
 dgui_style.addColor(view, "rect_color").name("rectangle color").onChange(() =>
   css[2].style.stroke = view.rect_color);
 dgui_style.addColor(view, "font_color").name("text color").onChange(() =>
   css[3].style.fill = view.font_color);
-dgui_style.add(view, "font_family",
-  ["sans-serif", "serif", "monospace"]).name("font").onChange(() =>
-  css[3].style.fontFamily = view.font_family);
+dgui_style.add(view, "font_family", ["sans-serif", "serif", "monospace"])
+  .name("font").onChange(() => css[3].style.fontFamily = view.font_family);
 dgui_style.add(view, "font_size_auto").name("automatic size").onChange(() => {
-  if (view.font_size_auto) {
-    if (view.font_size_scroller)
+  css[3].style.fontSize = (view.font_size_auto ? "" : `${view.font_size}px`);
+
+  if (view.font_size_auto && view.font_size_scroller)
       view.font_size_scroller.remove();
-    css[3].style.fontSize = "";
-  }
-  else {
+  else
     view.font_size_scroller = dgui_style.add(view, "font_size", 1, 20)
       .name("font size").onChange(() =>
         css[3].style.fontSize = `${view.font_size}px`);
-  }
 });
 const dgui_minimap = dgui.addFolder("minimap");
 dgui_minimap.add(view, "minimap_show").name("active").onChange(() => {
