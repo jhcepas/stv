@@ -70,10 +70,10 @@ document.body.addEventListener("wheel", event => {
   event.preventDefault();
   const zr = (event.deltaY < 0 ? 1.25 : 0.8);  // zoom change (ratio)
   if (is_valid_zoom_change(zr)) {
-    const zoom_new =  zr * view.zoom,
-          tppix = 1 / view.zoom - 1 / zoom_new;  // tree coordinates per pixel
-    view.tl.x += tppix * event.pageX;
-    view.tl.y += tppix * event.pageY;
+    const zoom_new =  zr * view.zoom;
+    const a = 1 / view.zoom - 1 / zoom_new;
+    view.tl.x += a * event.pageX;
+    view.tl.y += a * event.pageY;
     view.zoom = zoom_new;
     update();
   }
