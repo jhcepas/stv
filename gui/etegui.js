@@ -150,8 +150,8 @@ function update() {
 function update_tree() {
   const x = view.zoom * Math.max(0, view.tl.x),
         y = view.zoom * Math.max(0, view.tl.y),
-        w = window.innerWidth - Math.max(0, - view.zoom * view.tl.x),
-        h = window.innerHeight - Math.max(0, - view.zoom * view.tl.y);
+        w = div_tree.offsetWidth - Math.max(0, - view.zoom * view.tl.x),
+        h = div_tree.offsetHeight - Math.max(0, - view.zoom * view.tl.y);
 
   fetch(`/get_scene_region/${view.zoom},${x},${y},${w},${h}/`)
     .then(response => response.json())
@@ -161,38 +161,42 @@ function update_tree() {
 
 
 // Append a svg to the given element, with all the items in the list drawn.
-function draw(elem, items) {
-  const x0 = view.zoom * view.tl.x, y0 = view.zoom * view.tl.y,
-        width = elem.offsetWidth, height = elem.offsetHeight;
+function draw(element, items) {
+  const [x, y] = [view.zoom * view.tl.x, view.zoom * view.tl.y],
+        [w, h] = [element.offsetWidth, element.offsetHeight];
 
-  let svg = `<svg viewBox="${x0} ${y0} ${width} ${height}"
-                  width="${width}" height="${height}">`;
-  items.forEach(data => {
-    if (data[0] === 'r') {       // rectangle
-      const [ , x, y, w, h] = data;
-      svg += `<rect class="rect" x="${x}" y="${y}" width="${w}" height="${h}"
-                    fill="none" stroke="${view.rect_color}"/>`;
-    }
-    else if (data[0] === 'l') {  // line
-      const [ , x1, y1, x2, y2] = data;
-      svg += `<line class="line" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
-                    stroke="${view.line_color}"/>`;
-    }
-    else if (data[0] === 't') {  // text
-      const [ , x, y, w, h, txt] = data;
-      svg += `<text class="text" x="${x}" y="${y}"
-                    color="${view.text_color}">${txt}</text>`;
-      // TODO: check if we want to use something like:
-      //    textLength="${w}"
-      // TODO: compute the length of the text and adjust so it fits in the rect
-    }
-    else {
-      console.log(`Got unknown item of type: ${data[0]}`);
-    }
-  });
-  svg += '</svg>';
+  element.innerHTML = `
+    <svg viewBox="${x} ${y} ${w} ${h}" width="${w}" height="${h}">
+      ${items.map(item2svg).join("\n")}
+    </svg>`;
+}
 
-  elem.innerHTML = svg;
+
+// Return the graphical (svg) element corresponding to an ete item.
+function item2svg(item) {
+  // ete items look like ['r', ...] for a rectangle, etc.
+  if (item[0] === 'r') {       // rectangle
+    const [ , x, y, w, h] = item;
+    return `<rect class="rect" x="${x}" y="${y}" width="${w}" height="${h}"
+                  fill="none" stroke="${view.rect_color}"/>`;
+  }
+  else if (item[0] === 'l') {  // line
+    const [ , x1, y1, x2, y2] = item;
+    return `<line class="line" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
+                  stroke="${view.line_color}"/>`;
+  }
+  else if (item[0] === 't') {  // text
+    const [ , x, y, w, h, txt] = item;
+    return `<text class="text" x="${x}" y="${y}"
+                  color="${view.text_color}">${txt}</text>`;
+    // TODO: check if we want to use something like:
+    //    textLength="${w}"
+    // TODO: compute the length of the text and adjust so it fits in the rect
+  }
+  else {
+    console.log(`Got unknown item of type: ${item[0]}`);
+    return "";
+  }
 }
 
 
@@ -201,9 +205,10 @@ function create_minimap() {
   fetch('/limits/')
     .then(response => response.json())
     .then(limits => {
-      const tw = limits.width, th = limits.height;  // tree width and height
-      const w_min = 20, h_min = 20,  // minimum and maximum size of the minimap
-            w_max = 0.2 * window.innerWidth, h_max = 0.8 * window.innerHeight;
+      const [tw, th] = [limits.width, limits.height];  // tree width and height
+      const [w_min, h_min] = [20, 20];  // minimum size of the minimap
+      const w_max = 0.2 * window.innerWidth,
+            h_max = 0.8 * window.innerHeight;  // maximum size of the minimap
       const z = Math.min(1, w_max / tw, h_max / th);  // zoom that accomodates
 
       div_minimap.style.width = `${Math.ceil(Math.max(w_min, z * tw))}px`;
@@ -222,21 +227,20 @@ function create_minimap() {
 
 // Update the minimap's rectangle that represents the current view of the tree.
 function update_minimap_visible_rect() {
-  const w_min = 5, h_min = 5;  // minimum size of the rectangle
-  const round = Math.round, min = Math.min, max = Math.max;  // shortcuts
-
-  const wz = view.zoom, mz = view.minimap_zoom;
+  const [w_min, h_min] = [5, 5];  // minimum size of the rectangle
+  const [round, min, max] = [Math.round, Math.min, Math.max];  // shortcuts
 
   // Transform all measures into "minimap units" (scaling accordingly).
   const mbw = 3, rbw = 1;  // border-width from .minimap and .visible_rect css
   const mw = div_minimap.offsetWidth - 2 * (mbw + rbw),    // minimap size
         mh = div_minimap.offsetHeight - 2 * (mbw + rbw);
-  const ww = round(mz / wz * window.innerWidth),  // window size (scaled)
-        wh = round(mz / wz * window.innerHeight);
+  const wz = view.zoom, mz = view.minimap_zoom;
+  const ww = round(mz / wz * div_tree.offsetWidth),  // tree size (scaled)
+        wh = round(mz / wz * div_tree.offsetHeight);
   const tx = round(mz * view.tl.x),  // top-left corner of visible area
         ty = round(mz * view.tl.y);  //   in tree coordinates (scaled)
 
-  const x = max(0, min(tx, mw)),
+  const x = max(0, min(tx, mw)),  // clip tx to the interval [0, mw]
         y = max(0, min(ty, mh)),
         w = max(w_min, ww) + min(tx, 0),
         h = max(h_min, wh) + min(ty, 0);
