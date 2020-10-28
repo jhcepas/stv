@@ -155,47 +155,44 @@ function update_tree() {
 
   fetch(`/get_scene_region/${view.zoom},${x},${y},${w},${h}/`)
     .then(response => response.json())
-    .then(resp_data => div_tree.innerHTML = draw(resp_data.items))
+    .then(resp_data => draw(div_tree, resp_data.items))
     .catch(error => console.log(error));
 }
 
 
-// Return an svg with all the items in the list (rectangles and lines).
-function draw(items) {
-  const padding = 5;  // use so the drawing is not bigger than the window
+// Append a svg to the given element, with all the items in the list drawn.
+function draw(elem, items) {
+  const x0 = view.zoom * view.tl.x, y0 = view.zoom * view.tl.y,
+        width = elem.offsetWidth, height = elem.offsetHeight;
 
-  let svg = `<svg width="${window.innerWidth - padding}"
-                  height="${window.innerHeight - padding}">`;
-
-  const x0 = view.zoom * view.tl.x,
-        y0 = view.zoom * view.tl.y;
-  items.forEach(d => {
-    if (d[0] === 'r') {       // rectangle
-      const x = d[1] - x0, y = d[2] - y0, w = d[3], h = d[4];
+  let svg = `<svg viewBox="${x0} ${y0} ${width} ${height}"
+                  width="${width}" height="${height}">`;
+  items.forEach(data => {
+    if (data[0] === 'r') {       // rectangle
+      const [ , x, y, w, h] = data;
       svg += `<rect class="rect" x="${x}" y="${y}" width="${w}" height="${h}"
                     fill="none" stroke="${view.rect_color}"/>`;
     }
-    else if (d[0] === 'l') {  // line
-      const x1 = d[1] - x0, y1 = d[2] - y0,
-            x2 = d[3] - x0, y2 = d[4] - y0;
+    else if (data[0] === 'l') {  // line
+      const [ , x1, y1, x2, y2] = data;
       svg += `<line class="line" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
                     stroke="${view.line_color}"/>`;
     }
-    else if (d[0] === 't') {  // text
-      const x = d[1] - x0, y = d[2] - y0, w = d[3], h = d[4];
+    else if (data[0] === 't') {  // text
+      const [ , x, y, w, h, txt] = data;
       svg += `<text class="text" x="${x}" y="${y}"
-                    color="${view.text_color}">${d[5]}</text>`;
+                    color="${view.text_color}">${txt}</text>`;
       // TODO: check if we want to use something like:
       //    textLength="${w}"
       // TODO: compute the length of the text and adjust so it fits in the rect
     }
     else {
-      console.log(`Got unknown item: ${d[0]}`);
+      console.log(`Got unknown item of type: ${data[0]}`);
     }
   });
   svg += '</svg>';
 
-  return svg;
+  elem.innerHTML = svg;
 }
 
 
@@ -217,12 +214,7 @@ function create_minimap() {
 
       fetch(`/get_scene_region/${z},0,0,${z * tw},${z * th}/`)
         .then(response => response.json())
-        .then(resp_data => {
-          div_minimap.innerHTML = draw(resp_data.items);
-          const cs = div_minimap.childNodes[0].style;
-          cs.width = div_minimap.style.width;
-          cs.height = div_minimap.style.height;
-        })
+        .then(resp_data => draw(div_minimap, resp_data.items))
         .catch(error => console.log(error));
     })
     .catch(error => console.log(error));
