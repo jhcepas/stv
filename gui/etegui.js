@@ -16,8 +16,10 @@ const view = {
   select_text: false,
   line_color: "#000",
   rect_color: "#0A0",
-  text_color: "#00A",
+  font_color: "#00A",
   font_family: "sans-serif",
+  font_size_auto: true,
+  font_size_scroller: undefined,
   font_size: 10,
   minimap_show: true,
   minimap_zoom: 1
@@ -28,7 +30,7 @@ dgui.add(view.pos, "y").listen();
 const dgui_ctl = dgui.addFolder("control");
 dgui_ctl.add(view.tl, "x").name("top-left x").onChange(update);
 dgui_ctl.add(view.tl, "y").name("top-left y").onChange(update);
-dgui_ctl.add(view, "zoom", 1, 100).onChange(update);
+dgui_ctl.add(view, "zoom", 1, 1000).onChange(update);
 dgui_ctl.add(view, "update_on_drag").name("continuous dragging");
 dgui_ctl.add(view, "select_text").name("select text").onChange(() =>
   css[3].style.userSelect = (view.select_text ? "text" : "none"));
@@ -38,13 +40,23 @@ dgui_style.addColor(view, "line_color").name("line color").onChange(() =>
   css[1].style.stroke = view.line_color);
 dgui_style.addColor(view, "rect_color").name("rectangle color").onChange(() =>
   css[2].style.stroke = view.rect_color);
-dgui_style.addColor(view, "text_color").name("text color").onChange(() =>
-  css[3].style.fill = view.text_color);
+dgui_style.addColor(view, "font_color").name("text color").onChange(() =>
+  css[3].style.fill = view.font_color);
 dgui_style.add(view, "font_family",
-  ["sans-serif", "serif", "cursive", "monospace"]).name("font").onChange(() =>
+  ["sans-serif", "serif", "monospace"]).name("font").onChange(() =>
   css[3].style.fontFamily = view.font_family);
-dgui_style.add(view, "font_size", 1, 20).onChange(() =>
-  css[3].style.fontSize = `${view.font_size}px`);
+dgui_style.add(view, "font_size_auto").name("automatic size").onChange(() => {
+  if (view.font_size_auto) {
+    if (view.font_size_scroller)
+      view.font_size_scroller.remove();
+    css[3].style.fontSize = "";
+  }
+  else {
+    view.font_size_scroller = dgui_style.add(view, "font_size", 1, 20)
+      .name("font size").onChange(() =>
+        css[3].style.fontSize = `${view.font_size}px`);
+  }
+});
 const dgui_minimap = dgui.addFolder("minimap");
 dgui_minimap.add(view, "minimap_show").name("active").onChange(() => {
     const display = (view.minimap_show ? "block" : "none");
@@ -69,7 +81,7 @@ document.body.addEventListener("wheel", event => {
 }, {passive: false});  // chrome now uses passive=true otherwise
 
 function is_valid_zoom_change(zr) {
-  return (zr > 1 && view.zoom < 100) || (zr < 1 && view.zoom > 1);
+  return (zr > 1 && view.zoom < 1000) || (zr < 1 && view.zoom > 1);
 }
 
 
@@ -187,11 +199,11 @@ function item2svg(item) {
   }
   else if (item[0] === 't') {  // text
     const [ , x, y, w, h, txt] = item;
-    return `<text class="text" x="${x}" y="${y}"
-                  color="${view.text_color}">${txt}</text>`;
-    // TODO: check if we want to use something like:
-    //    textLength="${w}"
-    // TODO: compute the length of the text and adjust so it fits in the rect
+    const fs = Math.ceil(1.5 * w / txt.length);  // fs * length = w (approx.)
+    return `<text class="text" x="${x}" y="${y+fs}" color="${view.font_color}"
+                  font-size="${fs}px">${txt}</text>`;
+    // If we wanted to use the exact width of the item, we could add:
+    //   textLength="${w}px"
   }
   else {
     console.log(`Got unknown item of type: ${item[0]}`);
