@@ -19,7 +19,7 @@ else:
     mean = numpy.mean
 
 from .common import CONFIG
-    
+
 # CONVERT shell colors to the same curses palette
 SHELL_COLORS = {
     "wr": '\033[1;37;41m', # white on red
@@ -103,7 +103,7 @@ def print_table(items, header=None, wrap=True, max_col_width=20,
     else:
         c2maxw = dict([(i, min(max_col_width, max([safelen(str(e[i])) for e in items])))
                         for i in range(len(items[0]))])
-        
+
     if header:
         current_item = -1
         row = header
@@ -121,7 +121,7 @@ def print_table(items, header=None, wrap=True, max_col_width=20,
         print("-" *table_width)
         print(title.center(table_width))
         print("-" *table_width)
-        
+
     while row:
         is_extra = False
         values = []
@@ -195,4 +195,4 @@ def timeit(f):
 
 def debug(*args):
     if CONFIG["debug"]:
-        print("DEBBUG: " + ' '.join(map(str, args)))
+        print("DEBUG: " + ' '.join(map(str, args)))
