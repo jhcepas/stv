@@ -5,7 +5,7 @@ import numpy as np
 import re
 from . import colors
 import colorsys
-from .utils import timeit, debug
+from .utils import timeit
 
 # Pick two colors. Values from 0 to 1. See "hue" at
 # http://en.wikipedia.org/wiki/HSL_and_HSV
@@ -146,7 +146,7 @@ class Face(object):
     def _height(self):
         pass
 
-    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
+    def _draw(self, pp, painter, x, y, zoom_factor, w=None, h=None):
         pass
 
     def _pre_draw(self):
@@ -175,14 +175,14 @@ class HeatmapArcFace(Face):
     def _size(self):
         return self.width, 1
 
-    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
-        painter.save()
-        painter.scale(zoom_factor, zoom_factor)
-        painter.translate(-self.img_rad*2, -self.img_rad)
+    def _draw(self, pp, painter, x, y, zoom_factor, w=None, h=None):
+        pp.save()
+        pp.scale(zoom_factor, zoom_factor)
+        pp.translate(-self.img_rad*2, -self.img_rad)
 
         # r1 = QRectF(0, 0, (self.img_rad)*2, (self.img_rad)*2)
-        # painter.setPen(QColor("blue"))
-        # painter.drawRect(r1)
+        # pp.setPen(QColor("blue"))
+        # pp.drawRect(r1)
         step = (self.width) / float(len(self.values))
         offset = 0
         for v in self.values:
@@ -198,28 +198,28 @@ class HeatmapArcFace(Face):
                         (self.img_rad+offset)*2, (self.img_rad+offset)*2)
 
             # if self.node.name == 'aaaaaaaaac':
-            # painter.setPen(QColor("green"))
-            # painter.drawRect(r2)
-            # painter.setPen(QColor("yellow"))
-            # painter.drawRect(r1)
+            # pp.setPen(QColor("green"))
+            # pp.drawRect(r2)
+            # pp.setPen(QColor("yellow"))
+            # pp.drawRect(r1)
 
             if self.node.children:
-                painter.setOpacity(0.5)
+                pp.setOpacity(0.5)
 
-            painter.setPen(QColor("#777777"))
-            painter.setBrush(QColor(color))
+            pp.setPen(QColor("#777777"))
+            pp.setBrush(QColor(color))
 
             # if 'aaaaaaaaac' in self.node.get_leaf_names():
-            #     painter.setBrush(QColor(random_color(h=0.9)))
-            #     painter.setPen(QColor("#777777"))
+            #     pp.setBrush(QColor(random_color(h=0.9)))
+            #     pp.setPen(QColor("#777777"))
 
             span = self.arc_end - self.arc_start
             # path = get_arc_path(r1, r2, [span/2, -span/2])
             path = get_arc_path(
                 r1, r2, [self.arc_start-self.arc_center, self.arc_end-self.arc_center])
-            painter.drawPath(path)
+            pp.drawPath(path)
 
-        painter.restore()
+        pp.restore()
 
 
 class HeatmapFace(Face):
@@ -246,18 +246,20 @@ class HeatmapFace(Face):
     def _size(self):
         return self.rect_width * len(self.values), self.rect_height
 
-    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
-        painter.save()
-        painter.scale(zoom_factor, zoom_factor)
+    def _draw(self, pp, painter, x, y, zoom_factor, w=None, h=None):
+        pp.save()
+        pp.scale(zoom_factor, zoom_factor)
         x = 0
         for v in self.values:
             color = colors.random_color(l=0.5, s=0.5)
-            painter.fillRect(QRectF(x, y, self.rect_width,
+            pp.fillRect(QRectF(x, y, self.rect_width,
                                     self.rect_height), QColor(color))
-            painter.setPen(QColor("black"))
-            painter.drawRect(QRectF(x, y, self.rect_width, self.rect_height))
+            pp.setPen(QColor("black"))
+            #pp.drawRect(QRectF(x, y, self.rect_width, self.rect_height))
+            painter.drawRect(x, y, self.rect_width, self.rect_height)
+
             x += self.rect_width
-        painter.restore()
+        pp.restore()
 
 
 class RectFace(Face):
@@ -285,18 +287,20 @@ class RectFace(Face):
     def _size(self):
         return self.rect_width, self.rect_height
 
-    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
-        painter.save()
-        painter.scale(zoom_factor, zoom_factor)
-        painter.setPen(QColor(self.fgcolor))
+    def _draw(self, pp, painter, x, y, zoom_factor, w=None, h=None):
+        pp.save()
+        pp.scale(zoom_factor, zoom_factor)
+        pp.setPen(QColor(self.fgcolor))
         if self.bgcolor:
-            painter.fillRect(QRectF(x, y, self.rect_width,
+            pp.fillRect(QRectF(x, y, self.rect_width,
                                     self.rect_height), QColor(self.bgcolor))
-            painter.setPen(QColor("black"))
-            painter.drawRect(QRectF(x, y, self.rect_width, self.rect_height))
+            pp.setPen(QColor("black"))
+            #pp.drawRect(QRectF(x, y, self.rect_width, self.rect_height))
+            painter.drawRect(x, y, self.rect_width, self.rect_height)
         else:
-            painter.drawRect(QRectF(x, y, self.rect_width, self.rect_height))
-        painter.restore()
+            #pp.drawRect(QRectF(x, y, self.rect_width, self.rect_height))
+            painter.drawRect(x, y, self.rect_width, self.rect_height)
+        pp.restore()
 
 
 class BaseTextFace(Face):
@@ -354,19 +358,25 @@ class BaseTextFace(Face):
         text_rect = fm.boundingRect(self.text)
         return text_rect.width(), text_rect.height()
 
-    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
-        painter.save()
-        painter.scale(zoom_factor, zoom_factor)
-        painter.setPen(QPen(QColor(self.fgcolor)))
+    def _draw(self, pp, painter, x, y, zoom_factor, w=None, h=None):
+        pp.save()
+        pp.scale(zoom_factor, zoom_factor)
+        pp.setPen(QPen(QColor(self.fgcolor)))
         r = QRectF(x, y, self._width(), self._height())
         if zoom_factor * self._height() < 4:
-            painter.setOpacity(0.6)
-            painter.drawRect(r)
+            pp.setOpacity(0.6)
+            #pp.drawRect(r)
+            M = pp.transform()
+            Mr = M.mapRect(r)
+            painter.drawRect(Mr.x(), Mr.y(), Mr.width(), Mr.height())
         else:
-            painter.setFont(self._get_font())
-            painter.drawText(r, self.text)
-            # painter.drawText(x, y+self._height(), self.text)
-        painter.restore()
+            pp.setFont(self._get_font())
+            #pp.drawText(r, self.text)
+            M = pp.transform()
+            Mr = M.mapRect(r)
+            painter.drawText(Mr.x(), Mr.y(), Mr.width(), Mr.height(), self.text)
+            # pp.drawText(x, y+self._height(), self.text)
+        pp.restore()
 
     def _get_font(self):
         italic = (self.fstyle == "italic")
@@ -420,7 +430,7 @@ class LabelFace(Face):
     def _size(self):
         return self.width, 0.0
 
-    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
+    def _draw(self, pp, painter, x, y, zoom_factor, w=None, h=None):
         pass
 
 
@@ -446,7 +456,7 @@ class GradientFace(Face):
         value = getattr(self.node, self.node_attr)
         self.fill_color = colors.random_color(h=0.3, s=0.5, l=value)
 
-    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
+    def _draw(self, pp, painter, x, y, zoom_factor, w=None, h=None):
         pass
 
 
@@ -474,13 +484,15 @@ class CircleLabelFace(Face):
     def _height(self):
         return 0.0
 
-    def _draw(self, painter, x, y, zoom_factor, w=None, h=None):
+    def _draw(self, pp, painter, x, y, zoom_factor, w=None, h=None):
 
         if self.solid:
-            painter.setBrush(QColor(self.color))
+            pp.setBrush(QColor(self.color))
+            #pp.drawEllipse(x, y, self._width(), self._height())
             painter.drawEllipse(x, y, self._width(), self._height())
         else:
-            painter.setPen(QPen(QColor(self.color)))
+            pp.setPen(QPen(QColor(self.color)))
+            #pp.drawEllipse(x, y, self._width(), self._height())
             painter.drawEllipse(x, y, self._width(), self._height())
 
 
@@ -594,19 +606,19 @@ class SeqMotifFace(Face):
     def _size(self):
         return self._width(), self._height()
 
-    def _draw(self, painter, node, avail_w=None, avail_h=None):
+    def _draw(self, pp, painter, node, avail_w=None, avail_h=None):
         posheight = avail_h
         poswidth = self.poswidth
 
         max_visible_pos = int(np.ceil(avail_w / poswidth))
         #sequence = sequence[0:max_visible_pos]
-        sequence = self.node2seq.get_seq(self.node, 0, max_visible_pos)        
-        
+        sequence = self.node2seq.get_seq(self.node, 0, max_visible_pos)
+
         chunks = self.get_chunks(sequence)
         #print('------------------------', max_visiable_pos, orig_len, w, self.poswidth)
 
-        painter.save()
-        #painter.translate(x, y)
+        pp.save()
+        #pp.translate(x, y)
 
         if self.total_width:
             real_w = len(sequence) * self.poswidth
@@ -614,10 +626,10 @@ class SeqMotifFace(Face):
         else:
             xfactor = 1
 
-        #painter.scale(xfactor, zoom_factor)
+        #pp.scale(xfactor, zoom_factor)
 
-        painter.setPen(QColor(self.fgcolor))
-        painter.setBrush(QColor(self.bgcolor))
+        pp.setPen(QColor(self.fgcolor))
+        pp.setBrush(QColor(self.bgcolor))
 
         for index, (seq_start, seq_end, typ) in enumerate(chunks):
 
@@ -625,10 +637,12 @@ class SeqMotifFace(Face):
             w = ((seq_end - seq_start) + 1) * self.poswidth
 
             if typ == "-" or typ == "line":
+                #pp.drawLine(0, h/2, w, h/2)
                 painter.drawLine(0, h/2, w, h/2)
             elif typ == " " or typ == "blank":
                 pass
             elif typ == "o":
+                #pp.drawEllipse(0, 0, w, h)
                 painter.drawEllipse(0, 0, w, h)
             elif typ == ">":
                 pass
@@ -641,22 +655,22 @@ class SeqMotifFace(Face):
             elif typ == "<>":
                 pass
             elif typ == "[]":
-                painter.drawImage(QRectF(0, 0, w, posheight), self.BLOCK)
+                pp.drawImage(QRectF(0, 0, w, posheight), self.BLOCK)
 
             elif typ == "()":
                 pass
-                # painter.drawRoundedRect(0, 0, w, h, 3, 3)
-                painter.drawImage(QRectF(0, 0, w, posheight), self.BLOCK)
+                # pp.drawRoundedRect(0, 0, w, h, 3, 3)
+                pp.drawImage(QRectF(0, 0, w, posheight), self.BLOCK)
 
             elif typ == "seq" and sequence:
-                self._draw_sequence(painter, sequence[seq_start:seq_end+1],
+                self._draw_sequence(pp, sequence[seq_start:seq_end+1],
                                     poswidth=poswidth, posheight=posheight)
             else:
                 raise ValueError("Unknown Seq type: %s" % typ)
 
-            painter.translate(w, 0)
+            pp.translate(w, 0)
 
-        painter.restore()
+        pp.restore()
 
     def _draw_sequence(self, p, seq, seqtype="aa", poswidth=10, posheight=10,
                        draw_text=False):
@@ -683,6 +697,6 @@ class SeqMotifFace(Face):
                 p.drawImage(r, self.AA2IMG[letter])
 
             x += poswidth
-            
+
         #p.drawRects(rectangles)
         return x, posheight

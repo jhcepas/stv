@@ -1,6 +1,6 @@
 from collections import namedtuple
 import re
-from .face_noqt import Face
+from .face import Face
 
 from .checkers import *
 from .common import *

@@ -1,7 +1,6 @@
 
 import os
-#from . import drawer
-from . import drawer_noqt
+from . import drawer
 import json
 import pathlib
 
@@ -134,8 +133,8 @@ def start_server(tree_image):
         pp.begin(ii)
         painter = Painter()
 
-        terminal_nodes = drawer_noqt.draw_tree_scene_region(pp, painter, tree_image,
-                                                            zoom, target_tree_scene)
+        terminal_nodes = drawer.draw_tree_scene_region(pp, painter, tree_image,
+                                                       zoom, target_tree_scene)
         pp.end()
 
         # TODO: call here drawer.py draw_aligned_panel_region() and send the
