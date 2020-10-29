@@ -114,8 +114,8 @@ def start_server(tree_image):
     def default():
         bottle.redirect("/static/gui.html")
 
-    @app.get("/limits/")
-    def get_limits():
+    @app.get("/size/")
+    def get_size():
         return json.dumps({"width": math.ceil(tree_image.width),
                            "height": math.ceil(tree_image.height)})
 

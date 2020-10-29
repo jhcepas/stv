@@ -239,28 +239,33 @@ function item2svg(item) {
 
 // Create a drawing on the bottom-right of the full tree ("minimap").
 function create_minimap() {
-  fetch('/limits/')
+  fetch('/size/')
     .then(response => response.json())
-    .then(limits => {
-      const [tw, th] = [limits.width, limits.height];  // tree width and height
-      const [w_min, h_min] = [20, 20];  // minimum size of the minimap
-      const w_max = 0.2 * window.innerWidth,
-            h_max = 0.8 * window.innerHeight;  // maximum size of the minimap
-      const z = Math.min(1, w_max / tw, h_max / th);  // zoom that accomodates
-
-      div_minimap.style.width = `${Math.ceil(Math.max(w_min, z * tw))}px`;
-      div_minimap.style.height = `${Math.ceil(Math.max(h_min, z * th))}px`;
-      view.minimap_zoom = z;
-
-      update_minimap_visible_rect();
-
-      fetch(`/get_scene_region/${z},0,0,${z * tw},${z * th}/`)
-        .then(response => response.json())
-        .then(resp_data => draw(div_minimap, resp_data.items))
-        .catch(error => console.log(error));
-    })
+    .then(size => create_minimap_with_size(size))
     .catch(error => console.log(error));
 }
+
+function create_minimap_with_size(size) {
+  const [tw, th] = [size.width, size.height];  // tree width and height
+  const [w_min, h_min] = [20, 20];  // minimum size of the minimap
+  const w_max = 0.2 * window.innerWidth,
+        h_max = 0.8 * window.innerHeight;  // maximum size of the minimap
+  const zoom = Math.min(1, w_max / tw, h_max / th);  // zoom that accomodates
+
+  // Adjust minimap's size.
+  div_minimap.style.width = `${Math.ceil(Math.max(w_min, zoom * tw))}px`;
+  div_minimap.style.height = `${Math.ceil(Math.max(h_min, zoom * th))}px`;
+
+  view.minimap_zoom = zoom;
+
+  update_minimap_visible_rect();
+
+  fetch(`/get_scene_region/${zoom},0,0,${zoom * tw},${zoom * th}/`)
+    .then(response => response.json())
+    .then(resp_data => draw(div_minimap, resp_data.items))
+    .catch(error => console.log(error));
+}
+
 
 // Update the minimap's rectangle that represents the current view of the tree.
 function update_minimap_visible_rect() {
