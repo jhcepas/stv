@@ -1,5 +1,4 @@
 from . import layout
-from .utils import timeit, debug
 from .common import *
 from .utils import colorify
 import math
@@ -139,7 +138,6 @@ def get_arc_path(inner_r, outter_r, rad_angles):
     return path
 
 
-@timeit
 def draw_tree_scene_region(pp, painter, tree_image, zoom_factor, scene_rect):
     """ Draws a region of the scene.
 
