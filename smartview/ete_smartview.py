@@ -1,8 +1,7 @@
 """
 Run ETE.
 
-It can run in interactive mode (which I do not think is working now)
-or as a web server.
+It can run as a Qt app (not working at the moment) or as a web server.
 
 As a web server it will listen in port 8090 and answer to requests
 like "/get_scene_region/2,0,81,797,900" (zoom, x, y, w, h) with scenes
@@ -82,7 +81,7 @@ def get_args():
     add("--track_mem", action="store_true", help="tracks memory usage")
     add("--profile", action="store_true", help="tracks cpu time")
     add("--timeit", action="store_true", help="tracks memory usage")
-    add("--nogui", action="store_true")
+    add("--qt-gui", action="store_true")
     add("--ultrametric", action="store_true", help="convert to untrametric")
     add("--standardize", action="store_true", help="stand")
     add("--logscale", action="store_true", help="log scale")
@@ -396,7 +395,7 @@ def main():
         pr = cProfile.Profile()
         pr.enable()
 
-    if not args.nogui:
+    if args.qt_gui:
         gui.display(tree_image, zoom_factor=args.zoom_factor)
     else:
         gui.start_server(tree_image)
