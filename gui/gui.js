@@ -25,37 +25,43 @@ const view = {
   minimap_zoom: 1
 };
 
-const css = document.styleSheets[0].cssRules;  // shortcut
+const [style_line, style_rect, style_font] = [1, 2, 3].map(i =>
+  document.styleSheets[0].cssRules[i].style);  // shortcut
 
 const dgui = new dat.GUI();
 dgui.add(view.pos, "x").listen();
 dgui.add(view.pos, "y").listen();
+
 const dgui_ctl = dgui.addFolder("control");
 dgui_ctl.add(view.tl, "x").name("top-left x").onChange(update);
 dgui_ctl.add(view.tl, "y").name("top-left y").onChange(update);
 dgui_ctl.add(view, "zoom", 1, 1000).onChange(update);
 dgui_ctl.add(view, "update_on_drag").name("continuous dragging");
 dgui_ctl.add(view, "select_text").name("select text").onChange(() =>
-  css[3].style.userSelect = (view.select_text ? "text" : "none"));
+  style_font.userSelect = (view.select_text ? "text" : "none"));
+
 const dgui_style = dgui.addFolder("style");
 dgui_style.addColor(view, "line_color").name("line color").onChange(() =>
-  css[1].style.stroke = view.line_color);
+  style_line.stroke = view.line_color);
 dgui_style.addColor(view, "rect_color").name("rectangle color").onChange(() =>
-  css[2].style.stroke = view.rect_color);
+  style_rect.stroke = view.rect_color);
 dgui_style.addColor(view, "font_color").name("text color").onChange(() =>
-  css[3].style.fill = view.font_color);
+  style_font.fill = view.font_color);
 dgui_style.add(view, "font_family", ["sans-serif", "serif", "monospace"])
-  .name("font").onChange(() => css[3].style.fontFamily = view.font_family);
+  .name("font").onChange(() => style_font.fontFamily = view.font_family);
 dgui_style.add(view, "font_size_auto").name("automatic size").onChange(() => {
-  css[3].style.fontSize = (view.font_size_auto ? "" : `${view.font_size}px`);
-
+  style_font.fontSize = (view.font_size_auto ? "" : `${view.font_size}px`);
   if (view.font_size_auto && view.font_size_scroller)
-      view.font_size_scroller.remove();
+    view.font_size_scroller.remove();
   else
-    view.font_size_scroller = dgui_style.add(view, "font_size", 1, 50)
-      .name("font size").onChange(() =>
-        css[3].style.fontSize = `${view.font_size}px`);
+    view.font_size_scroller = create_font_size_scroller();
 });
+
+function create_font_size_scroller() {
+  return dgui_style.add(view, "font_size", 1, 50).name("font size")
+    .onChange(() => style_font.fontSize = `${view.font_size}px`);
+}
+
 const dgui_minimap = dgui.addFolder("minimap");
 dgui_minimap.add(view, "minimap_show").name("active").onChange(() => {
     const display = (view.minimap_show ? "block" : "none");
@@ -87,7 +93,7 @@ function is_valid_zoom_change(zr) {
 // Mouse down -- select text, or move in minimap, or start dragging.
 document.addEventListener("mousedown", event => {
   if (view.select_text) {
-    return;  // if by clicking we can select text, do not start a drag too
+    ;  // if by clicking we can select text, don't do anything else
   }
   else if (div_visible_rect.contains(event.target)) {
     view.drag.element = div_visible_rect;
