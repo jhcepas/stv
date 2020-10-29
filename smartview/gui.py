@@ -7,7 +7,7 @@ import pathlib
 
 from . import layout
 from .common import CONFIG, _astart, _aend, _is_leaf, _max_leaf_idx
-from .utils import timeit, debug
+from .utils import timeit
 
 import time
 from multiprocessing import Pool, Queue, Process
@@ -188,7 +188,7 @@ class TreeCanvas(QOpenGLWidget):
 
     def keyReleaseEvent(self, e):
         key = e.key()
-        debug("key Release", key)
+        logger.debug("key Release %s" % key)
         super().keyReleaseEvent(e)
 
     def mouseReleaseEvent(self, e):
@@ -369,7 +369,7 @@ class TiledGUI(QMainWindow):
 
     def keyReleaseEvent(self, e):
         key = e.key()
-        debug("captured in GUI", key)
+        logger.debug("captured in GUI %s" % key)
         QMainWindow.keyReleaseEvent(self, e)
 
 

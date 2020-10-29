@@ -1,5 +1,5 @@
 from .common import *
-from .utils import timeit, debug
+from .utils import timeit
 
 # TODO: cover scenario where internal nodes are higher than all children!
 @timeit
@@ -48,7 +48,7 @@ def update_rect_positions(img_data, cached_prepostorder,
             for ch in node.children:
                 dim[_fnw] = max(dim[_fnw], img_data[ch._id][_fnw])
                 #dim[_fnh] += img_data[ch._id][_fnh]
-                
+
             dim[_fnw] += node_width
             current_x -= node_width
         else:

@@ -5,7 +5,7 @@ import numpy as np
 import re
 from . import colors
 import colorsys
-from .utils import timeit, debug
+from .utils import timeit
 
 # Pick two colors. Values from 0 to 1. See "hue" at
 # http://en.wikipedia.org/wiki/HSL_and_HSV

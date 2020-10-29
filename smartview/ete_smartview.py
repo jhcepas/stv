@@ -14,7 +14,7 @@ from json import dumps
 import time
 import logging
 from .alg import SparseAlg, TreeAlignment, Alg, DiskHashAlg
-from .utils import colorify
+from .utils import blue
 from . import common
 from .main import TreeImage, gui
 from .face_noqt import RectFace, TextFace, AttrFace, LabelFace, CircleLabelFace, GradientFace, HeatmapArcFace, HeatmapFace, SeqMotifFace
@@ -300,7 +300,7 @@ def main():
         h = hpy()
         h.setref()
 
-    logger.info(colorify("Building ETE tree", "lblue"))
+    logger.info(blue("Building ETE tree"))
 
     if args.size:
         t1 = Tree()
@@ -342,8 +342,8 @@ def main():
             precount += 1
             if not n.children:
                 N2LEAVES[n] = 1
-    logger.info(colorify("Loaded tree: %d leaves and %d nodes" %
-                         (N2LEAVES[t], precount), "lblue"))
+    logger.info(blue("Loaded tree: %d leaves and %d nodes" %
+                         (N2LEAVES[t], precount)))
 
     N2CONTENT = t.get_cached_content()
 
