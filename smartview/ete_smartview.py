@@ -64,7 +64,7 @@ def get_args():
         help="file with the tree (- to read from stdin)")
     inputs.add_argument("-s", "--size", type=int,
         help="random tree size (for testing purposes)")
-    add("-a", "--alg", help="Bind alignment")
+    add("-a", "--alg", help="bind alignment")
     add("-m", "--mode", default='r', choices=['c', 'r'],
         help="drawing mode (c: cicular, r: rectangular)")
     add("-b", "--branch_mode", help="")
@@ -75,8 +75,8 @@ def get_args():
     circ_layout.add_argument("--arc_span", type=float, default=360, help="in degrees")
     circ_layout.add_argument("--arc_start", type=float, default=0, help="in degrees")
 
-    add("-z", "--zoom_factor", type=float, help="initial zoom level")
-    add("-l", "--layout", help="layout function to use", default="basic_layout")
+    add("-z", "--zoom", type=float, help="initial zoom level")
+    add("-l", "--layout", default="basic", choices=LAYOUTS.keys())
     add("--debug", action="store_true", help="enable debug mode")
     add("--track_mem", action="store_true", help="tracks memory usage")
     add("--profile", action="store_true", help="tracks cpu time")
@@ -125,7 +125,9 @@ gradF = GradientFace(width=50, node_attr="custom")
 gradF.only_if_leaf = True
 
 
-def real_layout(node):
+# Layouts.
+
+def layout_real(node):
     if node.is_leaf():
         add_face_to_node(nameF, node, column=0, position="branch-right")
         #add_face_to_node(f5, node, column=1, position="branch-right")
@@ -155,14 +157,14 @@ def real_layout(node):
     add_face_to_node(gradF, node, column=10, position="branch-right")
 
 
-def alg_layout(node):
+def layout_alg(node):
     if ALG and node in ALG:
         # add_face_to_node(TextFace(node.name), node,
         #                 column=9, position="aligned")
         add_face_to_node(BLOCK_SEQ_FACE, node, column=10, position="aligned")
 
 
-def test_layout(node):
+def layout_test(node):
     node.img_style.size = 1
     # f.margin_left=20
     add_face_to_node(f, node, column=0, position="branch-right")
@@ -180,7 +182,7 @@ def test_layout(node):
     add_face_to_node(mundo, node, column=1, position="branch-bottom")
 
 
-def crouded_layout(node):
+def layout_crouded(node):
     if node.is_leaf():
         add_face_to_node(nameF, node, column=0, position="branch-right")
         add_face_to_node(nameF2, node, column=0, position="branch-right")
@@ -200,7 +202,7 @@ def crouded_layout(node):
 #            add_face_to_node(nameF, node, column=0, position="aligned")
 
 
-def basic_layout(node):
+def layout_basic(node):
     if node.is_leaf():
         add_face_to_node(nameF, node, column=0, position="branch-right")
     else:
@@ -209,7 +211,7 @@ def basic_layout(node):
             #add_face_to_node(nameF, node, column=0, position="branch-top")
 
 
-def stacked_layout(node, dim=None):
+def layout_stacked(node, dim=None):
     if node.is_leaf():
         add_face_to_node(nameF, node, column=0, position="branch-right")
         add_face_to_node(nameF2, node, column=0, position="branch-right")
@@ -234,7 +236,7 @@ def stacked_layout(node, dim=None):
 #            add_face_to_node(nameF, node, column=0, position="aligned")
 
 
-def tol_layout(node, dim=None):
+def layout_tol(node, dim=None):
     nameF = TextFace(node.name, fgcolor="indianRed", fsize=16)
     # if node.rank:
     #     rankF = TextFace(node.sci_name, fgcolor="orange", fsize=10)
@@ -260,13 +262,27 @@ def tol_layout(node, dim=None):
             add_face_to_node(sizeF, node, column=1, position="branch-bottom")
 
 
-def rect_layout(node):
+def layout_rect(node):
     if node.is_leaf():
         add_face_to_node(rectF, node, column=0, position="branch-right")
 
 
-def clean_layout(node):
+def layout_clean(node):
     pass
+
+
+LAYOUTS = {
+    "real": layout_real,
+    "alg": layout_alg,
+    "test": layout_test,
+    "crouded": layout_crouded,
+    "basic": layout_basic,
+    "stacked": layout_stacked,
+    "tol": layout_tol,
+    "rect": layout_rect,
+    "clean": layout_clean
+}
+
 
 
 def main():
@@ -358,7 +374,7 @@ def main():
 
     ts = TreeStyle()
 
-    ts.layout_fn = globals()[args.layout]
+    ts.layout_fn.append(LAYOUTS[args.layout])
     if args.alg:
         global ALG, BLOCK_SEQ_FACE
         try:
@@ -396,7 +412,7 @@ def main():
         pr.enable()
 
     if args.qt_gui:
-        gui.display(tree_image, zoom_factor=args.zoom_factor)
+        gui.display(tree_image, zoom_factor=args.zoom)
     else:
         gui.start_server(tree_image)
 
