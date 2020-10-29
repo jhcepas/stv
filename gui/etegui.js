@@ -166,7 +166,7 @@ function update_tree() {
 
   fetch(`/get_scene_region/${view.zoom},${x},${y},${w},${h}/`)
     .then(response => response.json())
-    .then(resp_data => draw(div_tree, resp_data.items))
+    .then(data => draw(div_tree, data.items))
     .catch(error => console.log(error));
 }
 
