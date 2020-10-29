@@ -361,9 +361,6 @@ def draw_tree_scene_region(pp, painter, tree_image, zoom_factor, scene_rect):
                                   is_collapsed=False, target_positions=set([0, 1, 2, 3]))
         pp.restore()
 
-    print("OUTSIDE:", OUTSIDE, "DRAWN:", DRAWN,
-          "TERMINAL:", len(terminal_nodes))
-
     pp.restore()
     return terminal_nodes
 

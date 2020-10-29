@@ -122,13 +122,11 @@ def start_server(tree_image):
 
     @app.get("/get_scene_region/<scene>/", method=['GET', 'OPTIONS'])
     def get_scene_region(scene):
-        print('  --> scene:', scene)
         zoom, x, y, w, h = map(float, scene.split(','))
         target_tree_scene = QRectF(x, y, w, h)
 
         zoom = max(0.00001, zoom)
 
-        t1 = time.time()
         bottle.response.content_type = 'application/json'
         ii = QImage(1000, 1000, QImage.Format_ARGB32_Premultiplied)
         ii.fill(QColor(Qt.white).rgb())
@@ -139,13 +137,10 @@ def start_server(tree_image):
         terminal_nodes = drawer_noqt.draw_tree_scene_region(pp, painter, tree_image,
                                                             zoom, target_tree_scene)
         pp.end()
-        # return json.dumps({"items": [["r", 10, 10, 200, 200]]})
 
         # TODO: call here drawer.py draw_aligned_panel_region() and send the
         # results to pixi.
 
-        print("web return:", time.time() - t1,
-              len(painter.stack), len(terminal_nodes))
         return json.dumps({"items": painter.stack})
 
     @app.get("/static/<filepath:path>")
