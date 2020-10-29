@@ -52,7 +52,7 @@ dgui_style.add(view, "font_size_auto").name("automatic size").onChange(() => {
   if (view.font_size_auto && view.font_size_scroller)
       view.font_size_scroller.remove();
   else
-    view.font_size_scroller = dgui_style.add(view, "font_size", 1, 20)
+    view.font_size_scroller = dgui_style.add(view, "font_size", 1, 50)
       .name("font size").onChange(() =>
         css[3].style.fontSize = `${view.font_size}px`);
 });
