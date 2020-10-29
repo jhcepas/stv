@@ -84,17 +84,22 @@ function is_valid_zoom_change(zr) {
 }
 
 
-// Drag the tree around (by changing the top-left corner of the view).
+// Mouse down -- select text, or move in minimap, or start dragging.
 document.addEventListener("mousedown", event => {
-  if (view.select_text)
+  if (view.select_text) {
     return;  // if by clicking we can select text, do not start a drag too
-
-  if (div_visible_rect.contains(event.target))
+  }
+  else if (div_visible_rect.contains(event.target)) {
     view.drag.element = div_visible_rect;
-  else if (div_tree.contains(event.target))
+    drag_start(event);
+  }
+  else if (div_minimap.contains(event.target)) {
+    move_minimap_view(event);
+  }
+  else if (div_tree.contains(event.target)) {
     view.drag.element = div_tree;
-
-  drag_start(event);
+    drag_start(event);
+  }
 });
 
 document.addEventListener("mouseup", event => {
@@ -137,6 +142,21 @@ function get_drag_scale() {
     return 1 / view.minimap_zoom;
   else
     console.log(`Cannot find dragging scale for ${view.drag.element}.`);
+}
+
+
+function move_minimap_view(event) {
+  // Top-left pixel coordinates of the tree (0, 0) position.
+  const [x0, y0] = [div_minimap.offsetLeft + 6, div_minimap.offsetTop + 6];
+
+  // Center of the visible rectangle (in px).
+  const cx = view.minimap_zoom / view.zoom * div_tree.offsetWidth / 2,
+        cy = view.minimap_zoom / view.zoom * div_tree.offsetHeight / 2;
+
+  view.tl.x = (event.pageX - x0) / view.minimap_zoom - cx;
+  view.tl.y = (event.pageY - y0) / view.minimap_zoom - cy;
+
+  update();
 }
 
 
