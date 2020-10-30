@@ -64,8 +64,8 @@ function create_font_size_scroller() {
 
 const dgui_minimap = dgui.addFolder("minimap");
 dgui_minimap.add(view, "minimap_show").name("active").onChange(() => {
-    const display = (view.minimap_show ? "block" : "none");
-    div_minimap.style.display = div_visible_rect.style.display = display;
+    const status = (view.minimap_show ? "visible" : "hidden");
+    div_minimap.style.visibility = div_visible_rect.style.visibility = status;
     if (view.minimap_show)
       update_minimap_visible_rect();
   });
