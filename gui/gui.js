@@ -1,12 +1,8 @@
 'use strict';
 
-document.addEventListener("DOMContentLoaded", () => {
-  create_minimap();
-  update();
-});
 
-
-// Variables shown on the top-right gui (using dat.gui).
+// Global variables related to the current view on the tree.
+// Most will be shown on the top-right gui (using dat.gui).
 const view = {
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left corner of the view
   pos: {x: 0, y: 0},  // in-tree current pointer position
@@ -22,53 +18,72 @@ const view = {
   font_size_scroller: undefined,
   font_size: 10,
   minimap_show: true,
-  minimap_zoom: 1
+  minimap_zoom: 1,
+  datgui: undefined
 };
 
-const [style_line, style_rect, style_font] = [1, 2, 3].map(i =>
-  document.styleSheets[0].cssRules[i].style);  // shortcut
 
-const dgui = new dat.GUI();
-dgui.add(view.pos, "x").listen();
-dgui.add(view.pos, "y").listen();
-
-const dgui_ctl = dgui.addFolder("control");
-dgui_ctl.add(view.tl, "x").name("top-left x").onChange(update);
-dgui_ctl.add(view.tl, "y").name("top-left y").onChange(update);
-dgui_ctl.add(view, "zoom", 1, 1000).onChange(update);
-dgui_ctl.add(view, "update_on_drag").name("continuous dragging");
-dgui_ctl.add(view, "select_text").name("select text").onChange(() =>
-  style_font.userSelect = (view.select_text ? "text" : "none"));
-
-const dgui_style = dgui.addFolder("style");
-dgui_style.addColor(view, "line_color").name("line color").onChange(() =>
-  style_line.stroke = view.line_color);
-dgui_style.addColor(view, "rect_color").name("rectangle color").onChange(() =>
-  style_rect.stroke = view.rect_color);
-dgui_style.addColor(view, "font_color").name("text color").onChange(() =>
-  style_font.fill = view.font_color);
-dgui_style.add(view, "font_family", ["sans-serif", "serif", "monospace"])
-  .name("font").onChange(() => style_font.fontFamily = view.font_family);
-dgui_style.add(view, "font_size_auto").name("automatic size").onChange(() => {
-  style_font.fontSize = (view.font_size_auto ? "" : `${view.font_size}px`);
-  if (view.font_size_auto && view.font_size_scroller)
-    view.font_size_scroller.remove();
-  else
-    view.font_size_scroller = create_font_size_scroller();
+// Run when the page is loaded (the "main" function).
+document.addEventListener("DOMContentLoaded", () => {
+  view.datgui = create_datgui();
+  draw_minimap();
+  update();
 });
 
-function create_font_size_scroller() {
-  return dgui_style.add(view, "font_size", 1, 50).name("font size")
-    .onChange(() => style_font.fontSize = `${view.font_size}px`);
-}
 
-const dgui_minimap = dgui.addFolder("minimap");
-dgui_minimap.add(view, "minimap_show").name("active").onChange(() => {
-    const status = (view.minimap_show ? "visible" : "hidden");
-    div_minimap.style.visibility = div_visible_rect.style.visibility = status;
-    if (view.minimap_show)
-      update_minimap_visible_rect();
+// Create the top-right box ("gui") with all the options we can see and change.
+function create_datgui() {
+  const [style_line, style_rect, style_font] = [1, 2, 3].map(i =>
+    document.styleSheets[0].cssRules[i].style);  // shortcut
+
+  const dgui = new dat.GUI();
+
+  dgui.add(view.pos, "x").listen();
+  dgui.add(view.pos, "y").listen();
+
+  const dgui_ctl = dgui.addFolder("control");
+
+  dgui_ctl.add(view.tl, "x").name("top-left x").onChange(update);
+  dgui_ctl.add(view.tl, "y").name("top-left y").onChange(update);
+  dgui_ctl.add(view, "zoom", 1, 1000).onChange(update);
+  dgui_ctl.add(view, "update_on_drag").name("continuous dragging");
+  dgui_ctl.add(view, "select_text").name("select text").onChange(() =>
+    style_font.userSelect = (view.select_text ? "text" : "none"));
+
+  const dgui_style = dgui.addFolder("style");
+
+  dgui_style.addColor(view, "line_color").name("line color").onChange(() =>
+    style_line.stroke = view.line_color);
+  dgui_style.addColor(view, "rect_color").name("rectangle color").onChange(() =>
+    style_rect.stroke = view.rect_color);
+  dgui_style.addColor(view, "font_color").name("text color").onChange(() =>
+    style_font.fill = view.font_color);
+  dgui_style.add(view, "font_family", ["sans-serif", "serif", "monospace"])
+    .name("font").onChange(() => style_font.fontFamily = view.font_family);
+  dgui_style.add(view, "font_size_auto").name("automatic size").onChange(() => {
+    style_font.fontSize = (view.font_size_auto ? "" : `${view.font_size}px`);
+    if (view.font_size_auto && view.font_size_scroller)
+      view.font_size_scroller.remove();
+    else
+      view.font_size_scroller = create_font_size_scroller();
   });
+
+  function create_font_size_scroller() {
+    return dgui_style.add(view, "font_size", 1, 50).name("font size")
+      .onChange(() => style_font.fontSize = `${view.font_size}px`);
+  }
+
+  const dgui_minimap = dgui.addFolder("minimap");
+
+  dgui_minimap.add(view, "minimap_show").name("active").onChange(() => {
+      const status = (view.minimap_show ? "visible" : "hidden");
+      div_minimap.style.visibility = div_visible_rect.style.visibility = status;
+      if (view.minimap_show)
+        update_minimap_visible_rect();
+    });
+
+  return dgui;
+}
 
 
 // Use the mouse wheel to zoom in/out (instead of scrolling).
@@ -84,6 +99,7 @@ document.body.addEventListener("wheel", event => {
     update();
   }
 }, {passive: false});  // chrome now uses passive=true otherwise
+
 
 function is_valid_zoom_change(zr) {
   return (zr > 1 && view.zoom < 1000) || (zr < 1 && view.zoom > 1);
@@ -108,12 +124,14 @@ document.addEventListener("mousedown", event => {
   }
 });
 
+
 document.addEventListener("mouseup", event => {
   if (view.drag.element)
     drag_stop(event);
 
   view.drag.element = undefined;
 });
+
 
 document.addEventListener("mousemove", event => {
   update_pointer_pos(event);
@@ -124,10 +142,12 @@ document.addEventListener("mousemove", event => {
   }
 });
 
+
 function drag_start(event) {
   view.drag.x0 = event.pageX;
   view.drag.y0 = event.pageY;
 }
+
 
 function drag_stop(event) {
   const dx = event.pageX - view.drag.x0,  // mouse position increment
@@ -141,6 +161,7 @@ function drag_stop(event) {
   }
 }
 
+
 function get_drag_scale() {
   if (view.drag.element === div_tree)
     return -1 / view.zoom;
@@ -151,6 +172,7 @@ function get_drag_scale() {
 }
 
 
+// Move the current tree view to the given mouse position in the minimap.
 function move_minimap_view(event) {
   // Top-left pixel coordinates of the tree (0, 0) position.
   const [x0, y0] = [div_minimap.offsetLeft + 6, div_minimap.offsetTop + 6];
@@ -173,8 +195,9 @@ function update_pointer_pos(event) {
 }
 
 
+// Update the view of all elements (gui, tree, minimap).
 function update() {
-  dgui.updateDisplay();  // updates the info box on the top-right gui
+  view.datgui.updateDisplay();  // update the info box on the top-right
 
   update_tree();
 
@@ -237,15 +260,16 @@ function item2svg(item) {
 }
 
 
-// Create a drawing on the bottom-right of the full tree ("minimap").
-function create_minimap() {
+// Draw the full tree on a small div on the bottom-right ("minimap").
+function draw_minimap() {
   fetch('/size/')
     .then(response => response.json())
-    .then(size => create_minimap_with_size(size))
+    .then(size => draw_minimap_with_size(size))
     .catch(error => console.log(error));
 }
 
-function create_minimap_with_size(size) {
+
+function draw_minimap_with_size(size) {
   const [tw, th] = [size.width, size.height];  // tree width and height
   const [w_min, h_min] = [20, 20];  // minimum size of the minimap
   const w_max = 0.2 * window.innerWidth,
