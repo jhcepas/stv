@@ -361,7 +361,6 @@ def draw_tree_scene_region(pp, painter, tree_image, zoom_factor, scene_rect):
     pp.restore()
     return terminal_nodes
 
-
 def get_face_dimensions(node, facegrid, target_pos=None):
     """ Given a list of faces, calculate the size of each faceposition and column """
 

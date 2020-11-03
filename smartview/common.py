@@ -1,5 +1,5 @@
 import math
-# Aliases used to access the tree image matrix 
+# Aliases used to access the tree image matrix
 
 # dimensions
 (
@@ -30,6 +30,7 @@ MATRIX_FIELDS = 23
 
 # Other
 
+# FIXME: what do those codes mean? Why those and not others?
 FACEPOS2CODE = {"branch-top":0,
                 "branch-bottom":1,
                 "branch-right":2,
@@ -48,7 +49,7 @@ CONFIG = {
 R90 = math.pi/2.0
 R180 = math.pi
 R270 = 3 * R90
-R360 = 2 * math.pi 
+R360 = 2 * math.pi
 
 __all__ = ["_btw","_bth","_bbw","_bbh","_brw","_brh","_bfw","_bfh","_baw","_bah",
            "_blen","_bh","_nht","_nhb","_fnw","_fnh",

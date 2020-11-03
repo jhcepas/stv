@@ -94,9 +94,6 @@ def get_args():
     return parser.parse_args()
 
 
-def link_to_table():
-    pass
-
 
 nameF = AttrFace("name", fsize=11, fgcolor='royalBlue', ftype='Arial')
 nameF2 = AttrFace("name", fsize=16, fgcolor='indianred', ftype='Arial')

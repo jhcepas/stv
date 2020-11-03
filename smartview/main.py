@@ -18,6 +18,7 @@ class TreeImage(object):
         self.cached_preorder = None
         self.cached_content = None
 
+        # FIXME: explain what they contain and what for
         self.img_data = None
         self.leaf_apertures = None
         self.width = 0.0

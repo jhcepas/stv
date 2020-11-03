@@ -86,6 +86,7 @@ def get_arc_path(rect1, rect2, rad_angles):
     return path
 
 
+
 class Face(object):
     __slots__ = ["node",
                  "arc_start",
@@ -382,6 +383,7 @@ class BaseTextFace(Face):
         italic = (self.fstyle == "italic")
         return QFont(self.ftype, pointSize=self.fsize, italic=italic)
 
+
 class TextFace(BaseTextFace):
     __slots__ = BaseTextFace.__slots__ + ["_text"]
 
@@ -413,6 +415,7 @@ class AttrFace(BaseTextFace):
     def __init__(self, attribute, **textface_args):
         self._attr = attribute
         super().__init__(**textface_args)
+
 
 class LabelFace(Face):
     __slots__ = ["width"]
