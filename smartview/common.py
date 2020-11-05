@@ -31,12 +31,12 @@ MATRIX_FIELDS = 23
 # Other
 
 # FIXME: what do those codes mean? Why those and not others?
-FACEPOS2CODE = {"branch-top":0,
-                "branch-bottom":1,
-                "branch-right":2,
-                "float":3,
-                "aligned":4}
-FACE_POSITIONS = set(FACEPOS2CODE.keys())
+FACEPOS2CODE = {
+    "branch-top": 0,
+    "branch-bottom": 1,
+    "branch-right": 2,
+    "float": 3,
+    "aligned": 4}
 FACE_POS_INDEXES = sorted(FACEPOS2CODE.values())
 
 
@@ -56,7 +56,7 @@ __all__ = ["_btw","_bth","_bbw","_bbh","_brw","_brh","_bfw","_bfh","_baw","_bah"
            "_rad", "_acenter","_astart","_aend",
            "_xend","_ycenter", "_ystart","_yend",
            "_parent", "_max_leaf_idx", "_is_leaf",
-           "FACE_POS_INDEXES", "FACE_POSITIONS", "FACEPOS2CODE",
+           "FACE_POS_INDEXES", "FACEPOS2CODE",
            "MATRIX_FIELDS","CONFIG", "R90", "R180", "R270",
            "R360", "printmem"]
 

@@ -75,7 +75,6 @@ class TreeError(Exception):
         return repr(self.value)
 
 cdef class cTreeNode:
-#cdef public char* name
     cdef public double dist
     cdef public double support
     cdef public object children
@@ -91,89 +90,6 @@ cdef class cTreeNode:
         self.children = []
         self.up = None
         self.img_style = None
-
-
-    # def _get_dist(self):
-    #     return self._dist
-    # def _set_dist(self, value):
-    #     try:
-    #         self._dist = float(value)
-    #     except ValueError:
-    #         raise TreeError('node dist must be a float number')
-
-    # def _get_support(self):
-    #     return self._support
-    # def _set_support(self, value):
-    #     try:
-    #         self._support = float(value)
-    #     except ValueError:
-    #         raise TreeError('node support must be a float number')
-
-    # def _get_up(self):
-    #     return self._up
-    # def _set_up(self, value):
-    #     if type(value) == type(self) or value is None:
-    #         self._up = value
-    #     else:
-    #         raise TreeError("bad node_up type")
-
-    # def _get_children(self):
-    #     return self._children
-    # def _set_children(self, value):
-    #     if type(value) == list and \
-    #        len(set([type(n)==type(self) for n in value]))<2:
-    #         self._children = value
-    #     else:
-    #         raise TreeError("Incorrect children type")
-
-    # def _get_style(self):
-    #     if self._img_style is None:
-    #         self._set_style(None)
-
-    #     return self._img_style
-
-    # def _set_style(self, value):
-    #     self.set_style(value)
-
-    # #: Branch length distance to parent node. Default = 0.0
-    # img_style = property(fget=_get_style, fset=_set_style)
-
-    # #: Branch length distance to parent node. Default = 0.0
-    # dist = property(fget=_get_dist, fset=_set_dist)
-    # #: Branch support for current node
-    # support = property(fget=_get_support, fset=_set_support)
-    # #: Pointer to parent node
-    # up = property(fget=_get_up, fset=_set_up)
-    # #: A list of children nodes
-    # children = property(fget=_get_children, fset=_set_children)
-
-
-    # property children:
-    #   def __get__(self):
-    #       return self._children
-    #   def __set__(self, value):
-    #       if type(value) != list:
-    #           raise ValueError("Invalid type for children attribute. Expected list of node instances")
-    #       else:
-    #           self._children = value
-
-    # property name:
-    #   def __get__(self):
-    #       return self._name
-    #   def __set__(self, value):
-    #       self._name = value
-
-    # property dist:
-    #   def __get__(self):
-    #       return self._dist
-    #   def __set__(self, value):
-    #       self._dist = float(value)
-
-    # property support:
-    #   def __get__(self):
-    #       return self._support
-    #   def __set__(self, value):
-    #       self._support = float(value)
 
     property img_style:
       def __get__(self):
@@ -2299,8 +2215,6 @@ class TreeNode(cTreeNode):
         :param True recursive: Resolve any polytomy under this
              node. When False, only current node will be checked and fixed.
         """
-
-
         def _resolve(node):
             if len(node.children) > 2:
                 children = list(node.children)
@@ -2321,45 +2235,6 @@ class TreeNode(cTreeNode):
             target.extend([n for n in self.get_descendants()])
         for n in target:
             _resolve(n)
-
-
-    # def add_face(self, face, column, position="branch-right"):
-    #     """
-    #     .. versionadded: 2.1
-
-    #     Add a fixed face to the node.  This type of faces will be
-    #     always attached to nodes, independently of the layout
-    #     function.
-
-    #     :argument face: a Face or inherited instance
-    #     :argument column: An integer number starting from 0
-    #     :argument "branch-right" position: Posible values are:
-    #       "branch-right", "branch-top", "branch-bottom", "float",
-    #       "aligned"
-    #     """
-
-    #     if not hasattr(self, "_faces"):
-    #         self._faces = _FaceAreas()
-
-    #     if position not in FACE_POSITIONS:
-    #         raise ValueError("face position not in %s" %FACE_POSITIONS)
-
-    #     if isinstance(face, Face):
-    #         getattr(self._faces, position).add_face(face, column=column)
-    #     else:
-    #         raise ValueError("not a Face instance")
-
-    def set_style(self, node_style):
-        """
-        .. versionadded: 2.1
-
-        Set 'node_style' as the fixed style for the current node.
-        """
-
-        if node_style is None:
-            node_style = NodeStyle()
-        if type(node_style) is NodeStyle:
-            self._img_style = node_style
 
     def phonehome(self):
         from .. import _ph
