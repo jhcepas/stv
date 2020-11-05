@@ -128,7 +128,7 @@ class Face(object):
         self.hz_align = 0
         self.vt_align = 0
         self.bgcolor = None
-        self.outter_bgcolor = None
+        self.outter_bgcolor = None  # FIXME: outer
         self.border_top = (None, None, None)
         self.border_bottom = (None, None, None)
         self.border_left = (None, None, None)

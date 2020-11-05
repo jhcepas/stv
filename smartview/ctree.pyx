@@ -2105,28 +2105,18 @@ class TreeNode(cTreeNode):
 
     def get_monophyletic(self, values, target_attr):
         """
-        .. versionadded:: 2.2
+        Yield a list of nodes matching the provided monophyly criteria.
+        For a node to be considered a match, all `target_attr` values
+        within and node, and exclusively them, should be grouped.
 
-        Returns a list of nodes matching the provided monophyly
-        criteria. For a node to be considered a match, all
-        `target_attr` values within and node, and exclusively them,
-        should be grouped.
+        :param values: a set of values for which monophyly is expected.
 
-        :param values: a set of values for which monophyly is
-            expected.
-
-        :param target_attr: node attribute being used to check
-            monophyly (i.e. species for species trees, names for gene
-            family trees).
-
+        :param target_attr: node attribute being used to check monophyly
+            (i.e. species for species trees, names for gene family trees).
         """
-
-        if type(values) != set:
-            values = set(values)
-
         n2values = self.get_cached_content(store_attr=target_attr)
 
-        is_monophyletic = lambda node: n2values[node] == values
+        is_monophyletic = lambda node: n2values[node] == set(values)
         for match in self.iter_leaves(is_leaf_fn=is_monophyletic):
             if is_monophyletic(match):
                 yield match
@@ -2134,8 +2124,6 @@ class TreeNode(cTreeNode):
     def expand_polytomies(self, map_attr="name", polytomy_size_limit=5,
                           skip_large_polytomies=False):
         '''
-        .. versionadded:: 2.3
-
         Given a tree with one or more polytomies, this functions returns the
         list of all trees (in newick format) resulting from the combination of
         all possible solutions of the multifurcated nodes.
@@ -2198,8 +2186,6 @@ class TreeNode(cTreeNode):
     def resolve_polytomy(self, default_dist=0.0, default_support=0.0,
                          recursive=True):
         """
-        .. versionadded: 2.2
-
         Resolve all polytomies under current node by creating an
         arbitrary dicotomic structure among the affected nodes. This
         function randomly modifies current tree topology and should

@@ -9,17 +9,33 @@ import math
 
 class TreeImage(object):
     def __init__(self, root_node, tree_style):
+        self.root_node = root_node  # the external tree
+
         self.tree_style = tree_style
-        self.root_node = root_node
+        # has the layout function that says how to draw a node
+
         self.scale = tree_style.scale
         self.root_open = 0
 
-        self.cached_prepostorder = None
-        self.cached_preorder = None
-        self.cached_content = None
+        # List of node ids as they appear when moving thru the tree. It is
+        # useful to quickly find all the descendants of a node, for example.
+        self.cached_prepostorder = None  # filled in initialize()
 
-        # FIXME: explain what they contain and what for
+        # List of nodes as they appear in preorder.
+        self.cached_preorder = None
+
+        # FIXME: Find out what this does and remove if not used/useful.
+        self.cached_content = None  # filled in set_leaf_aperture()
+
+        # FIXME: What about self.cached_leaves? Why is it not here?
+
+
+        # Drawing data for all nodes. It's a numpy array where each row is a
+        # node (sorted in preorder traversal), and each col is one of the
+        # properties that appear in common.py (widths of faces and so on).
         self.img_data = None
+
+        # FIXME: Explain what they contain and what they are for.
         self.leaf_apertures = None
         self.width = 0.0
         self.height = 0.0

@@ -328,14 +328,9 @@ class TreeStyle(object):
 
 
 def add_face_to_node(face, node, column, row=None, position="branch-right"):
-    """
-    .. currentmodule:: ete3.treeview.faces
-
-    Adds a Face to a given node.
+    """Add face to a given node.
 
     :argument face: A :class:`Face` instance
-
-    .. currentmodule:: ete3
 
     :argument node: a tree node instance (:class:`Tree`, :class:`PhyloTree`, etc.)
     :argument row: An integer number starting from 0
@@ -343,22 +338,17 @@ def add_face_to_node(face, node, column, row=None, position="branch-right"):
     :argument "branch-right" position: Possible values are
       "branch-right", "branch-top", "branch-bottom", "float", "float-behind" and "aligned".
     """
+    # FIXME: What does "column" and "row" mean?
     try:
         poscode = FACEPOS2CODE[position]
     except KeyError:
-        raise ValueError("face position not in %s" %list(FACEPOS2CODE.keys()))
+        raise ValueError("face position not in %s" % list(FACEPOS2CODE.keys()))
 
-    if isinstance(face, Face):
-        # Faces container
-        # [Face, pos, col, row, fw, fh]
-        f = [face, poscode, row, column, 0, 0]
-        if node._temp_faces is None:
-            node._temp_faces = [f]
-        else:
-            node._temp_faces.append(f)
-    else:
-        raise ValueError("not a Face instance")
-    return face
+    assert isinstance(face, Face), "not a Face instance"
+
+    fw, fh = 0, 0
+    node._temp_faces.append([face, poscode, row, column, fw, fh])
+
 
 class FaceContainer(list):
     def add_face(self, face, row, column):

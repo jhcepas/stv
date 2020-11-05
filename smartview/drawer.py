@@ -282,7 +282,7 @@ def draw_tree_scene_region(pp, painter, tree_image, zoom_factor, scene_rect):
 
         # Load faces and styles for the node by applying user's layout function
         if not node._temp_faces:
-            node._temp_faces = None
+            node._temp_faces = []
             for func in tree_image.tree_style.layout_fn:
                 func(node)
 
@@ -424,7 +424,7 @@ def draw_aligned_panel_region(pp, terminal_nodes, tree_image, zoom_factor, scene
         avail_h = dim[_fnh] * zoom_factor
         avail_w = MAX_SCREEN_SIZE
 
-        if node._temp_faces is None:
+        if not node._temp_faces:
             for func in tree_image.tree_style.layout_fn:
                 func(node)
             # if node was not visited yet, compute face dimensions
