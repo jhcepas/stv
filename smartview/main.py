@@ -168,7 +168,7 @@ class TreeImage(object):
                 if node.is_leaf():
                     leaf_id += 1
                     self.cached_leaves.append(node._id)
-                # for func in self.tree_style.layout_fn:
+                # for func in self.tree_style.layout_fns:
                 #     func(node)
             else:
                 self.cached_prepostorder.append(-node._id)

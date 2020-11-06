@@ -27,9 +27,8 @@ class TreeStyle(object):
 
     **-- About tree design --**
 
-    :param None layout_fn: Layout function used to dynamically control
-      the aspect of nodes. Valid values are: None or a pointer to a method,
-      function, etc.
+    :param None layout_fns: List of layout functions used to draw the nodes
+      ("dynamically control the aspect of nodes").
 
     **-- About tree shape --**
 
@@ -170,27 +169,6 @@ class TreeStyle(object):
     def __repr__(self):
         return "TreeStyle (%s)" %(hex(self.__hash__()))
 
-    def set_layout_fn(self, layout):
-        self._layout_handler = []
-        if type(layout) not in set([list, set, tuple, frozenset]):
-            self._layout_handler.append(layout)
-        else:
-            for ly in layout:
-                # Validates layout function
-                if (type(ly) == types.FunctionType or type(ly) == types.MethodType or ly is None):
-                    self._layout_handler.append(layout)
-                else:
-                    import layouts
-                    try:
-                        self._layout_handler.append(getattr(layouts, ly))
-                    except Exception:
-                        raise ValueError ("Required layout is not a function pointer nor a valid layout name.")
-
-    def get_layout_fn(self):
-        return self._layout_handler
-
-    layout_fn = property(get_layout_fn, set_layout_fn)
-
     def __init__(self):
         # :::::::::::::::::::::::::
         # TREE SHAPE AND SIZE
@@ -203,9 +181,12 @@ class TreeStyle(object):
         # overlap each other by increasing the radius.
         self.allow_face_overlap = False
 
-        # Layout function used to dynamically control the aspect of
-        # nodes
-        self._layout_handler = []
+        # Dictionary with the possible layouts (functions that draw the nodes).
+        self.layouts = {}
+
+        # List of layout functions that draw the nodes content (that
+        # "dynamically control the aspect of nodes").
+        self.layout_fns = []
 
         # 0= tree is drawn from left-to-right 1= tree is drawn from
         # right-to-left. This property only has sense when "r" mode

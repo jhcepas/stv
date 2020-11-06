@@ -369,7 +369,9 @@ def main():
 
     ts = TreeStyle()
 
-    ts.layout_fn.append(LAYOUTS[args.layout])
+    ts.layouts = LAYOUTS
+    ts.layout_fns.append(LAYOUTS[args.layout])
+
     if args.align:
         global ALIGN, BLOCK_SEQ_FACE
         try:
@@ -381,7 +383,7 @@ def main():
             #ALIGN.load_seqs(t, align_dict)
             BLOCK_SEQ_FACE = SeqMotifFace(
                 ALIGN, seqtype='aa', seq_format="seq", gap_format="blank", poswidth=3, total_width=None)
-            ts.layout_fn.append(layout_align)
+            ts.layout_fns.append(layout_align)
         except FileNotFoundError as e:
             sys.exit(e)
 
