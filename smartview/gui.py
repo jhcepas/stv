@@ -148,6 +148,10 @@ def start_server(tree_image):
         print(os.path.join(basepath, filepath))
         return bottle.static_file(filepath, root=basepath)
 
+    @app.get("/layouts/")
+    def layouts():
+        return json.dumps(list(tree_image.tree_style.layouts))
+
     bottle.run(app, address="localhost", port=8090, debug=True, reload=True)
 
 
