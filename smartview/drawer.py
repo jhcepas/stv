@@ -582,6 +582,10 @@ def draw_faces(pp, painter, x, y, node, zoom_factor, tree_image, is_collapsed,
 
             col_height = poscol2height[(pos, col)]
             col_width = poscol2width[(pos, col)]
+
+            if col_height == 0:
+                continue
+
             avail_col_width = min(col_width,
                                   ((col_width / pos_width) * avail_pos_width))
             avail_col_height = min(col_height,
