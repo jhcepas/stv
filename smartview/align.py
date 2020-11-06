@@ -46,16 +46,16 @@ def iter_fasta_seqs(fname):
         yield seq_name, ''.join(seq_chunks)
 
 
-class SparseAlg(dict):
+class SparseAlign(dict):
     def __init__(self, fastafile):
         super().__init__()
-        self.algmatrix = None
+        self.alignmatrix = None
         self.index = None
 
         if fastafile:
-            self.load_alg(fastafile)
+            self.load_align(fastafile)
 
-    def load_alg(self, fname):
+    def load_align(self, fname):
         self.index = {}
         matrix = []
         for seqnum, (seq_name, seq) in enumerate(iter_fasta_seqs(fname)):
@@ -64,7 +64,7 @@ class SparseAlg(dict):
                 [ord(pos.upper()) - 45 for pos in seq], dtype='byte')
             matrix.append(vector)
 
-        self.algmatrix = sparse.lil_matrix(matrix)
+        self.alignmatrix = sparse.lil_matrix(matrix)
 
     def __contains__(self, item):
         return item in self.index
@@ -76,7 +76,7 @@ class SparseAlg(dict):
         print("consensus of %d items" % len(items))
         rows = [self.index[i] for i in items]
         t1 = time.time()
-        submatrix = self.algmatrix[tuple(rows), ]
+        submatrix = self.alignmatrix[tuple(rows), ]
 
         # size = matrix.shape[0] * matrix.shape[1]
         # gappyness = (matrix.size / size)
@@ -95,7 +95,7 @@ class SparseAlg(dict):
         return ''.join(consensus)
 
 
-class Alg(dict):
+class Align(dict):
     def __init__(self, fastafile):
         super().__init__()
         for seq_name, seq in iter_fasta_seqs(fastafile):
@@ -107,13 +107,13 @@ class Alg(dict):
 import diskhash
 import tqdm
 
-class DiskHashAlg(dict):
+class DiskHashAlign(dict):
     def __init__(self, keysize, dbfile):
         super().__init__()
         self.dbfile = dbfile
         self.db = None
         self.keysize = int(keysize)
-        self.alg_length = None
+        self.align_length = None
 
     def load_fasta(self, fname):
         self.db = None
@@ -122,13 +122,13 @@ class DiskHashAlg(dict):
 
         for i, (name, seq) in enumerate(iter_fasta_seqs(fname)):
             if self.db is None:
-                self.alg_length = len(seq)
-                self.db = diskhash.StructHash(self.dbfile, self.keysize, '%sc' %(self.alg_length), 'rw')
+                self.align_length = len(seq)
+                self.db = diskhash.StructHash(self.dbfile, self.keysize, '%sc' %(self.align_length), 'rw')
             self.db.insert(name, *[bytes(x, "utf-8") for x in seq])
         self.opendb()
 
     def opendb(self):
-        self.db = diskhash.StructHash(self.dbfile, self.keysize, '%sc' %self.alg_length, 'r')
+        self.db = diskhash.StructHash(self.dbfile, self.keysize, '%sc' %self.align_length, 'r')
 
     def __contains__(self, item):
         try:
@@ -154,17 +154,17 @@ AA2IDX = {'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6, 'H': 7, 'I': 8
 IDX2AA = {idx:aa for aa,idx in AA2IDX.items()}
 
 class TreeAlignment(object):
-    def __init__(self, alg, n2content, consensus_method='random10'):
+    def __init__(self, align, n2content, consensus_method='random10'):
         self.n2content = n2content
-        self.alg = alg
+        self.align = align
         self.node2matrix = {}
         self.consensus = {}
         self.consensus_method = consensus_method
-    def load_seqs(self, tree, alg):
+    def load_seqs(self, tree, align):
         for i, node in enumerate(tree.traverse("postorder")):
             #print ("node", i, node.__repr__())
             if not node.children:
-                seq = alg[node.name]
+                seq = align[node.name]
                 counter = np.zeros((len(seq), 24), dtype="int32")
                 for i, site in enumerate(seq):
                     residx = AA2IDX[site]
@@ -182,9 +182,9 @@ class TreeAlignment(object):
                 leaves = self.n2content[node]
                 if len(leaves) > 10:
                     leaves = random.sample(leaves, 10)
-                sequences = [self.alg[leaf.name][start:end] for leaf in leaves]
+                sequences = [self.align[leaf.name][start:end] for leaf in leaves]
             elif self.consensus_method == 'full':
-                sequences = [self.alg[leaf.name][start:end] for leaf in self.n2content[node]]
+                sequences = [self.align[leaf.name][start:end] for leaf in self.n2content[node]]
             self.consensus[node] = self.calculate_consensus(sequences)
         return self.consensus[node]
 
@@ -209,7 +209,7 @@ class TreeAlignment(object):
         if node.children:
             return self.get_consensus(node, start, end)
         else:
-            return self.alg[node.name][start:end]
+            return self.align[node.name][start:end]
 
     def __contains__(self, item):
         r = item in self.n2content if self.n2content else False
@@ -220,6 +220,6 @@ class TreeAlignment(object):
         if node.children:
             return self.get_consensus(node)
         else:
-            return self.alg[node.name]
+            return self.align[node.name]
 
 

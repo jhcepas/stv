@@ -1,5 +1,5 @@
 """
-Run ETE.
+Run ETE, smartview version: explore large trees interactively.
 
 It can run as a Qt app (not working at the moment) or as a web server.
 
@@ -13,7 +13,7 @@ from random import randint
 from json import dumps
 import time
 import logging
-from .alg import SparseAlg, TreeAlignment, Alg, DiskHashAlg
+from .align import SparseAlign, TreeAlignment, Align, DiskHashAlign
 from .utils import blue
 from . import common
 from .main import TreeImage, gui
@@ -44,11 +44,9 @@ c_handler.setFormatter(c_format)
 # Add handlers to the logger
 logger.addHandler(c_handler)
 
-DESC = """
-Smartview: explore large trees interactively
-"""
+
 MATRIX = None
-ALG = None
+ALIGN = None
 BLOCK_SEQ_FACE = None
 N2LEAVES = None
 N2CONTENT = None
@@ -64,7 +62,7 @@ def get_args():
         help="file with the tree (- to read from stdin)")
     inputs.add_argument("-s", "--size", type=int,
         help="random tree size (for testing purposes)")
-    add("-a", "--alg", help="bind alignment")
+    add("-a", "--align", help="bind alignment")
     add("-m", "--mode", default='r', choices=['c', 'r'],
         help="drawing mode (c: cicular, r: rectangular)")
     add("-b", "--branch_mode", help="")
@@ -154,8 +152,8 @@ def layout_real(node):
     add_face_to_node(gradF, node, column=10, position="branch-right")
 
 
-def layout_alg(node):
-    if ALG and node in ALG:
+def layout_align(node):
+    if ALIGN and node in ALIGN:
         # add_face_to_node(TextFace(node.name), node,
         #                 column=9, position="aligned")
         add_face_to_node(BLOCK_SEQ_FACE, node, column=10, position="aligned")
@@ -270,7 +268,7 @@ def layout_clean(node):
 
 LAYOUTS = {
     "real": layout_real,
-    "alg": layout_alg,
+    "align": layout_align,
     "test": layout_test,
     "crouded": layout_crouded,
     "basic": layout_basic,
@@ -285,7 +283,7 @@ LAYOUTS = {
 def main():
     args = get_args()
 
-    global N2LEAVES, N2CONTENT, ALG, MATRIX, BLOCK_SEQ_FACE
+    global N2LEAVES, N2CONTENT, ALIGN, MATRIX, BLOCK_SEQ_FACE
 
     common.CONFIG["debug"] = args.debug
     common.CONFIG["timeit"] = args.timeit
@@ -372,18 +370,18 @@ def main():
     ts = TreeStyle()
 
     ts.layout_fn.append(LAYOUTS[args.layout])
-    if args.alg:
-        global ALG, BLOCK_SEQ_FACE
+    if args.align:
+        global ALIGN, BLOCK_SEQ_FACE
         try:
-            #alg_dict = seqio.load_fasta(args.alg)
-            #alg_dict = Alg(args.alg)
-            alg_dict = DiskHashAlg(200, "alg.db")
-            alg_dict.load_fasta(args.alg)
-            ALG = TreeAlignment(alg_dict, N2CONTENT)
-            #ALG.load_seqs(t, alg_dict)
+            #align_dict = seqio.load_fasta(args.align)
+            #align_dict = Align(args.align)
+            align_dict = DiskHashAlign(200, "align.db")
+            align_dict.load_fasta(args.align)
+            ALIGN = TreeAlignment(align_dict, N2CONTENT)
+            #ALIGN.load_seqs(t, align_dict)
             BLOCK_SEQ_FACE = SeqMotifFace(
-                ALG, seqtype='aa', seq_format="seq", gap_format="blank", poswidth=3, total_width=None)
-            ts.layout_fn.append(alg_layout)
+                ALIGN, seqtype='aa', seq_format="seq", gap_format="blank", poswidth=3, total_width=None)
+            ts.layout_fn.append(layout_align)
         except FileNotFoundError as e:
             sys.exit(e)
 
