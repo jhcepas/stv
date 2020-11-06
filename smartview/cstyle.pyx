@@ -1,4 +1,3 @@
-from checkers import *
 
 cdef class cNodeStyle(object):
     cdef public int hz_line_type

@@ -1,8 +1,5 @@
-from collections import namedtuple
-import re
 from .face import Face
 
-from .checkers import *
 from .common import *
 
 __all__  = ["TreeStyle"]
