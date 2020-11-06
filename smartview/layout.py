@@ -44,6 +44,9 @@ def update_node_dimensions(img_data, cached_prepostorder, cached_preorder,
 
 
 def compute_face_dimensions(node, facegrid):
+    "Return list with widht,height for each of the positions"
+    # There are 5 positions: branch-top, branch-bottom, branch-right, float,
+    # and aligned. The resulting list has thus 10 measures.
     if facegrid is None:
         facegrid = []
     listdict = lambda: defaultdict(list)
