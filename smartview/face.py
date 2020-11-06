@@ -333,7 +333,7 @@ class BaseTextFace(Face):
         worse aligned text faces but improving the performance of tree
         visualization in scenes with a lot of text faces.
         """
-        Face.__init__(self)
+        super().__init__()
         self.ftype = ftype
         self.fsize = fsize
         self.fgcolor = fgcolor
@@ -396,7 +396,7 @@ class TextFace(BaseTextFace):
         return self._text
 
     def __init__(self, text, **textface_args):
-        super().__init__(self, **textface_args)
+        super().__init__(**textface_args)
         self._text = text
 
 
