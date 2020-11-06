@@ -339,15 +339,13 @@ def add_face_to_node(face, node, column, row=None, position="branch-right"):
       "branch-right", "branch-top", "branch-bottom", "float", "float-behind" and "aligned".
     """
     # FIXME: What does "column" and "row" mean?
+    assert isinstance(face, Face), "not a Face instance"
     try:
         poscode = FACEPOS2CODE[position]
+        fw, fh = 0, 0
+        node._temp_faces.append([face, poscode, row, column, fw, fh])
     except KeyError:
         raise ValueError("face position not in %s" % list(FACEPOS2CODE.keys()))
-
-    assert isinstance(face, Face), "not a Face instance"
-
-    fw, fh = 0, 0
-    node._temp_faces.append([face, poscode, row, column, fw, fh])
 
 
 class FaceContainer(list):
