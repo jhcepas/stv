@@ -33,7 +33,7 @@ def update_node_dimensions(img_data, cached_prepostorder, cached_preorder,
             dim = img_data[nid]
             node = cached_preorder[nid]
             #if precompute_faces:
-            #  face_pos_sizes = compute_face_dimensions(node, node._temp_faces)
+            #  face_pos_sizes = compute_face_dimensions(node)
             #  dim[_btw:_bah+1] = face_pos_sizes
             dim[_blen] = node.dist if not force_topology else 1.0
             dim[_bh] = max(node.img_style.hz_line_width, 1.0)
@@ -43,18 +43,25 @@ def update_node_dimensions(img_data, cached_prepostorder, cached_preorder,
             prev_id = nid
 
 
-def compute_face_dimensions(node, facegrid):
-    "Return list with widht,height for each of the positions"
-    # There are 5 positions: branch-top, branch-bottom, branch-right, float,
-    # and aligned. The resulting list has thus 10 measures.
-    if facegrid is None:
-        facegrid = []
+def compute_face_dimensions(node):
+    "Update node._temp_faces and return list with sizes for all positions"
+    # There are 5 positions: branch-top, branch-bottom, branch-right, float, and
+    # aligned. Each has width and height, so the resulting list has 10 numbers.
+
+    assert node._temp_faces is not None
+    # node._temp_faces is a list of facegrids.
+    # Each facegrid looks like [face, position_code, column, width, height].
+
     listdict = lambda: defaultdict(list)
-    cols_w = defaultdict(listdict)
+    cols_w = defaultdict(listdict)  # cols_w[i][j] will always be a list  TODO: why?
     cols_h = defaultdict(listdict)
-    for index, (f, pos, row, col, _, _) in enumerate(facegrid):
+
+    # So, cols_w[position_code][column] is... a list of widths?
+
+    for index, (f, pos, col, _, _) in enumerate(node._temp_faces):
         f.node = node
         fw, fh = f._size()
+        assert fw > 0 and fh > 0, "width and height should always be positive"
         fw += f.margin_right + f.margin_left
         fh += f.margin_top + f.margin_bottom
 
@@ -76,8 +83,8 @@ def compute_face_dimensions(node, facegrid):
                 fw = max(x_coords) - min(x_coords)
                 fh = max(y_coords) - min(y_coords)
 
-        facegrid[index][4] = fw
-        facegrid[index][5] = fh
+        node._temp_faces[index][3] = fw  # updates the sizes in the node!
+        node._temp_faces[index][4] = fh
         # Update overal grid data
         cols_w[pos][col].append(fw)
         cols_h[pos][col].append(fh)

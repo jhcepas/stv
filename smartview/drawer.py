@@ -288,9 +288,11 @@ def draw_tree_scene_region(pp, painter, tree_image, zoom_factor, scene_rect):
 
             # if node was not visited yet, compute face dimensions
             if not np.any(dim[_btw:_bah+1]):
-                face_pos_sizes = layout.compute_face_dimensions(
-                    node, node._temp_faces)
-                dim[_btw:_bah+1] = face_pos_sizes
+                dim[_btw:_bah+1] = layout.compute_face_dimensions(node)
+                # The call to compute_face_dimensions not only returns the
+                # widhts and heights for all face positions, but also changes
+                # things in the node, like its node._temp_faces.
+                # Also note that changing "dim" modifies tree_image.img_data[nid]
 
         if draw_collapsed:
             # pp.setPen(QPen(QColor("LightSteelBlue")))
@@ -361,19 +363,21 @@ def draw_tree_scene_region(pp, painter, tree_image, zoom_factor, scene_rect):
     pp.restore()
     return terminal_nodes
 
-def get_face_dimensions(node, facegrid, target_pos=None):
-    """ Given a list of faces, calculate the size of each faceposition and column """
 
-    if facegrid is None:
-        facegrid = []
+# TODO: This function is almost identical to layout.py:compute_face_dimensions()
+# It should be possible to merge them. And to actually split its functionality,
+# because it not only "computes" or "gets" dimensions, but also modifies the node!
+def get_face_dimensions(node):
+    "Return dictionaries that, for each facepos, give information about widths and heights"
+    # facepos are the codes for "branch-top", "float", etc.
 
     def listdict(): return defaultdict(list)
     poscol2w = defaultdict(listdict)
     poscol2h = defaultdict(listdict)
     poscol2faces = defaultdict(listdict)
 
-    for index, (f, pos, row, col, _, _) in enumerate(facegrid):
-        f.node = node
+    for index, (f, pos, col, _, _) in enumerate(node._temp_faces):
+        f.node = node  # FIXME: we claim to only "get" but also modify the face itself...
         fw, fh = f._size()
         fw += f.margin_right + f.margin_left
         fh += f.margin_top + f.margin_bottom
@@ -429,13 +433,11 @@ def draw_aligned_panel_region(pp, terminal_nodes, tree_image, zoom_factor, scene
                 func(node)
             # if node was not visited yet, compute face dimensions
             if not np.any(dim[_btw:_bah+1]):
-                face_pos_sizes = layout.compute_face_dimensions(
-                    node, node._temp_faces)
+                face_pos_sizes = layout.compute_face_dimensions(node)
                 dim[_btw:_bah+1] = face_pos_sizes
 
         # if node was not visited yet, compute face dimensions
-        pos2dim, poscol2w, poscol2h, poscol2faces = get_face_dimensions(
-            node, node._temp_faces)
+        pos2dim, poscol2w, poscol2h, poscol2faces = get_face_dimensions(node)
 
         pp.save()
         if treemode == "c":
@@ -564,7 +566,7 @@ def draw_faces(pp, painter, x, y, node, zoom_factor, tree_image, is_collapsed,
     poscol2width = {}
     poscol2height = {}
 
-    for faceidx, (face, pos, row, col, fw, fh) in enumerate(facegrid):
+    for faceidx, (face, pos, col, fw, fh) in enumerate(facegrid):
         if target_positions is not None and pos not in target_positions:
             continue
         if not dim[_is_leaf] and face.only_if_leaf and not is_collapsed:
@@ -604,7 +606,7 @@ def draw_faces(pp, painter, x, y, node, zoom_factor, tree_image, is_collapsed,
                 start_y -= col_height
 
             for faceidx in selected_faces:
-                face, _pos, _row, _col, fw, fh = facegrid[faceidx]
+                face, _pos, _col, fw, fh = facegrid[faceidx]
                 avail_face_height = (fh / col_height) * avail_col_height
 
                 y_face_zoom_factor = (avail_face_height / fh)

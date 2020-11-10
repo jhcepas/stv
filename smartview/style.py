@@ -305,14 +305,13 @@ class TreeStyle(object):
             raise ValueError("[%s] option is not supported" %attr)
 
 
-def add_face_to_node(face, node, column, row=None, position="branch-right"):
+def add_face_to_node(face, node, column, position="branch-right"):
     """Add face to a given node.
 
     :argument face: A :class:`Face` instance
 
     :argument node: a tree node instance (:class:`Tree`, :class:`PhyloTree`, etc.)
-    :argument row: An integer number starting from 0
-    :argument column: An integer number starting from 0
+    :argument column: An integer number starting from 0 FIXME: representing what?
     :argument "branch-right" position: Possible values are
       "branch-right", "branch-top", "branch-bottom", "float", "float-behind" and "aligned".
     """
@@ -320,12 +319,14 @@ def add_face_to_node(face, node, column, row=None, position="branch-right"):
     assert isinstance(face, Face), "not a Face instance"
     try:
         poscode = FACEPOS2CODE[position]
-        fw, fh = 0, 0
-        node._temp_faces.append([face, poscode, row, column, fw, fh])
+        fw, fh = 0, 0  # face width and height
+        # They will be computed later on compute_face_dimensions()
+
+        node._temp_faces.append([face, poscode, column, fw, fh])
     except KeyError:
         raise ValueError("face position not in %s" % list(FACEPOS2CODE.keys()))
 
 
 class FaceContainer(list):
-    def add_face(self, face, row, column):
-        self.__append__([face, row, column, 0, 0])
+    def add_face(self, face, column):
+        self.__append__([face, column, 0, 0])
