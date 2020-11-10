@@ -99,10 +99,10 @@ nameF3 = AttrFace("name", fsize=8, fgcolor='grey', ftype='Arial')
 #nameF.margin_right = 10
 distF = AttrFace("dist", fsize=10, fgcolor="grey", formatter="%0.3g")
 supportF = AttrFace("support", fsize=16)
-labelF = LabelFace(70)
-labelF.fill_color = "thistle"
-labelF2 = LabelFace(70)
-labelF2.fill_color = "indianred"
+# labelF = LabelFace(70)
+# labelF.fill_color = "thistle"
+# labelF2 = LabelFace(70)
+# labelF2.fill_color = "indianred"
 
 circleF = CircleLabelFace(attr="support", solid=True, color="blue")
 
@@ -116,8 +116,8 @@ f3 = RectFace(20, 10, bgcolor="green")
 f4 = RectFace(20, 10, bgcolor="indianred")
 f5 = RectFace(20, 10, bgcolor="steelblue")
 
-gradF = GradientFace(width=50, node_attr="custom")
-gradF.only_if_leaf = True
+# gradF = GradientFace(width=50, node_attr="custom")
+# gradF.only_if_leaf = True
 
 
 # Layouts.
@@ -149,7 +149,7 @@ def layout_real(node):
         add_face_to_node(supportF, node, column=1, position="branch-bottom")
 
         #add_face_to_node(circleF, node, column=5, position="branch-right")
-    add_face_to_node(gradF, node, column=10, position="branch-right")
+    #add_face_to_node(gradF, node, column=10, position="branch-right")
 
 
 def layout_align(node):

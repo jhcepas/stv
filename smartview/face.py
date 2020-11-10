@@ -421,8 +421,9 @@ class LabelFace(Face):
     __slots__ = ["width"]
 
     def __init__(self, width):
-        Face.__init__(self)
+        super().__init__()
         self.width = width
+        raise NotImplementedError
 
     def _width(self):
         return self.width
@@ -442,9 +443,10 @@ class GradientFace(Face):
                  "max_value", "min_value", "center_value"]
 
     def __init__(self, width, node_attr):
-        Face.__init__(self)
+        super().__init__()
         self.width = width
         self.node_attr = node_attr
+        raise NotImplementedError
 
     def _width(self):
         return self.width
