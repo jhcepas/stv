@@ -60,8 +60,8 @@ def update_rect_positions(img_data, cached_prepostorder,
                 current_y += dim[_nht] + dim[_nhb] + dim[_bh]
                 # increase hz
                 dim[_xend] = current_x + node_width
-                dim[_fnw] = node_width
-                dim[_fnh] = dim[_yend] - dim[_ystart]
+                dim[_fnw] = node_width  # full node width (node and its children)
+                dim[_fnh] = dim[_yend] - dim[_ystart]  # full node height
             else:
                 current_x += node_width
 

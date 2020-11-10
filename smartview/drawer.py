@@ -482,13 +482,15 @@ def draw_face_column(pp, node, colfaces, col_w, col_h, avail_w, avail_h):
 
 def draw_faces(pp, painter, x, y, node, zoom_factor, tree_image, is_collapsed,
                target_positions=None, target_rect=None):
-
+    "Draw the faces (content) of a single node"
     dim = tree_image.img_data[node._id]
     branch_length = dim[_blen]
-    facegrid = node._temp_faces
-    tree_mode = tree_image.tree_style.mode
+
+    facegrid = node._temp_faces  # list of faces to draw
     if not facegrid:
         return
+
+    tree_mode = tree_image.tree_style.mode
 
     correct_rotation = True if (
         tree_mode == 'c' and dim[_acenter] > R90 and dim[_acenter] < R270) else False
