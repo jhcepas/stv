@@ -542,6 +542,8 @@ def draw_faces(pp, painter, x, y, node, zoom_factor, tree_image, is_collapsed,
             available_pos_height = 0
 
         elif pos == 4:  # aligned
+            # TODO: see if we are using this at all, since the aligned part
+            # is done in draw_aligned_panel_region()
             facegrid_width = dim[_baw]
             facegrid_height = dim[_bah]
             available_pos_width = MAX_SCREEN_SIZE

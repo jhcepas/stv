@@ -13,6 +13,8 @@ import math
     _btw, _bth, # branch-top face width and height
     _bbw, _bbh, # branch-bottom face width and height
     _brw, _brh, # branch-right face width and height
+    # NOTE: we can't use branch-right for the moment. TODO: Figure out why.
+
     _bfw, _bfh, # branch-float face width and height
     _baw, _bah, # branch-aligned face width and height
     _nht, _nhb, # node height top and bottom
