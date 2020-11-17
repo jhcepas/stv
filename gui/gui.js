@@ -213,7 +213,7 @@ function update_tree() {
         w = div_tree.offsetWidth - Math.max(0, - view.zoom * view.tl.x),
         h = div_tree.offsetHeight - Math.max(0, - view.zoom * view.tl.y);
 
-  fetch(`/get_scene_region/${view.zoom},${x},${y},${w},${h}/`)
+  fetch(`/get_scene_region/${view.zoom},${x},${y},${w},${h}`)
     .then(response => response.json())
     .then(data => draw(div_tree, data.items))
     .catch(error => console.log(error));
@@ -262,7 +262,7 @@ function item2svg(item) {
 
 // Draw the full tree on a small div on the bottom-right ("minimap").
 function draw_minimap() {
-  fetch('/size/')
+  fetch('/size')
     .then(response => response.json())
     .then(size => draw_minimap_with_size(size))
     .catch(error => console.log(error));
@@ -284,7 +284,7 @@ function draw_minimap_with_size(size) {
 
   update_minimap_visible_rect();
 
-  fetch(`/get_scene_region/${zoom},0,0,${zoom * tw},${zoom * th}/`)
+  fetch(`/get_scene_region/${zoom},0,0,${zoom * tw},${zoom * th}`)
     .then(response => response.json())
     .then(resp_data => draw(div_minimap, resp_data.items))
     .catch(error => console.log(error));

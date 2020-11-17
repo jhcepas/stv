@@ -1,10 +1,30 @@
+import os
 import math
 from collections import defaultdict, deque
+from importlib.machinery import SourceFileLoader
 import bisect
 import numpy as np
 
+import logging
+logger = logging.getLogger("smartview")
+
 from .utils import timeit
 from .common import *
+
+
+def load_layouts(path):
+    "Return dict with the name and functions for layouts in plugins at path"
+    is_plugin = lambda name: name.startswith('stv_') and name.endswith('.py')
+    layout_files = [f for f in os.listdir(path) if is_plugin(f)]
+    layouts = {}
+    for fname in layout_files:
+        try:
+            m = SourceFileLoader(fname, f"{path}/{fname}").load_module()
+            funcs = [f for f in dir(m) if f.startswith("layout_")]
+            layouts.update({f[len("layout_"):]: getattr(m, f) for f in funcs})
+        except (Exception, SystemExit) as e:
+            logger.warning(f"Skipping plugin {fname}: {e}")
+    return layouts
 
 
 def get_empty_matrix(nnodes):

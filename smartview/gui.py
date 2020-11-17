@@ -114,12 +114,12 @@ def start_server(tree_image):
     def default():
         bottle.redirect("/static/gui.html")
 
-    @app.get("/size/")
+    @app.get("/size")
     def get_size():
         return json.dumps({"width": math.ceil(tree_image.width),
                            "height": math.ceil(tree_image.height)})
 
-    @app.get("/get_scene_region/<scene>/", method=['GET', 'OPTIONS'])
+    @app.get("/get_scene_region/<scene>", method=['GET', 'OPTIONS'])
     def get_scene_region(scene):
         zoom, x, y, w, h = map(float, scene.split(','))
         target_tree_scene = QRectF(x, y, w, h)
@@ -148,9 +148,30 @@ def start_server(tree_image):
         print(os.path.join(basepath, filepath))
         return bottle.static_file(filepath, root=basepath)
 
-    @app.get("/layouts/")
+    @app.get("/layouts")
     def layouts():
-        return json.dumps(list(tree_image.tree_style.layouts))
+        layouts = layout.load_layouts(tree_image.tree_style.layouts_path)
+        return json.dumps(list(layouts))
+
+    @app.put("/layouts/<name>")
+    def put_layout(name):
+        layouts = tree_image.tree_style.layouts
+        if not name in layouts:
+            return json.dumps(f'Error when loading layout {name}')
+        tree_image.tree_style.layout_fns = [layout[name]]
+
+        #####
+        tree_image.tree_style.layout_fns = list(layouts.values()) ###
+        for node in tree_image.root_node.traverse():
+            node._temp_faces = []
+        tree_image.initialize()
+        tree_image.set_leaf_aperture()
+        tree_image.adjust_dimensions()
+        tree_image.adjust_apertures()
+        tree_image.adjust_branch_lengths()
+        tree_image.update_collision_paths()
+
+
 
     bottle.run(app, address="localhost", port=8090, debug=True, reload=True)
 

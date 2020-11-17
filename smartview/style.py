@@ -181,6 +181,8 @@ class TreeStyle(object):
         # Dictionary with the possible layouts (functions that draw the nodes).
         self.layouts = {}
 
+        self.layouts_path = ""
+
         # List of layout functions that draw the nodes content (that
         # "dynamically control the aspect of nodes").
         self.layout_fns = []

@@ -9,40 +9,28 @@ to be drawn (which include tree branches and associated images --
 though the last part is not ready yet).
 """
 
-from random import randint
-from json import dumps
-import time
+import sys
+import random
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter as fmt
+import pyximport
+pyximport.install()
+
 import logging
+logger = logging.getLogger("smartview")
+logger.setLevel('DEBUG')
+log_handler = logging.StreamHandler(sys.stdout)
+log_handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
+logger.addHandler(log_handler)
+
+import numpy as np
+
+from . import layout
 from .align import SparseAlign, TreeAlignment, Align, DiskHashAlign
 from .utils import blue
 from . import common
 from .main import TreeImage, gui
-from .face import RectFace, TextFace, AttrFace, LabelFace, CircleLabelFace, GradientFace, HeatmapArcFace, HeatmapFace, SeqMotifFace
-from .style import TreeStyle, add_face_to_node
+from .style import TreeStyle
 from .ctree import Tree
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter as fmt
-import numpy as np
-import random
-import sys
-import pyximport
-pyximport.install()
-
-#from .. import Tree
-
-
-# Create a custom logger
-logger = logging.getLogger("smartview")
-logger.setLevel(10)
-
-# Create handlers
-c_handler = logging.StreamHandler(sys.stdout)
-
-# Create formatters and add it to handlers
-c_format = logging.Formatter('%(levelname)s - %(message)s')
-c_handler.setFormatter(c_format)
-
-# Add handlers to the logger
-logger.addHandler(c_handler)
 
 
 MATRIX = None
@@ -74,7 +62,8 @@ def get_args():
     circ_layout.add_argument("--arc_start", type=float, default=0, help="in degrees")
 
     add("-z", "--zoom", type=float, help="initial zoom level")
-    add("-l", "--layout", default="basic", choices=LAYOUTS.keys())
+    add("-l", "--layout", default="basic")
+    add("--layouts-path", default=".", help="path for plugins / extra layouts")
     add("--debug", action="store_true", help="enable debug mode")
     add("--track_mem", action="store_true", help="tracks memory usage")
     add("--profile", action="store_true", help="tracks cpu time")
@@ -90,194 +79,6 @@ def get_args():
     add("--tilesize", type=int, default=800)
     add("--heatmap", action="store_true")
     return parser.parse_args()
-
-
-
-nameF = AttrFace("name", fsize=11, fgcolor='royalBlue', ftype='Arial')
-nameF2 = AttrFace("name", fsize=16, fgcolor='indianred', ftype='Arial')
-nameF3 = AttrFace("name", fsize=8, fgcolor='grey', ftype='Arial')
-#nameF.margin_right = 10
-distF = AttrFace("dist", fsize=10, fgcolor="grey", formatter="%0.3g")
-supportF = AttrFace("support", fsize=16)
-# labelF = LabelFace(70)
-# labelF.fill_color = "thistle"
-# labelF2 = LabelFace(70)
-# labelF2.fill_color = "indianred"
-
-circleF = CircleLabelFace(attr="support", solid=True, color="blue")
-
-hola = TextFace("hola")
-mundo = TextFace("mundo", fsize=7, fgcolor="grey")
-ornot = TextFace("ornot", fsize=6, fgcolor="steelblue")
-rectF = RectFace(100, 100, bgcolor="indianred")
-f = RectFace(20, 10, bgcolor="pink")
-f2 = RectFace(120, 10, bgcolor="blue")
-f3 = RectFace(20, 10, bgcolor="green")
-f4 = RectFace(20, 10, bgcolor="indianred")
-f5 = RectFace(20, 10, bgcolor="steelblue")
-
-# gradF = GradientFace(width=50, node_attr="custom")
-# gradF.only_if_leaf = True
-
-
-# Layouts.
-
-def layout_real(node):
-    if node.is_leaf():
-        add_face_to_node(nameF, node, column=0, position="branch-right")
-        #add_face_to_node(f5, node, column=1, position="branch-right")
-
-        #add_face_to_node(labelF, node, column=2, position="branch-right")
-        #add_face_to_node(labelF2, node, column=3, position="branch-right")
-        #add_face_to_node(f5, node, column=1, position="aligned")
-        #add_face_to_node(nameF, node, column=1, position="aligned")
-
-        # if random.random()>0.5:
-        #     add_face_to_node(labelF, node, column=3, position="aligned")
-        #     add_face_to_node(labelF2, node, column=4, position="aligned")
-        # else:
-        #     add_face_to_node(labelF2, node, column=3, position="aligned")
-        #     add_face_to_node(labelF, node, column=4, position="aligned")
-
-        add_face_to_node(distF, node, column=0, position="branch-top")
-        add_face_to_node(supportF, node, column=1, position="branch-bottom")
-
-    elif node.up:
-        if node.name:
-            add_face_to_node(nameF, node, column=0, position="branch-top")
-        #add_face_to_node(distF, node, column=0, position="branch-bottom")
-        add_face_to_node(supportF, node, column=1, position="branch-bottom")
-
-        #add_face_to_node(circleF, node, column=5, position="branch-right")
-    #add_face_to_node(gradF, node, column=10, position="branch-right")
-
-
-def layout_align(node):
-    if ALIGN and node in ALIGN:
-        # add_face_to_node(TextFace(node.name), node,
-        #                 column=9, position="aligned")
-        add_face_to_node(BLOCK_SEQ_FACE, node, column=10, position="aligned")
-
-
-def layout_test(node):
-    node.img_style.size = 1
-    # f.margin_left=20
-    add_face_to_node(f, node, column=0, position="branch-right")
-    add_face_to_node(f, node, column=0, position="branch-right")
-    #add_face_to_node(rectF, node, column=1, position="branch-right")
-    if node.is_leaf():
-        add_face_to_node(nameF, node, column=2, position="branch-right")
-    else:
-        if node.name:
-            add_face_to_node(nameF, node, column=0, position="branch-top")
-
-    add_face_to_node(hola, node, column=1, position="branch-top")
-    add_face_to_node(ornot, node, column=1, position="branch-bottom")
-    add_face_to_node(mundo, node, column=2, position="branch-bottom")
-    add_face_to_node(mundo, node, column=1, position="branch-bottom")
-
-
-def layout_crouded(node):
-    if node.is_leaf():
-        add_face_to_node(nameF, node, column=0, position="branch-right")
-        add_face_to_node(nameF2, node, column=0, position="branch-right")
-        add_face_to_node(nameF3, node, column=1, position="branch-right")
-
-    else:
-        if MATRIX is not None:
-            hface = HeatmapArcFace(MATRIX[node._id], 100, 0.8)
-            add_face_to_node(hface, node, column=0, position="aligned")
-
-        if node.name:
-            add_face_to_node(nameF, node, column=0, position="branch-top")
-        add_face_to_node(distF, node, column=0, position="branch-bottom")
-        add_face_to_node(
-            TextFace(str(N2LEAVES[node]), fsize=13), node, column=0, position="branch-top")
-#        add_face_to_node(TextFace("%0.2f" % n2dist[n], fsize=13), node, column=0, position="branch-top")
-#            add_face_to_node(nameF, node, column=0, position="aligned")
-
-
-def layout_basic(node):
-    if node.is_leaf():
-        add_face_to_node(nameF, node, column=0, position="branch-right")
-    else:
-        if node.name:
-            add_face_to_node(distF, node, column=0, position="branch-bottom")
-            #add_face_to_node(nameF, node, column=0, position="branch-top")
-
-
-def layout_stacked(node, dim=None):
-    if node.is_leaf():
-        add_face_to_node(nameF, node, column=0, position="branch-right")
-        add_face_to_node(nameF2, node, column=0, position="branch-right")
-        add_face_to_node(nameF3, node, column=1, position="branch-right")
-        if MATRIX is not None:
-            hface = HeatmapArcFace(MATRIX[node._id], 100, 0.5)
-            add_face_to_node(hface, node, column=0, position="aligned")
-            hface = HeatmapFace(MATRIX[node._id], 10, 10)
-            add_face_to_node(hface, node, column=2, position="branch-right")
-
-    else:
-        if MATRIX is not None:
-            hface = HeatmapArcFace(MATRIX[node._id], 100, 0.8)
-            add_face_to_node(hface, node, column=0, position="aligned")
-
-        if node.name:
-            add_face_to_node(nameF, node, column=0, position="branch-top")
-        add_face_to_node(distF, node, column=0, position="branch-bottom")
-        add_face_to_node(
-            TextFace(str(N2LEAVES[node]), fsize=13), node, column=0, position="branch-top")
-#        add_face_to_node(TextFace("%0.2f" % n2dist[n], fsize=13), node, column=0, position="branch-top")
-#            add_face_to_node(nameF, node, column=0, position="aligned")
-
-
-def layout_tol(node, dim=None):
-    nameF = TextFace(node.name, fgcolor="indianRed", fsize=16)
-    # if node.rank:
-    #     rankF = TextFace(node.sci_name, fgcolor="orange", fsize=10)
-    distF = TextFace("%0.2f" % node.dist, fgcolor="#888888", fsize=8)
-    sizeF = TextFace(" (size: %d)" % N2LEAVES[node], fsize=8)
-
-    add_face_to_node(distF, node, column=0, position="branch-bottom")
-    if node.is_leaf():
-        add_face_to_node(nameF, node, column=0, position="branch-right")
-        if MATRIX is not None:
-            hface = HeatmapArcFace(MATRIX[node._id], 100, 0.5)
-            add_face_to_node(hface, node, column=0, position="aligned")
-            hface = HeatmapFace(MATRIX[node._id], 10, 10)
-            add_face_to_node(hface, node, column=2, position="branch-right")
-
-    else:
-        if MATRIX is not None:
-            hface = HeatmapArcFace(MATRIX[node._id], 100, 0.8)
-            add_face_to_node(hface, node, column=0, position="aligned")
-
-        if node.name:
-            add_face_to_node(nameF, node, column=0, position="branch-top")
-            add_face_to_node(sizeF, node, column=1, position="branch-bottom")
-
-
-def layout_rect(node):
-    if node.is_leaf():
-        add_face_to_node(rectF, node, column=0, position="branch-right")
-
-
-def layout_clean(node):
-    pass
-
-
-LAYOUTS = {
-    "real": layout_real,
-    "align": layout_align,
-    "test": layout_test,
-    "crouded": layout_crouded,
-    "basic": layout_basic,
-    "stacked": layout_stacked,
-    "tol": layout_tol,
-    "rect": layout_rect,
-    "clean": layout_clean
-}
-
 
 
 def main():
@@ -369,8 +170,10 @@ def main():
 
     ts = TreeStyle()
 
-    ts.layouts = LAYOUTS
-    ts.layout_fns.append(LAYOUTS[args.layout])
+    ts.layouts = layout.load_layouts('layouts')
+    print(ts.layouts)
+    ts.layouts_path = args.layouts_path
+    ts.layout_fns.append(ts.layouts[args.layout])
 
     if args.align:
         global ALIGN, BLOCK_SEQ_FACE
@@ -381,9 +184,9 @@ def main():
             align_dict.load_fasta(args.align)
             ALIGN = TreeAlignment(align_dict, N2CONTENT)
             #ALIGN.load_seqs(t, align_dict)
-            BLOCK_SEQ_FACE = SeqMotifFace(
-                ALIGN, seqtype='aa', seq_format="seq", gap_format="blank", poswidth=3, total_width=None)
-            ts.layout_fns.append(layout_align)
+            # BLOCK_SEQ_FACE = face.SeqMotifFace(
+            #     ALIGN, seqtype='aa', seq_format="seq", gap_format="blank", poswidth=3, total_width=None)
+            #ts.layout_fns.append(layout_align)
         except FileNotFoundError as e:
             sys.exit(e)
 
