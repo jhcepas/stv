@@ -187,15 +187,15 @@ function get_drag_scale() {
 
 // Move the current tree view to the given mouse position in the minimap.
 function move_minimap_view(event) {
-  // Top-left pixel coordinates of the tree (0, 0) position.
+  // Top-left pixel coordinates of the tree (0, 0) position in the minimap.
   const [x0, y0] = [div_minimap.offsetLeft + 6, div_minimap.offsetTop + 6];
 
-  // Center of the visible rectangle (in px).
-  const cx = (div_visible_rect.offsetWidth) / 2 / view.minimap_zoom,
-        cy = (div_visible_rect.offsetHeight) / 2 / view.minimap_zoom;
+  // Size of the visible rectangle.
+  const [w, h] = [div_visible_rect.offsetWidth, div_visible_rect.offsetHeight];
 
-  view.tl.x = (event.pageX - x0) / view.minimap_zoom - cx;
-  view.tl.y = (event.pageY - y0) / view.minimap_zoom - cy;
+  view.tl.x = (event.pageX - w/2 - x0) / view.minimap_zoom;
+  view.tl.y = (event.pageY - h/2 - y0) / view.minimap_zoom ;
+  // So the center of the visible rectangle will be where the mouse is.
 
   update();
 }
@@ -248,23 +248,28 @@ function draw(element, items, zoom) {
 
 // Return the graphical (svg) element corresponding to an ete item.
 function item2svg(item, zoom) {
-  // ete items look like ['r', ...] for a rectangle, etc.
+  // items look like ['r', ...] for a rectangle, etc.
   if (item[0] === 'r') {       // rectangle
     const [ , x, y, w, h] = item;
+
     return `<rect class="rect" x="${x}" y="${y}" width="${w}" height="${h}"
                   fill="none"
                   stroke="${view.rect_color}"
-                  stroke-width="${1/zoom}"/>`;
+                  stroke-width="${1 / zoom}"/>`;
   }
   else if (item[0] === 'l') {  // line
     const [ , x1, y1, x2, y2] = item;
+
     return `<line class="line" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
                   stroke="${view.line_color}"
-                  stroke-width="${1/zoom}"/>`;
+                  stroke-width="${1 / zoom}"/>`;
   }
   else if (item[0] === 't') {  // text
     const [ , x, y, w, h, txt] = item;
-    const fs = Math.ceil(1.5 * w / (txt.length + 0.1));  // fs * length = w (approx.)
+
+    const fs = Math.ceil(1.5 * w / (txt.length + 0.1));
+    // fs (font size) is the maximum height of a letter.
+
     return `<text class="text" x="${x}" y="${y + 1.2 * fs}"
                   color="${view.font_color}"
                   font-size="${fs}px">${txt}</text>`;
