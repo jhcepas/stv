@@ -1,4 +1,2 @@
 __pycache__/
 build/
-*.so
-*.egg-info
