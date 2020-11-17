@@ -9,4 +9,5 @@ setup(name='ete',
       author_email='jhcepas@gmail.com, jordi.burguet.castell@gmail.com',
       license = 'GPLv3',
       url='http://etetoolkit.org',
-      packages=['ete'])
+      packages=['ete'],
+      package_data={'ete': ['static/*']})
