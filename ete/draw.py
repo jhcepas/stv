@@ -57,8 +57,15 @@ def draw(tree, point=(0, 0), viewport=None, zoom=1):
     p_content = (r_node.x, r_node.y + (r_node.h - tree.content_size.h) / 2)
     r_content = make_rect(p_content, tree.content_size)
 
-    f = lambda: draw_content(tree, p_content, viewport, zoom)
+    p_left = (r_content.x, r_content.y + r_content.h / 2)
+    p_right = (r_content.x + r_content.w, r_content.y + r_content.h / 2)
+    yield draw_line(p_left, p_right)
+
+    f = lambda: draw_content_inline(tree, p_content, viewport, zoom)
     yield from draw_or_outline(f, r_content, viewport, zoom)
+
+    yield from draw_content_float(tree, p_content, viewport, zoom)
+    yield from draw_content_align(tree, p_content, viewport, zoom)
 
     p_childs = (r_node.x + r_content.w, r_node.y)
     r_childs = make_rect(p_childs, tree.childs_size)
@@ -79,14 +86,36 @@ def draw_childs(tree, point=(0, 0), viewport=None, zoom=1):
         y += h
 
 
-def draw_content(node, point=(0, 0), viewport=None, zoom=1):
-    "Yield graphic elements to draw the node"
-    # An element looks like ['l', 0, 0, 1, 1] for a line from (0,0) to (1,1).
-    x, y = point
-    length = (node.length or 1) * 100  # TODO: adjust depending on zoom
-    yield draw_line((x, y + 3), (x + length, y + 3))
-    if node.name:
-        yield draw_text((x + length + 1, y), node.name)
+# These are the functions that the user would supply to decide how to
+# represent a node.
+
+def draw_content_inline(node, point=(0, 0), viewport=None, zoom=1):
+    "Yield graphic elements to draw the inline contents of the node"
+    if node.length:
+        x, y = point
+        w, h = node.content_size
+        text = '%.2g' % node.length
+        fs = min(h/2, 1.5 * w / len(text))  # font size
+        g_text = draw_text((x, y + h/2 - fs), fs, text)
+        if zoom * fs > 4:
+            yield g_text
+        else:
+            yield draw_rect(get_rect(g_text))
+
+
+def draw_content_float(node, point=(0, 0), viewport=None, zoom=1):
+    "Yield graphic elements to draw the floated contents of the node"
+    if not node.childs:
+        x, y = point
+        w, h = node.content_size
+        yield draw_text((x + node.content_size.w + 1, y + h/6), h/2, node.name)
+
+
+def draw_content_align(node, point=(0, 0), viewport=None, zoom=1):
+    "Yield graphic elements to draw the aligned contents of the node"
+    yield from []
+
+
 
 
 def draw_rect(r):
@@ -97,9 +126,9 @@ def draw_line(p1, p2):
     x2, y2 = p2
     return ['l', x1, y1, x2, y2]
 
-def draw_text(point, text):
+def draw_text(point, fontsize, text):
     x, y = point
-    return ['t', x, y, 2 * len(text), 2, text]
+    return ['t', x, y, fontsize, text]
 
 
 
@@ -107,9 +136,14 @@ def draw_text(point, text):
 
 def store_sizes(tree):
     "Store in each node of the tree its content size and childs size"
-    MIN_W = MIN_H = 6  # minimum content width and height
-    size = drawn_size(draw_content(tree))
-    tree.content_size = Size(max(MIN_W, size.w), max(MIN_H, size.h))
+    tree.content_size = Size(0, 0)  # so draw_content_inline can use it
+    size = drawn_size(draw_content_inline(tree))
+
+    MIN_HEIGHT_CONTENT = 8  # TODO: think whether to put this somewhere else
+    content_w = (tree.length or 1) * 100  # TODO: adjust depending on LENGTH_SCALE
+    content_h = max(MIN_HEIGHT_CONTENT, size.h)
+
+    tree.content_size = Size(content_w, content_h)
 
     for node in tree.childs:
         store_sizes(node)
@@ -189,8 +223,8 @@ def get_rect(element):
         return Rect(min(x1, x2), min(y1, y2),
                     abs(x2 - x1), abs(y2 - y1))
     elif element[0] == 't':
-        _, x, y, w, h, text = element
-        return Rect(x, y, w, h)
+        _, x, y, fontsize, text = element
+        return Rect(x, y, fontsize * len(text) / 1.5, fontsize)
     else:
         raise ValueError('unrecognized element: ' + repr(element))
 

@@ -266,15 +266,11 @@ function item2svg(item, zoom) {
                   stroke-width="${1 / zoom}"/>`;
   }
   else if (item[0] === 't') {  // text
-    const [ , x, y, w, h, txt] = item;
+    const [ , x, y, fs, txt] = item;
 
-    const fs = Math.ceil(1.5 * w / (txt.length + 0.1));
-    // fs (font size) is the maximum height of a letter.
-
-    return `<text class="text" x="${x}" y="${y + 1.2 * fs}"
+    return `<text class="text" x="${x}" y="${y+fs}"
                   color="${view.font_color}"
                   font-size="${fs}px">${txt}</text>`;
-    // TODO: review the font metrics. They are quite ad-hoc at the moment.
     // NOTE: If we wanted to use the exact width of the item, we could add:
     //   textLength="${w}px"
   }
