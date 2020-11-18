@@ -5,7 +5,7 @@
 // Most will be shown on the top-right gui (using dat.gui).
 const view = {
   pos: {x: 0, y: 0},  // in-tree current pointer position
-  server: 'localhost:5000',
+  server: location.host,
   tree_id: 4,
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: 1,
@@ -45,6 +45,7 @@ function create_datgui() {
   dgui.add(view.pos, "y").listen();
 
   const dgui_server = dgui.addFolder("server");
+
   dgui_server.add(view, "server").onChange(update);
   dgui_server.add(view, "tree_id", 1, 5, 1).onChange(() => {
     view.tl.x = 0;
