@@ -501,6 +501,9 @@ def initialize(db_name='trees.db'):
         response.status_code = error.status_code
         return response
 
+    api.handle_error = None
+    # so our handling is called even when being served from gunicorn
+
     return app
 
 
