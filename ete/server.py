@@ -481,6 +481,8 @@ def initialize(db_name='trees.db'):
     app.config['SECRET_KEY'] = os.urandom(256)
     serializer = JSONSigSerializer(app.config['SECRET_KEY'], expires_in=3600)
 
+    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # do not cache static files
+
     api = Api(app)
     add_resources(api)
 
