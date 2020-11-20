@@ -96,7 +96,7 @@ def draw_content_inline(node, point=(0, 0), viewport=None, zoom=1):
         w, h = node.content_size
         text = '%.2g' % node.length
         fs = min(h/2, 1.5 * w / len(text))  # font size
-        g_text = draw_text((x, y + h/2 - fs), fs, text)
+        g_text = draw_length((x, y + h/2 - fs), fs, text)
         if zoom * fs > 4:
             yield g_text
         else:
@@ -108,7 +108,7 @@ def draw_content_float(node, point=(0, 0), viewport=None, zoom=1):
     if not node.childs:
         x, y = point
         w, h = node.content_size
-        yield draw_text((x + node.content_size.w + 1, y + h/6), h/2, node.name)
+        yield draw_name((x + node.content_size.w + 1, y + h/6), h/2, node.name)
 
 
 def draw_content_align(node, point=(0, 0), viewport=None, zoom=1):
@@ -126,9 +126,12 @@ def draw_line(p1, p2):
     x2, y2 = p2
     return ['l', x1, y1, x2, y2]
 
-def draw_text(point, fontsize, text):
+def draw_text(point, fontsize, text, text_type=''):
     x, y = point
-    return ['t', x, y, fontsize, text]
+    return ['t' + text_type, x, y, fontsize, text]
+
+draw_name = lambda *args, **kwargs: draw_text(*args, **kwargs, text_type='n')
+draw_length = lambda *args, **kwargs: draw_text(*args, **kwargs, text_type='l')
 
 
 
@@ -222,7 +225,7 @@ def get_rect(element):
         _, x1, y1, x2, y2 = element
         return Rect(min(x1, x2), min(y1, y2),
                     abs(x2 - x1), abs(y2 - y1))
-    elif element[0] == 't':
+    elif element[0].startswith('t'):
         _, x, y, fontsize, text = element
         return Rect(x, y, fontsize * len(text) / 1.5, fontsize)
     else:

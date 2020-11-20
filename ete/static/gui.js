@@ -14,7 +14,8 @@ const view = {
   select_text: false,
   line_color: "#000",
   rect_color: "#0A0",
-  font_color: "#00A",
+  names_color: "#00A", 
+  lengths_color: "#888",
   font_family: "sans-serif",
   font_size_auto: true,
   font_size_scroller: undefined,
@@ -35,8 +36,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Create the top-right box ("gui") with all the options we can see and change.
 function create_datgui() {
-  const [style_line, style_rect, style_font] = [1, 2, 3].map(i =>
-    document.styleSheets[0].cssRules[i].style);  // shortcut
+  const [style_line, style_rect, style_font, style_names, style_lengths] =
+    [1, 2, 3, 4, 5].map(i => document.styleSheets[0].cssRules[i].style);
+  // shortcut
 
   const dgui = new dat.GUI({autoPlace: false});
   div_datgui.appendChild(dgui.domElement);
@@ -70,8 +72,10 @@ function create_datgui() {
     style_line.stroke = view.line_color);
   dgui_style.addColor(view, "rect_color").name("rectangle color").onChange(() =>
     style_rect.stroke = view.rect_color);
-  dgui_style.addColor(view, "font_color").name("text color").onChange(() =>
-    style_font.fill = view.font_color);
+  dgui_style.addColor(view, "names_color").name("names color").onChange(() =>
+    style_names.fill = view.names_color);
+  dgui_style.addColor(view, "lengths_color").name("lengths color").onChange(() =>
+    style_lengths.fill = view.lengths_color);
   dgui_style.add(view, "font_family", ["sans-serif", "serif", "monospace"])
     .name("font").onChange(() => style_font.fontFamily = view.font_family);
   dgui_style.add(view, "font_size_auto").name("automatic size").onChange(() => {
@@ -265,11 +269,10 @@ function item2svg(item, zoom) {
                   stroke="${view.line_color}"
                   stroke-width="${1 / zoom}"/>`;
   }
-  else if (item[0] === 't') {  // text
-    const [ , x, y, fs, txt] = item;
+  else if (item[0].startsWith('t')) {  // text
+    const [text_type, x, y, fs, txt] = item;
 
-    return `<text class="text" x="${x}" y="${y+fs}"
-                  color="${view.font_color}"
+    return `<text class="text ${get_class(text_type)}" x="${x}" y="${y+fs}"
                   font-size="${fs}px">${txt}</text>`;
     // NOTE: If we wanted to use the exact width of the item, we could add:
     //   textLength="${w}px"
@@ -278,6 +281,16 @@ function item2svg(item, zoom) {
     console.log(`Got unknown item of type: ${item[0]}`);
     return "";
   }
+}
+
+
+function get_class(text_type) {
+  if (text_type === 'tn')
+    return 'names';
+  else if (text_type === 'tl')
+    return 'lengths';
+  else
+    return '';
 }
 
 

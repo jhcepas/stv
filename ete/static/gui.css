@@ -12,9 +12,16 @@
 }
 
 .text {
-    fill: #00A;
     font-family: sans-serif;
     user-select: none;
+}
+
+.names {
+    fill: #00A;
+}
+
+.lengths {
+    fill: #888;
 }
 
 .tree {
