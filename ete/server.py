@@ -524,6 +524,11 @@ def add_resources(api):
 app = initialize()
 
 if __name__ == '__main__':
+    if not os.path.exists('trees.db'):
+        os.system('sqlite3 trees.db < ../tests/create_tables.sql')
+        os.system('sqlite3 trees.db < ../tests/sample_data.sql')
+        os.system('../tests/add_tree.py ../tests/example_tree_data/HmuY.aln2.tree')
+        os.system('../tests/add_tree.py ../tests/example_tree_data/aves.tree')
     app.run(debug=True)
 
 # But for production it's better if we serve it with something like:
