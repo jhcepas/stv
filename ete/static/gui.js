@@ -6,6 +6,7 @@
 const view = {
   pos: {x: 0, y: 0},  // in-tree current pointer position
   server: location.host,
+  tree_name: "HmuY.aln2",
   tree_id: 4,
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: 1,
@@ -14,7 +15,7 @@ const view = {
   select_text: false,
   line_color: "#000",
   rect_color: "#0A0",
-  names_color: "#00A", 
+  names_color: "#00A",
   lengths_color: "#888",
   font_family: "sans-serif",
   font_size_auto: true,
@@ -49,13 +50,22 @@ function create_datgui() {
   const dgui_server = dgui.addFolder("server");
 
   dgui_server.add(view, "server").onChange(update);
-  dgui_server.add(view, "tree_id", 1, 5, 1).onChange(() => {
-    view.tl.x = 0;
-    view.tl.y = 0;
-    view.zoom = 1;
-    draw_minimap();
-    update();
-  });
+  fetch(`http://${view.server}/trees`)
+    .then(response => response.json())
+    .then(data => {
+      const trees = {};
+      data.map(t => trees[t.name] = t.id);
+      dgui_server.add(view, "tree_name", Object.keys(trees)).name("tree")
+        .onChange(() => {
+          view.tree_id = trees[view.tree_name];
+          view.tl.x = 0;
+          view.tl.y = 0;
+          view.zoom = 1;
+          draw_minimap();
+          update();
+        });
+    })
+    .catch(error => console.log(error));
 
   const dgui_ctl = dgui.addFolder("control");
 
@@ -285,12 +295,12 @@ function item2svg(item, zoom) {
 
 
 function get_class(text_type) {
-  if (text_type === 'tn')
-    return 'names';
-  else if (text_type === 'tl')
-    return 'lengths';
+  if (text_type === "tn")
+    return "names";
+  else if (text_type === "tl")
+    return "lengths";
   else
-    return '';
+    return "";
 }
 
 
