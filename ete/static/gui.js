@@ -36,9 +36,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Create the top-right box ("gui") with all the options we can see and change.
 function create_datgui() {
+  // Shortcut for getting the styles.
   const [style_line, style_rect, style_font, style_names, style_lengths] =
     [1, 2, 3, 4, 5].map(i => document.styleSheets[0].cssRules[i].style);
-  // shortcut
 
   const dgui = new dat.GUI({autoPlace: false});
   div_datgui.appendChild(dgui.domElement);
