@@ -8,6 +8,7 @@ const view = {
   server: location.host,
   tree_name: "HmuY.aln2",
   tree_id: 4,
+  upload_tree: () => window.location.href = "upload_tree.html",
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: 1,
   update_on_drag: true,
@@ -64,6 +65,7 @@ function create_datgui() {
           draw_minimap();
           update();
         });
+      dgui_server.add(view, "upload_tree").name("upload tree");
     })
     .catch(error => console.log(error));
 

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Upload Tree</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Expires" content="0" />
+<style>
+h1 {
+    text-align: center;
+    color: blue;
+}
+
+label {
+    display: block;
+}
+
+div {
+    margin: 2rem 2rem;
+}
+
+input, label, textarea {
+    margin: 0.4rem 0;
+}
+</style>
+</head>
+
+<body>
+<h1>Upload Tree</h1>
+
+<form name="upload">
+<div>
+<label for="name">Name (1 to 128 characters):</label>
+<input type="text" id="name" name="name" required
+    placeholder="Tree name" minlength="1" maxlength="128" size="20">
+</div>
+
+<div>
+<label for="description">Description:</label>
+<textarea id="description" name="description" rows="4" cols="50"
+    placeholder="Description of the tree (can be empty)"></textarea>
+</div>
+
+<div>
+<input id="newick-file" type="file" accept=".tree,.newick,.txt">
+</div>
+
+<div>
+<button id="upload">Upload</button>
+</div>
+</form>
+
+<script>
+const button = document.getElementById("upload");
+button.addEventListener("click", () =>{
+    const form = document.forms["upload"];
+    const data = new FormData(form);
+    fetch("/trees", {
+            method: "POST",
+            mode: "cors",
+            headers: "Content-Type: application/json",
+            body: JSON.stringify(data)})  // TODO: see how many of those headers are really necessary
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            window.location.href="gui.html";
+        })
+        .catch(error => console.log(error));
+});
+</script>
+
+</body>
+</html>
