@@ -76,8 +76,6 @@ function create_datgui() {
     })
     .catch(error => console.log(error));
 
-    dgui_tree.add(view, "representation")
-
   const dgui_ctl = dgui.addFolder("control");
 
   dgui_ctl.add(view.tl, "x").name("top-left x").onChange(update);

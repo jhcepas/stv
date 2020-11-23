@@ -192,7 +192,7 @@ class Trees(Resource):
         if request.url_rule.rule == '/trees':
             return [get_tree(pid) for pid in dbget0('id', 'trees')]
         elif request.url_rule.rule == '/trees/representations':
-            return ['default', 'simple']  # TODO: get them from a plugin?
+            return ['default', 'simple', 'full']  # TODO: get them from a plugin?
         elif request.url_rule.rule == '/trees/<int:tree_id>':
             return get_tree(tree_id)
         elif request.url_rule.rule == '/trees/<int:tree_id>/draw':
