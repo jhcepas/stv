@@ -189,8 +189,10 @@ class Trees(Resource):
     # here, and also check that g.user_id is a reader (or the owner, or admin).
     def get(self, tree_id=None):
         "Return info about the tree (or all trees if no id given)"
-        if tree_id is None:
+        if request.url_rule.rule == '/trees':
             return [get_tree(pid) for pid in dbget0('id', 'trees')]
+        elif request.url_rule.rule == '/trees/representations':
+            return ['default', 'simple']  # TODO: get them from a plugin?
         elif request.url_rule.rule == '/trees/<int:tree_id>':
             return get_tree(tree_id)
         elif request.url_rule.rule == '/trees/<int:tree_id>/draw':
@@ -512,7 +514,7 @@ def add_resources(api):
     add = api.add_resource  # shortcut
     add(Login, '/login')
     add(Users, '/users', '/users/<int:user_id>')
-    add(Trees, '/trees',
+    add(Trees, '/trees', '/trees/representations',
         '/trees/<int:tree_id>',
         '/trees/<int:tree_id>/draw',
         '/trees/<int:tree_id>/size')

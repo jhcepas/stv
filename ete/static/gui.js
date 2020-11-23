@@ -5,10 +5,11 @@
 // Most will be shown on the top-right gui (using dat.gui).
 const view = {
   pos: {x: 0, y: 0},  // in-tree current pointer position
-  server: location.host,
   tree_name: "HmuY.aln2",
   tree_id: 4,
+  show_tree_info: () => window.location.href = `/trees/${view.tree_id}`,
   upload_tree: () => window.location.href = "upload_tree.html",
+  representation: "default",
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: 1,
   update_on_drag: true,
@@ -48,15 +49,14 @@ function create_datgui() {
   dgui.add(view.pos, "x").listen();
   dgui.add(view.pos, "y").listen();
 
-  const dgui_server = dgui.addFolder("server");
+  const dgui_tree = dgui.addFolder("tree");
 
-  dgui_server.add(view, "server").onChange(update);
-  fetch(`http://${view.server}/trees`)
+  fetch(`http://${location.host}/trees`)
     .then(response => response.json())
     .then(data => {
       const trees = {};
       data.map(t => trees[t.name] = t.id);
-      dgui_server.add(view, "tree_name", Object.keys(trees)).name("tree")
+      dgui_tree.add(view, "tree_name", Object.keys(trees)).name("name")
         .onChange(() => {
           view.tree_id = trees[view.tree_name];
           view.tl.x = 0;
@@ -65,9 +65,18 @@ function create_datgui() {
           draw_minimap();
           update();
         });
-      dgui_server.add(view, "upload_tree").name("upload tree");
+      dgui_tree.add(view, "show_tree_info").name("info");
+      dgui_tree.add(view, "upload_tree").name("upload tree");
     })
     .catch(error => console.log(error));
+  fetch(`http://${location.host}/trees/representations`)
+    .then(response => response.json())
+    .then(data => {
+      dgui_tree.add(view, "representation", data).onChange(update)
+    })
+    .catch(error => console.log(error));
+
+    dgui_tree.add(view, "representation")
 
   const dgui_ctl = dgui.addFolder("control");
 
@@ -242,7 +251,7 @@ function update_tree() {
   const [x, y] = [view.tl.x, view.tl.y];
   const [w, h] = [div_tree.offsetWidth / z, div_tree.offsetHeight / z];
 
-  const url = `http://${view.server}/trees/${view.tree_id}/draw`;
+  const url = `http://${location.host}/trees/${view.tree_id}/draw`;
 
   fetch(`${url}?z=${z}&x=${x}&y=${y}&w=${w}&h=${h}`)
     .then(response => response.json())
@@ -308,7 +317,7 @@ function get_class(text_type) {
 
 // Draw the full tree on a small div on the bottom-right ("minimap").
 function draw_minimap() {
-  fetch(`http://${view.server}/trees/${view.tree_id}/size`)
+  fetch(`http://${location.host}/trees/${view.tree_id}/size`)
     .then(response => response.json())
     .then(size => draw_minimap_with_size(size))
     .catch(error => console.log(error));
@@ -328,7 +337,7 @@ function draw_minimap_with_size(size) {
 
   view.minimap_zoom = zoom;
 
-  fetch(`http://${view.server}/trees/${view.tree_id}/draw?z=${zoom}`)
+  fetch(`http://${location.host}/trees/${view.tree_id}/draw?z=${zoom}`)
     .then(response => response.json())
     .then(data => draw(div_minimap, data, view.minimap_zoom))
     .then(update_minimap_visible_rect)
