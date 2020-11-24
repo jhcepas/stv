@@ -66,7 +66,7 @@ function create_datgui() {
           update();
         });
       dgui_tree.add(view, "show_tree_info").name("info");
-      dgui_tree.add(view, "upload_tree").name("upload tree");
+      dgui_tree.add(view, "upload_tree").name("upload");
     })
     .catch(error => console.log(error));
   fetch(`http://${location.host}/trees/representations`)
