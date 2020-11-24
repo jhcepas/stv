@@ -113,7 +113,9 @@ def draw_content_float(node, point=(0, 0), viewport=None, zoom=1):
 
 def draw_content_align(node, point=(0, 0), viewport=None, zoom=1):
     "Yield graphic elements to draw the aligned contents of the node"
-    yield from []
+    if not node.childs:
+        w, h = node.content_size
+        yield align(draw_name(point, h/2, node.name))
 
 
 
@@ -133,6 +135,8 @@ def draw_text(point, fontsize, text, text_type=''):
 draw_name = lambda *args, **kwargs: draw_text(*args, **kwargs, text_type='n')
 draw_length = lambda *args, **kwargs: draw_text(*args, **kwargs, text_type='l')
 
+def align(element):
+    return ['a'] + element
 
 
 # Size-related functions.
