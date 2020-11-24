@@ -29,7 +29,7 @@ class Tree(object):
         length_str = ':%g' % self.length if self.length is not None else ''
         pairs_str = ':'.join('%s=%s' % kv for kv in self.properties.items())
         props_str = '[&&NHX:%s]' % pairs_str if pairs_str else ''
-        return self.name + length_str + props_str
+        return quote(self.name) + length_str + props_str
 
     @content.setter
     def content(self, content):
@@ -43,7 +43,7 @@ class Tree(object):
 
     def __repr__(self):
         childs_reprs = ', '.join(repr(c) for c in self.childs)
-        return "Tree('%s', [%s])" % (self.content, childs_reprs)
+        return 'Tree(%r, [%s])' % (self.content, childs_reprs)
 
     def __str__(self, are_last=None):
         are_last = are_last or []
@@ -103,16 +103,16 @@ def read_nodes(nodes_text, pos=0):
     return nodes, pos + 1
 
 
-def read_content(text, pos):
+def read_content(text, pos, endings=',);'):
     "Return content starting at position pos in the text, and where it ends"
     end = pos
-    while end < len(text) and text[end] not in ',);':
+    while end < len(text) and text[end] not in endings:
         end += 1
     return text[pos:end], end
 
 
 def is_valid(tree_text):
-    return (tree_text.find(';') == len(tree_text) - 1 and
+    return (tree_text.endswith(';') and
         has_correct_parenthesis(tree_text) and
         has_correct_brakets(tree_text))
 
@@ -175,6 +175,12 @@ def read_fields(content):
     Example:
       'abc:123[&&NHX:x=foo:y=bar]' -> ('abc', 123, {'x': 'foo', 'y': 'bar'})
     """
+    if content.startswith('"') or content.startswith("'"):
+        quoted_name, pos = read_content(content, 1, endings=content[0])
+        content = content[pos+1:]
+    else:
+        quoted_name = None
+
     properties_pos = content.find('[')
     if properties_pos != -1:
         name_length = content[:properties_pos]
@@ -189,7 +195,10 @@ def read_fields(content):
     else:
         name, length = name_length, None
 
-    return name, length, properties
+    if quoted_name is not None and name != '':
+        raise NewickError(f'content has name {quoted_name} and {name}')
+
+    return quoted_name or name, length, properties
 
 
 def read_properties(text):
@@ -221,6 +230,19 @@ def get_branches_repr(are_last):
 
     prefix = ''.join('   ' if is_last else '|  ' for is_last in are_last[:-1])
     return prefix + ('`- ' if are_last[-1] else '|- ')
+
+
+def quote(name, escaped_chars=':'):
+    "Return the name quoted if it has any character that needs escaping"
+    if any(c in name for c in escaped_chars):
+        if "'" not in name:
+            return f"'{name}'"
+        elif '"' not in name:
+            return f'"{name}"'
+        else:
+            raise NewickError(f'cannot encode name: {name}')
+    else:
+        return name
 
 
 def write(node):

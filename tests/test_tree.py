@@ -29,6 +29,7 @@ a;
 (A:0.1,B:0.2,(C:0.3,D:0.4)E:0.5)F;
 ((B:0.2,(C:0.3,D:0.4)E:0.5)A:0.1)F;
 ([&&NHX:p1=v1:p2=v2],c);
+((G001575.1:0.243,G002335.1:0.2)42:0.041,G001615.1:0.246)'100.0:d__Bacteria';
 """.splitlines()
 
 bad_trees = """\
@@ -52,6 +53,8 @@ bad_trees = """\
 good_contents = """\
 Abeillia:1[&&NHX:taxid=1507328:name=Abeillia:rank=species:sci_name=Abeillia]
 1:1[&&NHX:taxid=1507327:name=Abeillia - 1507327:rank=genus:sci_name=Abeillia]
+GB_GCA_001771575.1:0.243
+'100.0:f__XYB2-FULL-48-7':0.078
 """.splitlines()
 
 
