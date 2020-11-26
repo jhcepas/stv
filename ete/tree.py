@@ -76,7 +76,7 @@ def read(tree_text):
 def read_nodes(nodes_text, pos=0):
     "Return a list of nodes and the position in the text where they end"
     # nodes_text looks like '(a,b,c)', where any element can be a list of nodes
-    invalid_chars_in_content = ',();'
+    invalid_chars_in_content = ",();"
 
     if nodes_text[pos] != '(':
         raise NewickError('nodes text starts with no "("')
@@ -86,6 +86,9 @@ def read_nodes(nodes_text, pos=0):
         pos += 1
         if pos >= len(nodes_text):
             raise NewickError('nodes text ends missing a matching ")"')
+
+        while nodes_text[pos] in ' \t\r\n':
+            pos += 1  # skip whitespace
 
         if nodes_text[pos] == '(':
             childs, pos = read_nodes(nodes_text, pos)
@@ -119,7 +122,7 @@ def is_valid(tree_text):
 
 def has_correct_parenthesis(tree_text):
     # () can be arbitrarily nested but have to be balanced.
-    valid_chars_before_open_parenthesis = '(,'
+    valid_chars_before_open_parenthesis = '(, \t\r\n'
 
     n_open_parenthesis = 0
     previous = ''
@@ -143,7 +146,7 @@ def has_correct_parenthesis(tree_text):
 def has_correct_brakets(tree_text):
     # [] start with '[&&NHX:', cannot nest, and cannot contain ',' or ')'.
     invalid_chars_in_brakets = ',)'
-    valid_chars_after_close_braket = ',);'  # yes, almost the same
+    valid_chars_after_close_braket = ',); \t\r\n'  # yes, almost the same
     braket_opening = '[&&NHX:'
 
     open_braket = False

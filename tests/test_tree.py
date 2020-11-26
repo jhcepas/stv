@@ -22,6 +22,7 @@ a;
 ((B:0.2,(C:0.3,D:0.4)E:0.5)A:0.1)F;
 (,,(,));
 (A,B,(C,D));
+(A, (B, C), (D, E));
 (A,B,(C,D)E)F;
 (:0.1,:0.2,(:0.3,:0.4):0.5);
 (:0.1,:0.2,(:0.3,:0.4):0.5):0.6;
@@ -44,7 +45,6 @@ bad_trees = """\
 ([]);
 ([&&NHX:a,b]);
 ([&&NHX:a)b];
-(A, (B, C), (D, E));
 ([&&NX:p1=v1:p2=v2],c);
 """.splitlines()
 # TODO: (maybe) add to bad_trees: '([&&NHX:p1=v1|p2=v2],c);' (bad separator)
@@ -226,6 +226,8 @@ def test_read_fields():
 
 def test_write():
     for tree_text in good_trees:
+        if ' ' in tree_text:
+            continue  # representation of whitespaces may change and it's ok
         print('<-', tree_text)
         t = tree.read(tree_text)
         t_text = tree.write(t)
