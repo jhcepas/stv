@@ -30,19 +30,19 @@ def main():
         with sqlite3.connect(args.db) as con:
             c = con.cursor()
 
-            c.execute('select max(id) from trees')
+            c.execute('SELECT MAX(id) FROM trees')
             tree_id = int(c.fetchone()[0] or 0) + 1
 
             name = args.name or get_name(args.treefile, tree_id)
 
-            c.execute('insert into trees values (?, ?, ?, ?, ?)',
+            c.execute('INSERT INTO trees VALUES (?, ?, ?, ?, ?)',
                 [tree_id, args.owner, name, args.description, newick])
 
-            c.execute('insert into user_owned_trees values (?, ?)',
+            c.execute('INSERT INTO user_owned_trees VALUES (?, ?)',
                 [args.owner, tree_id])
 
             for reader_id in args.readers:
-                c.execute('insert into user_reader_trees values (?, ?)',
+                c.execute('INSERT INTO user_reader_trees VALUES (?, ?)',
                     [reader_id, tree_id])
 
             print(f'Added tree {name!r} with id {tree_id} to {args.db!r}.')
