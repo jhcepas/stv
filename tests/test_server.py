@@ -162,7 +162,7 @@ def test_get_users():
 def test_get_trees():
     res = get('trees')
     assert type(res) == list
-    keys = 'id owner name description'.split()
+    keys = 'id name description owner readers'.split()
     assert all(x in res[0] for x in keys)
     assert res[0]['id'] == 1
     assert res[0]['owner'] == 1

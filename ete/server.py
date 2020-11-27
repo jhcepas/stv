@@ -24,10 +24,10 @@ REST call examples:
 #
 # tree
 #   id: int
-#   owner: int (user id)
 #   name: str
 #   description: str
 #   newick: str
+#   owner: int (user id)
 #   readers: list of ints (user ids)
 
 
@@ -172,12 +172,12 @@ class Users(Resource):
             if res.rowcount != 1:
                 raise InvalidUsage('unknown user id %d' % user_id, 409)
 
-            exe('delete from user_owned_trees where id_user=?', user_id)
-            exe('delete from user_reader_trees where id_user=?', user_id)
-
-            for tid in get0('id', 'trees where owner=?', user_id):
+            for tid in get0('id_tree', 'user_owns_trees where id_user=?', user_id):
                 del_tree(tid)
             # NOTE: we could instead move them to a list of orphaned trees.
+
+            exe('delete from user_owns_trees where id_user=?', user_id)
+            exe('delete from user_reads_trees where id_user=?', user_id)
 
         return {'message': 'ok'}
 
@@ -195,6 +195,8 @@ class Trees(Resource):
             return ['default', 'simple', 'full']  # TODO: get them from a plugin?
         elif request.url_rule.rule == '/trees/<int:tree_id>':
             return get_tree(tree_id)
+        elif request.url_rule.rule == '/trees/<int:tree_id>/newick':
+            return dbget0('newick', 'trees where id=?', tree_id)[0]
         elif request.url_rule.rule == '/trees/<int:tree_id>/draw':
             viewport = get_viewport(request.args)
             t = add_tree(tree_id)
@@ -214,11 +216,10 @@ class Trees(Resource):
             required=['name', 'description', 'newick'],
             valid_extra=['owner'])
 
-        if 'owner' not in data:
-            data['owner'] = g.user_id
+        owner = data.pop('owner', g.user_id)
 
         admin_id = 1
-        if g.user_id not in [data['owner'], admin_id]:
+        if g.user_id not in [owner, admin_id]:
             raise InvalidUsage('owner set different from current user')
 
         tree_id = None  # will be filled later if it all works
@@ -233,8 +234,8 @@ class Trees(Resource):
 
             tree_id = get0('id', 'trees where name=?', data['name'])[0]
 
-            exe('insert into user_owned_trees values (%d, %d)' %
-                (data['owner'], tree_id))
+            exe('insert into user_owns_trees values (%d, %d)' %
+                (owner, tree_id))
 
         return {'message': 'ok', 'id': tree_id}, 201
 
@@ -250,7 +251,7 @@ class Trees(Resource):
 
         data = get_fields(valid_extra=[
             'addReaders','delReaders',
-            'id', 'name', 'description', 'newick'])
+            'name', 'description', 'newick'])
 
         add_readers(tree_id, data.pop('addReaders', None))
         del_readers(tree_id, data.pop('delReaders', None))
@@ -372,10 +373,10 @@ def get_user(uid):
         user = users[0]
 
         user['trees_owner'] = get0('id_tree',
-            'user_owned_trees where id_user=?', uid)
+            'user_owns_trees where id_user=?', uid)
 
         user['trees_reader'] = get0('id_tree',
-            'user_reader_trees where id_user=?', uid)
+            'user_reads_trees where id_user=?', uid)
 
     return strip(user)
 
@@ -383,29 +384,29 @@ def get_user(uid):
 def get_tree(tid):
     "Return all the fields of a given tree"
     with shared_connection([dbget, dbget0]) as [get, get0]:
-        trees = get('id,owner,name,description', 'trees where id=?', tid)
+        trees = get('id,name,description', 'trees where id=?', tid)
         if len(trees) == 0:
             raise InvalidUsage('unknown tree id %d' % tid, 409)
 
         tree = trees[0]
 
-        tree['readers'] = get0('id_user',
-            'user_reader_trees where id_tree=?', tid)
+        tree['owner'] = get0('id_user', 'user_owns_trees where id_tree=?', tid)[0]
+        tree['readers'] = get0('id_user', 'user_reads_trees where id_tree=?', tid)
 
     return strip(tree)
 
 
 def get_owner(tree_id):
     "Return owner id of the given tree"
-    return dbget0('id_user', 'user_owned_trees where id_tree=?', tree_id)
+    return dbget0('id_user', 'user_owns_trees where id_tree=?', tree_id)
 
 
 def del_tree(tid):
     "Delete a tree and everywhere where it appears referenced"
     exe = db.connect().execute
     exe('delete from trees where id=?', tid)
-    exe('delete from user_owned_trees where id_tree=?', tid)
-    exe('delete from user_reader_trees where id_tree=?', tid)
+    exe('delete from user_owns_trees where id_tree=?', tid)
+    exe('delete from user_reads_trees where id_tree=?', tid)
 
 
 def strip(d):
@@ -425,12 +426,12 @@ def add_readers(tid, uids):
 
     if dbcount('users where id in %s' % uids_str) != len(uids):
         raise InvalidUsage('nonexisting user in %s' % uids_str)
-    if dbcount('user_reader_trees '
+    if dbcount('user_reads_trees '
         'where id_tree=%d and id_user in %s' % (tid, uids_str)) != 0:
         raise InvalidUsage('tried to add an existing reader')
 
     values = ','.join('(%d, %d)' % (uid, tid) for uid in uids)
-    dbexe('insert into user_reader_trees (id_user, id_tree) values %s' % values)
+    dbexe('insert into user_reads_trees (id_user, id_tree) values %s' % values)
 
 
 def del_readers(tid, uids):
@@ -439,11 +440,11 @@ def del_readers(tid, uids):
         return
     uids_str = '(%s)' % ','.join('%d' % x for x in uids)  # -> '(u1, u2, ...)'
 
-    if dbcount('user_reader_trees '
+    if dbcount('user_reads_trees '
         'where id_tree=%d and id_user in %s' % (tid, uids_str)) != len(uids):
         raise InvalidUsage('nonexisting user in %s' % uids_str)
 
-    dbexe('delete from user_reader_trees where '
+    dbexe('delete from user_reads_trees where '
         'id_user in %s and id_tree=?' % uids_str, tid)
 
 
@@ -509,6 +510,7 @@ def add_resources(api):
     add(Users, '/users', '/users/<int:user_id>')
     add(Trees, '/trees', '/trees/representations',
         '/trees/<int:tree_id>',
+        '/trees/<int:tree_id>/newick',
         '/trees/<int:tree_id>/draw',
         '/trees/<int:tree_id>/size')
     add(Info, '/info')

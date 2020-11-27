@@ -9,54 +9,26 @@ import sys
 from os.path import abspath, dirname, basename
 sys.path.insert(0, f'{abspath(dirname(__file__))}/..')
 
+from collections import namedtuple
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter as fmt
 
 import sqlite3
 
 from ete import tree
 
+Tree = namedtuple('Tree', ['name', 'description', 'newick', 'owner', 'readers'])
+
 
 def main():
-    args = get_args()
-
     try:
-        fin = open(args.treefile) if args.treefile != '-' else sys.stdin
-        newick = fin.read().strip()
-
-        if not args.skip_test:
-            print('Verifying newick...')
-            tree.loads(newick)  # discarded, but will raise exception if invalid
-
-        with sqlite3.connect(args.db) as con:
-            c = con.cursor()
-
-            c.execute('SELECT MAX(id) FROM trees')
-            tree_id = int(c.fetchone()[0] or 0) + 1
-
-            name = args.name or get_name(args.treefile, tree_id)
-
-            c.execute('INSERT INTO trees VALUES (?, ?, ?, ?, ?)',
-                [tree_id, args.owner, name, args.description, newick])
-
-            c.execute('INSERT INTO user_owned_trees VALUES (?, ?)',
-                [args.owner, tree_id])
-
-            for reader_id in args.readers:
-                c.execute('INSERT INTO user_reader_trees VALUES (?, ?)',
-                    [reader_id, tree_id])
-
-            print(f'Added tree {name!r} with id {tree_id} to {args.db!r}.')
+        args = get_args()
+        print(f'Adding from {args.treefile} to database {args.db} ...')
+        tree_id, name = add_tree(args)
+        print(f'Added tree {name} with id {tree_id}.')
     except (FileNotFoundError, tree.NewickError,
             sqlite3.OperationalError, sqlite3.IntegrityError) as e:
         sys.exit(e)
 
-
-
-def get_name(path, tree_id):
-    if path != '-':  # special one used for stdin
-        return basename(path).rsplit('.', 1)[0]
-    else:
-        return 'Tree %d' % tree_id
 
 
 def get_args():
@@ -73,6 +45,44 @@ def get_args():
     add('-s', '--skip-test', action='store_true', help='do not verify newick')
 
     return parser.parse_args()
+
+
+def add_tree(args):
+    "Add tree to the database and return its id and name"
+    fin = open(args.treefile) if args.treefile != '-' else sys.stdin
+    newick = fin.read().strip()
+
+    if not args.skip_test:
+        print('Verifying newick...')
+        tree.loads(newick)  # discarded, but will raise exception if invalid
+
+    name = args.name or basename(args.treefile).rsplit('.', 1)[0]
+
+    tdata = Tree(name, args.description, newick, args.owner, args.readers)
+
+    with sqlite3.connect(args.db) as connection:
+        return update_database(connection, tdata)
+
+
+def update_database(connection, tdata):
+    "Update database with the tree data supplied and return its id and name"
+    c = connection.cursor()
+    c.execute('SELECT MAX(id) FROM trees')
+    tree_id = int(c.fetchone()[0] or 0) + 1
+
+    name = tdata.name if tdata.name != '-' else 'Tree %d' % tree_id
+
+    c.execute('INSERT INTO trees VALUES (?, ?, ?, ?)',
+        [tree_id, name, tdata.description, tdata.newick])
+
+    c.execute('INSERT INTO user_owns_trees VALUES (?, ?)',
+        [tdata.owner, tree_id])
+
+    for reader_id in tdata.readers:
+        c.execute('INSERT INTO user_reads_trees VALUES (?, ?)',
+            [reader_id, tree_id])
+
+    return tree_id, name
 
 
 

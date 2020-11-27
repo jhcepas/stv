@@ -14,17 +14,17 @@ insert into users values
 
 
 insert into trees values
-    (1, 1, 'My First Tree', 'A simple test of a tree',
+    (1, 'My First Tree', 'A simple test of a tree',
     '((B:2,(C:3,D:4)E:5)A:1)F;'),
-    (2, 1, 'Tree of Life', 'Every species, more or less',
+    (2, 'Tree of Life', 'Every species, more or less',
     '(ainur,wizards,balrogs:2[&&NHX:temp=hot:fun=no],dwarves,elves,humans,ents,hobbits,orcs,trolls,barrow-wights)?;'),
-    (3, 2, 'Directories', 'From the filesystem',
+    (3, 'Directories', 'From the filesystem',
     '(boot/,dev/,etc/,(user1/,user2/)home/,(bin/,lib/)usr/,var/,tmp/)/;');
 
-insert into user_owned_trees values  -- id_user, id_tree
+insert into user_owns_trees values  -- id_user, id_tree
     (1, 1), (1, 2),
     (2, 3);
 
-insert into user_reader_trees values  -- id_user, id_tree
+insert into user_reads_trees values  -- id_user, id_tree
     (1, 3), (1, 2),
     (3, 1), (3, 2);
