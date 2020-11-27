@@ -9,6 +9,10 @@ https://en.wikipedia.org/wiki/Newick_format
 """
 
 
+class NewickError(Exception):
+    pass
+
+
 class Tree(object):
     def __init__(self, content='', childs=None):
         self.name = ''
@@ -19,7 +23,8 @@ class Tree(object):
                 self.content = content.rstrip(';')
             self.childs = childs or []
         else:
-            assert not childs, 'init with newick is not compatible with childs'
+            if childs:
+                raise NewickError(f'newick {content} incompatible with childs')
             t = read(content)
             self.content = t.content
             self.childs = t.childs
@@ -53,10 +58,6 @@ class Tree(object):
             [node.__str__(are_last + [True])  for node in self.childs[-1:]])
 
 
-class NewickError(Exception):
-    pass
-
-
 
 def read(tree_text):
     "Return tree from its newick representation"
@@ -68,7 +69,9 @@ def read(tree_text):
     else:
         nodes, pos = [], 0
 
-    content, _ = read_content(tree_text, pos)
+    content, pos = read_content(tree_text, pos)
+    if pos != len(tree_text) - 1:
+        raise NewickError(f'root node ends at position {pos}, before tree ends')
 
     return Tree(content, nodes)
 
@@ -127,66 +130,6 @@ def read_quoted_name(text, pos):
             pos += 1
 
     raise NewickError('unfinished quoted name: %s' % text[start:])
-
-
-def is_valid(tree_text):
-    return (tree_text.endswith(';') and
-        has_correct_parenthesis(tree_text) and
-        has_correct_brakets(tree_text))
-
-
-def has_correct_parenthesis(tree_text):
-    # () can be arbitrarily nested but have to be balanced.
-    valid_chars_before_open_parenthesis = '(,'
-
-    n_open_parenthesis = 0
-    previous = ''
-    for c in tree_text:
-        if c == '(':
-            if previous not in valid_chars_before_open_parenthesis:
-                return False
-            n_open_parenthesis += 1
-        elif c == ')':
-            n_open_parenthesis -= 1
-            if n_open_parenthesis < 0:
-                return False
-
-        if c not in ' \t\r\n':  # we ignore whitespace
-            previous = c
-
-    if n_open_parenthesis != 0:
-        return False
-
-    return True
-
-
-def has_correct_brakets(tree_text):
-    # [] start with '[&&NHX:', cannot nest, and cannot contain ',' or ')'.
-    invalid_chars_in_brakets = ',)'
-    valid_chars_after_close_braket = ',);'
-    braket_opening = '[&&NHX:'
-
-    open_braket = False
-    for i, c in enumerate(tree_text):
-        if c == '[':
-            if open_braket:
-                return False
-            if tree_text[i:i+len(braket_opening)] != braket_opening:
-                return False
-            open_braket = True
-        elif c == ']':
-            if not open_braket:
-                return False
-            if tree_text[i+1] not in valid_chars_after_close_braket:
-                return False
-            open_braket = False
-        elif open_braket and c in invalid_chars_in_brakets:
-            return False
-
-    if open_braket:
-        return False
-
-    return True
 
 
 def read_fields(content):

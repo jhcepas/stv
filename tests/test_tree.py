@@ -212,14 +212,14 @@ def test_read_quoted_name():
 def test_is_valid():
     for tree_text in good_trees:
         print('<-', tree_text)
-        assert tree.is_valid(tree_text)
+        tree.read(tree_text)
         print('-> is valid\n')
 
     for tree_text in bad_trees:
         print('<-', tree_text)
-        assert not tree.is_valid(tree_text)
+        with pytest.raises(tree.NewickError):
+            tree.read(tree_text)
         print('-> is not valid\n')
-
 
 def test_read_fields():
     for tree_text in good_contents:
@@ -269,7 +269,6 @@ def test_from_ete():
 
     for fname in files:
         tree_text = open(fname).read().strip()
-        assert tree.is_valid(tree_text)
         t = tree.read(tree_text)
         print(t)
 

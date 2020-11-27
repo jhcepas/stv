@@ -22,26 +22,32 @@ def main():
     try:
         fin = open(args.treefile) if args.treefile != '-' else sys.stdin
         newick = fin.read().strip()
-        assert tree.is_valid(newick), 'Malformed newick.'
 
-        conn = sqlite3.connect(args.db)
-        c = conn.cursor()
-        c.execute('select max(id) from trees')
-        tree_id = int(c.fetchone()[0] or 0) + 1
+        if not args.skip_test:
+            print('Verifying newick...')
+            tree.read(newick)  # discarded, but will raise exception if invalid
 
-        name = args.name or get_name(args.treefile, tree_id)
+        with sqlite3.connect(args.db) as con:
+            c = con.cursor()
 
-        c.execute('insert into trees values (?, ?, ?, ?, ?)',
-            [tree_id, args.owner, name, args.description, newick])
-        c.execute('insert into user_owned_trees values (?, ?)',
-            [args.owner, tree_id])
-        for reader_id in args.readers:
-            c.execute('insert into user_reader_trees values (?, ?)',
-                [reader_id, tree_id])
-        conn.commit()
-        conn.close()
-    except (AssertionError,
-        sqlite3.OperationalError, sqlite3.IntegrityError) as e:
+            c.execute('select max(id) from trees')
+            tree_id = int(c.fetchone()[0] or 0) + 1
+
+            name = args.name or get_name(args.treefile, tree_id)
+
+            c.execute('insert into trees values (?, ?, ?, ?, ?)',
+                [tree_id, args.owner, name, args.description, newick])
+
+            c.execute('insert into user_owned_trees values (?, ?)',
+                [args.owner, tree_id])
+
+            for reader_id in args.readers:
+                c.execute('insert into user_reader_trees values (?, ?)',
+                    [reader_id, tree_id])
+
+            print(f'Added tree {name!r} with id {tree_id} to {args.db!r}.')
+    except (FileNotFoundError, tree.NewickError,
+            sqlite3.OperationalError, sqlite3.IntegrityError) as e:
         sys.exit(e)
 
 
@@ -64,6 +70,7 @@ def get_args():
     add('-d', '--description', default='', help='description of the tree')
     add('-o', '--owner', type=int, default=1, help='id of the owner')
     add('-r', '--readers', nargs='*', metavar='READER', type=int, default=[])
+    add('-s', '--skip-test', action='store_true', help='do not verify newick')
 
     return parser.parse_args()
 
