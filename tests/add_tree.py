@@ -25,7 +25,7 @@ def main():
 
         if not args.skip_test:
             print('Verifying newick...')
-            tree.read(newick)  # discarded, but will raise exception if invalid
+            tree.loads(newick)  # discarded, but will raise exception if invalid
 
         with sqlite3.connect(args.db) as con:
             c = con.cursor()

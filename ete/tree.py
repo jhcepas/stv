@@ -18,14 +18,14 @@ class Tree(object):
         self.name = ''
         self.length = None
         self.properties = {}
-        if not content.startswith('('):
+        if type(content) == str and not content.startswith('('):  # normal case
             if content:
                 self.content = content.rstrip(';')
             self.childs = childs or []
-        else:
+        else:                                                     # newick case
             if childs:
                 raise NewickError(f'newick {content} incompatible with childs')
-            t = read(content)
+            t = loads(content) if type(content) == str else load(content)
             self.content = t.content
             self.childs = t.childs
 
@@ -59,7 +59,11 @@ class Tree(object):
 
 
 
-def read(tree_text):
+def load(fp):
+    return loads(fp.read().strip())
+
+
+def loads(tree_text):
     "Return tree from its newick representation"
     if not tree_text.endswith(';'):
         raise NewickError('text ends with no ";"')
@@ -198,7 +202,11 @@ def quote(name, escaped_chars=" \t\r\n()[]':;,"):
         return name
 
 
-def write(node):
+def dumps(node):
     "Return newick representation from tree"
-    childs_text = ','.join(write(n).rstrip(';') for n in node.childs)
+    childs_text = ','.join(dumps(n).rstrip(';') for n in node.childs)
     return ('(%s)' % childs_text if childs_text else '') + node.content + ';'
+
+
+def dump(node, fp):
+    fp.write(dumps(node))

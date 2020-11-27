@@ -313,15 +313,8 @@ def add_tree(tree_id):
     if tree_id in app.trees:
         return app.trees[tree_id]
 
-    # TODO: Remove these examples and have a more graceful interface for them :)
-    if tree_id == 4:  ###
-        tree_text = open('../tests/example_tree_data/HmuY.aln2.tree').read().strip()
-    elif tree_id == 5: ###
-        tree_text = open('../tests/example_tree_data/aves.tree').read().strip()
-    else:
-        tree_text = dbget0('newick', 'trees where id=?', tree_id)[0]
-
-    t = tree.read(tree_text)
+    tree_text = dbget0('newick', 'trees where id=?', tree_id)[0]
+    t = tree.loads(tree_text)
     draw.store_sizes(t)
     app.trees[tree_id] = t
     return t

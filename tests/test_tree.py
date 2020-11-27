@@ -10,6 +10,7 @@ import sys
 from os.path import abspath, dirname
 sys.path.insert(0, f'{abspath(dirname(__file__))}/..')
 import random
+from tempfile import TemporaryFile
 
 import pytest
 
@@ -106,7 +107,7 @@ def test_repr():
 
     # See if we recover trees from their representations (playing with eval).
     for tree_text in good_trees:
-        t = tree.read(tree_text)
+        t = tree.loads(tree_text)
         tr = eval(repr(t), {'Tree': tree.Tree})  # tree recovered from its repr
         assert t.name == tr.name and t.length == tr.length
         assert t.properties == tr.properties
@@ -131,7 +132,7 @@ node3
 def test_iter():
     for tree_text in good_trees:
         print('<-', tree_text)
-        t = tree.read(tree_text)
+        t = tree.loads(tree_text)
         print('Nodes:')
         for node in t:
             print(' ', node.content or '<empty>')
@@ -141,10 +142,10 @@ def test_iter():
 def test_read():
     # See if we read good trees without throwing exceptions.
     for tree_text in good_trees:
-        t = tree.read(tree_text)
+        t = tree.loads(tree_text)
 
     # Do more exhaustive tests on a single tree.
-    t = tree.read('(b:2,c:3,(e:4[&&NHX:k1=v1:k2=v2],),)a;')
+    t = tree.loads('(b:2,c:3,(e:4[&&NHX:k1=v1:k2=v2],),)a;')
     assert t.content == 'a' and len(t.childs) == 4
     node_b = t.childs[0]
     assert node_b.content == 'b:2' and not node_b.childs
@@ -181,7 +182,7 @@ def test_read_nodes():
 def test_read_content():
     tree_text = '(a:11[&&NHX:x=foo:y=bar],b:22,,()c,(d[&&NHX:z=foo]));'
     print('<-', tree_text)
-    t = tree.read(tree_text)
+    t = tree.loads(tree_text)
     print(t)
     assert (t.name == '' and t.length == None and t.properties == {} and
         t.content == '')
@@ -212,13 +213,13 @@ def test_read_quoted_name():
 def test_is_valid():
     for tree_text in good_trees:
         print('<-', tree_text)
-        tree.read(tree_text)
+        tree.loads(tree_text)
         print('-> is valid\n')
 
     for tree_text in bad_trees:
         print('<-', tree_text)
         with pytest.raises(tree.NewickError):
-            tree.read(tree_text)
+            tree.loads(tree_text)
         print('-> is not valid\n')
 
 def test_read_fields():
@@ -229,7 +230,7 @@ def test_read_fields():
         print('->', fields, '\n')
 
     for tree_text in good_trees:
-        t = tree.read(tree_text)
+        t = tree.loads(tree_text)
         for node in t:
             content = node.content
             print('<-', content)
@@ -250,16 +251,26 @@ def test_quote():
         assert tree.quote(text).strip("'") == text
 
 
-def test_write():
+def test_dumps():
     for tree_text in good_trees:
         if ' ' in tree_text:
             continue  # representation of whitespaces may change and it's ok
         print('<-', tree_text)
-        t = tree.read(tree_text)
-        t_text = tree.write(t)
+        t = tree.loads(tree_text)
+        t_text = tree.dumps(t)
         print('->', t_text)
         assert t_text == tree_text
         # NOTE: we could relax this, it is asking a bit too much really
+
+
+def test_load_dump():
+    for tree_text in good_trees:
+        with TemporaryFile(mode='w+t') as fp:
+            t1 = tree.loads(tree_text)
+            tree.dump(t1, fp)
+            fp.seek(0)
+            t2 = tree.load(fp)
+            assert repr(t1) == repr(t2)
 
 
 def test_from_ete():
@@ -269,7 +280,7 @@ def test_from_ete():
 
     for fname in files:
         tree_text = open(fname).read().strip()
-        t = tree.read(tree_text)
+        t = tree.loads(tree_text)
         print(t)
 
 

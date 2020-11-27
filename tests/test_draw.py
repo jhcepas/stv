@@ -41,7 +41,7 @@ def test_drawn_size():
 
 def test_store_sizes():
     tree_text = '((B:2,(C:2.5,D:3)E:3.5)A:1)F;'
-    t = tree.read(tree_text)
+    t = tree.loads(tree_text)
     assert not hasattr(t, 'content_size') and not hasattr(t, 'childs_size')
 
     draw.store_sizes(t)
@@ -67,7 +67,7 @@ def test_draw_content_inline():
 
 def test_draw_tree():
     tree_text = '((B:200,(C:250,D:300)E:350)A:100)F;'
-    t = tree.read(tree_text)
+    t = tree.loads(tree_text)
     draw.store_sizes(t)
     print(list(draw.draw(t)))
     assert list(draw.draw(t)) == [
