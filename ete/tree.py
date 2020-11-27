@@ -76,8 +76,6 @@ def read(tree_text):
 def read_nodes(nodes_text, pos=0):
     "Return a list of nodes and the position in the text where they end"
     # nodes_text looks like '(a,b,c)', where any element can be a list of nodes
-    invalid_chars_in_content = ",();"
-
     if nodes_text[pos] != '(':
         raise NewickError('nodes text starts with no "("')
 
@@ -95,23 +93,40 @@ def read_nodes(nodes_text, pos=0):
         else:
             childs = []
 
-        content, pos_new = read_content(nodes_text, pos)
-        if any(c in content for c in invalid_chars_in_content):
-            raise NewickError(
-                'invalid format between positions %d and %d' % (pos, pos_new))
-        pos = pos_new
+        content, pos = read_content(nodes_text, pos)
 
         nodes.append(Tree(content, childs))
 
-    return nodes, pos + 1
+    return nodes, pos+1
 
 
 def read_content(text, pos, endings=',);'):
     "Return content starting at position pos in the text, and where it ends"
-    end = pos
-    while end < len(text) and text[end] not in endings:
-        end += 1
-    return text[pos:end], end
+    start = pos
+    if pos < len(text) and text[pos] == "'":
+        _, pos = read_quoted_name(text, pos)
+    while pos < len(text) and text[pos] not in endings:
+        pos += 1
+    return text[start:pos], pos
+
+
+def read_quoted_name(text, pos):
+    "Return quoted name and the position where it ends"
+    if pos >= len(text) or text[pos] != "'":
+        raise NewickError(f'text at position {pos} does not start with "\'"')
+
+    pos += 1
+    start = pos
+    while pos < len(text):
+        if text[pos] == "'":
+            # Newick format escapes ' as ''
+            if pos+1 >= len(text) or text[pos+1] != "'":
+                return text[start:pos].replace("''", "'"), pos+1
+            pos += 2
+        else:
+            pos += 1
+
+    raise NewickError('unfinished quoted name: %s' % text[start:])
 
 
 def is_valid(tree_text):
@@ -122,7 +137,7 @@ def is_valid(tree_text):
 
 def has_correct_parenthesis(tree_text):
     # () can be arbitrarily nested but have to be balanced.
-    valid_chars_before_open_parenthesis = '(, \t\r\n'
+    valid_chars_before_open_parenthesis = '(,'
 
     n_open_parenthesis = 0
     previous = ''
@@ -135,7 +150,9 @@ def has_correct_parenthesis(tree_text):
             n_open_parenthesis -= 1
             if n_open_parenthesis < 0:
                 return False
-        previous = c
+
+        if c not in ' \t\r\n':  # we ignore whitespace
+            previous = c
 
     if n_open_parenthesis != 0:
         return False
@@ -146,7 +163,7 @@ def has_correct_parenthesis(tree_text):
 def has_correct_brakets(tree_text):
     # [] start with '[&&NHX:', cannot nest, and cannot contain ',' or ')'.
     invalid_chars_in_brakets = ',)'
-    valid_chars_after_close_braket = ',); \t\r\n'  # yes, almost the same
+    valid_chars_after_close_braket = ',);'
     braket_opening = '[&&NHX:'
 
     open_braket = False
@@ -178,30 +195,25 @@ def read_fields(content):
     Example:
       'abc:123[&&NHX:x=foo:y=bar]' -> ('abc', 123, {'x': 'foo', 'y': 'bar'})
     """
-    if content.startswith('"') or content.startswith("'"):
-        quoted_name, pos = read_content(content, 1, endings=content[0])
-        content = content[pos+1:]
+    if content.startswith("'"):
+        name, pos = read_quoted_name(content, 0)
     else:
-        quoted_name = None
+        name, pos = read_content(content, 0, endings=':[')
 
-    properties_pos = content.find('[')
-    if properties_pos != -1:
-        name_length = content[:properties_pos]
-        properties = read_properties(content[properties_pos:])
+    if pos < len(content) and content[pos] == ':':
+        length_txt, pos = read_content(content, pos+1, endings='[')
+        length = float(length_txt)
     else:
-        name_length = content
+        length = None
+
+    if pos < len(content) and content[pos] == '[':
+        properties = read_properties(content[pos:])
+    elif pos >= len(content):
         properties = {}
-
-    if ':' in name_length:
-        name, length_text = name_length.split(':', 1)
-        length = float(length_text)
     else:
-        name, length = name_length, None
+        raise NewickError('malformed content: %r' % content)
 
-    if quoted_name is not None and name != '':
-        raise NewickError(f'content has name {quoted_name} and {name}')
-
-    return quoted_name or name, length, properties
+    return name, length, properties
 
 
 def read_properties(text):
@@ -235,15 +247,10 @@ def get_branches_repr(are_last):
     return prefix + ('`- ' if are_last[-1] else '|- ')
 
 
-def quote(name, escaped_chars=':'):
-    "Return the name quoted if it has any character that needs escaping"
+def quote(name, escaped_chars=" \t\r\n()[]':;,"):
+    "Return the name quoted if it has any characters that need escaping"
     if any(c in name for c in escaped_chars):
-        if "'" not in name:
-            return f"'{name}'"
-        elif '"' not in name:
-            return f'"{name}"'
-        else:
-            raise NewickError(f'cannot encode name: {name}')
+        return "'%s'" % name.replace("'", "''")  # ' escapes to '' in newicks
     else:
         return name
 

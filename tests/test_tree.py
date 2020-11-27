@@ -11,6 +11,8 @@ from os.path import abspath, dirname
 sys.path.insert(0, f'{abspath(dirname(__file__))}/..')
 import random
 
+import pytest
+
 from ete import tree
 
 good_trees = """\
@@ -31,6 +33,7 @@ a;
 ((B:0.2,(C:0.3,D:0.4)E:0.5)A:0.1)F;
 ([&&NHX:p1=v1:p2=v2],c);
 ((G001575.1:0.243,G002335.1:0.2)42:0.041,G001615.1:0.246)'100.0:d__Bacteria';
+(a,(b)'the_answer_is_''yes''');
 """.splitlines()
 
 bad_trees = """\
@@ -195,6 +198,17 @@ def test_read_content():
     print('-> Contents look good.\n')
 
 
+def test_read_quoted_name():
+    assert tree.read_quoted_name("'one two'", 0) == ('one two', 9)
+    assert tree.read_quoted_name("'one ''or'' two'", 0) == ("one 'or' two", 16)
+    assert tree.read_quoted_name("pre-quote 'start end' post-quote", 10) == \
+        ('start end', 21)
+    with pytest.raises(tree.NewickError):
+        tree.read_quoted_name('i do not start with quote', 0)
+    with pytest.raises(tree.NewickError):
+        tree.read_quoted_name("'i end without a quote", 0)
+
+
 def test_is_valid():
     for tree_text in good_trees:
         print('<-', tree_text)
@@ -222,6 +236,18 @@ def test_read_fields():
             fields = tree.read_fields(content)
             assert len(fields) == 3
             print('->', fields, '\n')
+
+
+def test_quote():
+    assert tree.quote(' ') == "' '"
+    assert tree.quote("'") == "''''"
+    quoting_unneeded = ['nothing_special', '1234']
+    for text in quoting_unneeded:
+        assert tree.quote(text) == text
+    quoting_needed = ['i am special', 'one\ntwo', 'this (or that)']
+    for text in quoting_needed:
+        assert tree.quote(text) != text
+        assert tree.quote(text).strip("'") == text
 
 
 def test_write():
