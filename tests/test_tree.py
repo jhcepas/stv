@@ -7,8 +7,10 @@ To run with pytest, but you can run interactively too if you want.
 """
 
 import sys
-from os.path import abspath, dirname
-sys.path.insert(0, f'{abspath(dirname(__file__))}/..')
+import os
+PATH = os.path.abspath(os.path.dirname(__file__))
+sys.path.insert(0, f'{PATH}/..')
+
 import random
 from tempfile import TemporaryFile
 
@@ -139,7 +141,7 @@ def test_iter():
         print()
 
 
-def test_read():
+def test_loads():
     # See if we read good trees without throwing exceptions.
     for tree_text in good_trees:
         t = tree.loads(tree_text)
@@ -273,14 +275,9 @@ def test_load_dump():
             assert repr(t1) == repr(t2)
 
 
-def test_from_ete():
-    files = [
-        'example_tree_data/HmuY.aln2.tree',
-        'example_tree_data/aves.tree']
-
-    for fname in files:
-        tree_text = open(fname).read().strip()
-        t = tree.loads(tree_text)
+def test_from_example_files():
+    for fname in ['aves.tree', 'bac120_r95.tree', 'HmuY.aln2.tree']:
+        t = tree.load(open(f'{PATH}/example_tree_data/{fname}'))
         print(t)
 
 
