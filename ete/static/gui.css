@@ -37,7 +37,7 @@
     position: absolute;
     border-style: double;
     border-width: 3px;
-    right: 10px;
+    left: 10px;
     bottom: 10px;
     z-index: 1;
     background: #FFF;
