@@ -16,15 +16,26 @@ import sqlite3
 
 from ete import tree
 
-Tree = namedtuple('Tree', ['name', 'description', 'newick', 'owner', 'readers'])
+TData = namedtuple('TData', 'name, description, newick, owner, readers')
 
 
 def main():
     try:
         args = get_args()
+
         print(f'Adding from {args.treefile} to database {args.db} ...')
-        tree_id, name = add_tree(args)
+
+        newick = get_newick(args.treefile, verify=not args.no_verify)
+
+        tname = args.name or basename(args.treefile).rsplit('.', 1)[0]
+
+        tdata = TData(tname, args.description, newick, args.owner, args.readers)
+
+        with sqlite3.connect(args.db) as connection:
+            tree_id, name = update_database(connection, tdata)
+
         print(f'Added tree {name} with id {tree_id}.')
+
     except (FileNotFoundError, tree.NewickError,
             sqlite3.OperationalError, sqlite3.IntegrityError) as e:
         sys.exit(e)
@@ -42,26 +53,21 @@ def get_args():
     add('-d', '--description', default='', help='description of the tree')
     add('-o', '--owner', type=int, default=1, help='id of the owner')
     add('-r', '--readers', nargs='*', metavar='READER', type=int, default=[])
-    add('-s', '--skip-test', action='store_true', help='do not verify newick')
+    add('--no-verify', action='store_true', help='do not verify newick')
 
     return parser.parse_args()
 
 
-def add_tree(args):
-    "Add tree to the database and return its id and name"
-    fin = open(args.treefile) if args.treefile != '-' else sys.stdin
+def get_newick(treefile, verify=True):
+    "Return newick read from treefile"
+    fin = open(treefile) if treefile != '-' else sys.stdin
     newick = fin.read().strip()
 
-    if not args.skip_test:
+    if verify:
         print('Verifying newick...')
         tree.loads(newick)  # discarded, but will raise exception if invalid
 
-    name = args.name or basename(args.treefile).rsplit('.', 1)[0]
-
-    tdata = Tree(name, args.description, newick, args.owner, args.readers)
-
-    with sqlite3.connect(args.db) as connection:
-        return update_database(connection, tdata)
+    return newick
 
 
 def update_database(connection, tdata):

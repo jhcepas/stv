@@ -38,9 +38,10 @@ def test_add_trees_to_db():
 def add_all(db):
     path_trees = f'{PATH}/example_tree_data'
     for fname in ['aves.tree', 'bac120_r95.tree', 'HmuY.aln2.tree']:
-        exec(f'{PATH}/add_tree.py --db {db} -s {path_trees}/{fname}')
+        cmd = f'{PATH}/add_tree.py --db {db} --no-verify {path_trees}/{fname}'
+        exec(cmd)
         with pytest.raises(AssertionError):
-            exec(f'{PATH}/add_tree.py --db {db} -s {path_trees}/{fname}')
+            exec(cmd)
             # the second time should fail because of repeated name
 
 
