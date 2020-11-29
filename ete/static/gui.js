@@ -37,6 +37,10 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
+// Update when the window is resized too.
+window.addEventListener("resize", update);  // we could also draw_minimap()
+
+
 // Create the top-right box ("gui") with all the options we can see and change.
 function create_datgui() {
   // Shortcut for getting the styles.
