@@ -78,14 +78,11 @@ button_upload.addEventListener("click", async () => {
   const newick = (await input_newick_file.files[0].text()).trim();
   const login = get_login_info();
 
-  fetch("/trees", {
-      method: "POST",
-      headers: {"Content-Type": "application/json",
-                "Authorization": `Bearer ${login.token}`},
-      body: JSON.stringify({name, description, newick})})
-    .then(response => response.json())
-    .then(data => {
-      window.location.href = `gui.html?id=${data.id}&name=${name}`;
-    })
-    .catch(error => console.log(error));
+  const response = await fetch("/trees", {
+    method: "POST",
+    headers: {"Content-Type": "application/json",
+              "Authorization": `Bearer ${login.token}`},
+    body: JSON.stringify({name, description, newick})});
+  const data = await response.json();
+  window.location.href = `gui.html?id=${data.id}&name=${name}`;
 });
