@@ -49,7 +49,16 @@ button_login.addEventListener("click", () => {
 
 button_upload.addEventListener("click", async () => {
     const [name, description] = [input_name.value, input_description.value];
+
+    const size_MB = input_newick_file.files[0].size / 1e6;
+    if (size_MB > 10) {
+        div_info.innerHTML = `Sorry, the file is too big ` +
+            `(${size_MB.toFixed(1)} MB, the maximum is set to 10 MB)`;
+        return;
+    }
+
     const newick = (await input_newick_file.files[0].text()).trim();
+
     fetch("/trees", {
             method: "POST",
             headers: {"Content-Type": "application/json",
