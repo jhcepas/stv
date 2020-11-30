@@ -22,20 +22,13 @@ TData = namedtuple('TData', 'name, description, newick, owner, readers')
 def main():
     try:
         args = get_args()
-
         print(f'Adding from {args.treefile} to database {args.db} ...')
-
         newick = get_newick(args.treefile, verify=not args.no_verify)
-
         tname = args.name or basename(args.treefile).rsplit('.', 1)[0]
-
         tdata = TData(tname, args.description, newick, args.owner, args.readers)
-
         with sqlite3.connect(args.db) as connection:
             tree_id, name = update_database(connection, tdata)
-
         print(f'Added tree {name} with id {tree_id}.')
-
     except (FileNotFoundError, tree.NewickError,
             sqlite3.OperationalError, sqlite3.IntegrityError) as e:
         sys.exit(e)
