@@ -31,24 +31,37 @@ const view = {
 
 // Run when the page is loaded (the "main" function).
 document.addEventListener("DOMContentLoaded", () => {
-  if (get_query_param("name"))
-    view.tree_name = get_query_param("name");
-  if (get_query_param("id"))
-    view.tree_id = get_query_param("id");
+  set_query_string_values();
   view.datgui = create_datgui();
   draw_minimap();
   update();
 });
 
 
+// Set values that have been given with the query string.
+function set_query_string_values() {
+  const params = get_query_params();
+  if ("id" in params)
+    view.tree_id = params.id;
+  if ("name" in params)
+    view.tree_name = params.name;
+  if ("x" in params)
+    view.tl.x = Number(params.x);
+  if ("y" in params)
+    view.tl.y = Number(params.y);
+  if ("z" in params)
+    view.zoom = Number(params.z);
+}
+
+
 // Return the value corresponding to a key given in a GET query string.
-function get_query_param(key) {
-  const params = window.location.search.substr(1).split("&");
-  for (let key_value of params) {
-    const [param_key, param_value] = key_value.split("=", 2);
-    if (key === param_key)
-      return param_value;
-  }
+function get_query_params() {
+  const params = {};
+  window.location.search.substr(1).split("&").forEach(key_value => {
+    const [key, value] = key_value.split("=", 2);
+    params[key] = value;
+  });
+  return params;
 }
 
 
@@ -272,18 +285,18 @@ function update_tree() {
 
   fetch(`${url}?z=${z}&x=${x}&y=${y}&w=${w}&h=${h}`)
     .then(response => response.json())
-    .then(data => draw(div_tree, data, view.zoom))
+    .then(data => draw(div_tree, data, view.tl, view.zoom))
     .catch(error => console.log(error));
 }
 
 
 // Append a svg to the given element, with all the items in the list drawn.
-function draw(element, items, zoom) {
+function draw(element, items, tl, zoom) {
   const [w, h] = [element.offsetWidth, element.offsetHeight];
 
   element.innerHTML = `
     <svg width="${w}" height="${h}"
-         viewBox="${view.tl.x} ${view.tl.y} ${w / zoom} ${h / zoom}">
+         viewBox="${tl.x} ${tl.y} ${w / zoom} ${h / zoom}">
       ${items.map(item => item2svg(item, zoom)).join("\n")}
     </svg>`;
 }
@@ -356,7 +369,7 @@ function draw_minimap_with_size(size) {
 
   fetch(`http://${location.host}/trees/${view.tree_id}/draw?z=${zoom}`)
     .then(response => response.json())
-    .then(data => draw(div_minimap, data, view.minimap_zoom))
+    .then(data => draw(div_minimap, data, {x: 0, y: 0}, view.minimap_zoom))
     .then(update_minimap_visible_rect)
     .catch(error => console.log(error));
 }
