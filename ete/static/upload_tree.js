@@ -22,7 +22,7 @@ function update() {
   else {
     div_upload.style.display = "none";
     div_login.style.display = "initial";
-    div_info.innerHTML = "";
+    div_info.innerHTML = "&nbsp;<br>&nbsp;";
   }
 }
 
@@ -33,27 +33,23 @@ div_login.addEventListener("keyup", event => {
 });
 
 
-button_login.addEventListener("click", () => {
+button_login.addEventListener("click", async () => {
   const [username, password] = [input_username.value, input_password.value];
-  fetch("/login", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({username, password})})
-    .then(response => {
-      if (response.status === 200) {
-        return response.json();
-      }
-      else {
-        div_info.innerHTML = "Login unsuccessful";
-      }
-    })
-    .then(data => {
-      if (data) {
-        window.localStorage.setItem("login_info", JSON.stringify(data));
-        update();
-      }
-    })
-    .catch(error => console.log(error));
+
+  const response = await fetch("/login", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({username, password})});
+
+  if (response.status !== 200) {
+    const data = await response.json();
+    div_info.innerHTML = `Login failed<br>(${response.status} - ${data.message})`;
+    return;
+  }
+
+  const data = await response.json();
+  window.localStorage.setItem("login_info", JSON.stringify(data));
+  update();
 });
 
 
