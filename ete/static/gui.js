@@ -83,30 +83,11 @@ function create_datgui() {
 
   const dgui_tree = dgui.addFolder("tree");
 
-  fetch(`http://${location.host}/trees`)
-    .then(response => response.json())
-    .then(data => {
-      const trees = {};
-      data.map(t => trees[t.name] = t.id);
-      dgui_tree.add(view, "tree_name", Object.keys(trees)).name("name")
-        .onChange(() => {
-          view.tree_id = trees[view.tree_name];
-          view.tl.x = 0;
-          view.tl.y = 0;
-          view.zoom = 1;
-          draw_minimap();
-          update();
-        });
-      dgui_tree.add(view, "show_tree_info").name("info");
-      dgui_tree.add(view, "upload_tree").name("upload");
-    })
-    .catch(error => console.log(error));
-  fetch(`http://${location.host}/trees/representations`)
-    .then(response => response.json())
-    .then(data => {
-      dgui_tree.add(view, "representation", data).onChange(update)
-    })
-    .catch(error => console.log(error));
+  add_trees(dgui_tree).then(() => {
+    dgui_tree.add(view, "show_tree_info").name("info");
+    dgui_tree.add(view, "upload_tree").name("upload");
+    add_representations(dgui_tree);  // so they will be added in order
+  });
 
   const dgui_ctl = dgui.addFolder("control");
 
@@ -152,6 +133,30 @@ function create_datgui() {
     });
 
   return dgui;
+}
+
+
+async function add_trees(dgui_tree) {
+  const response = await fetch(`http://${location.host}/trees`);
+  const data = await response.json();
+  const trees = {};
+  data.map(t => trees[t.name] = t.id);
+  dgui_tree.add(view, "tree_name", Object.keys(trees)).name("name")
+    .onChange(() => {
+      view.tree_id = trees[view.tree_name];
+      view.tl.x = 0;
+      view.tl.y = 0;
+      view.zoom = 1;
+      draw_minimap();
+      update();
+    });
+}
+
+
+async function add_representations(dgui_tree) {
+  const response = await fetch(`http://${location.host}/trees/representations`);
+  const data = await response.json();
+  dgui_tree.add(view, "representation", data).onChange(update);
 }
 
 
@@ -370,7 +375,7 @@ function draw_minimap_with_size(size) {
   fetch(`http://${location.host}/trees/${view.tree_id}/draw?z=${zoom}`)
     .then(response => response.json())
     .then(data => draw(div_minimap, data, {x: 0, y: 0}, view.minimap_zoom))
-    .then(update_minimap_visible_rect)
+    .then(() => update_minimap_visible_rect())
     .catch(error => console.log(error));
 }
 
