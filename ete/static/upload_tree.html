@@ -1,72 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Upload Tree</title>
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<meta http-equiv="Expires" content="0" />
-<style>
-h1 {
-    text-align: center;
-    color: blue;
-}
-
-label {
-    display: block;
-}
-
-div {
-    margin: 2rem 2rem;
-}
-
-input, label, textarea {
-    margin: 0.4rem 0;
-}
-</style>
+  <title>Upload Tree</title>
+  <link rel="stylesheet" href="upload_tree.css">
+  <script defer src="/static/upload_tree.js"></script>
 </head>
 
 <body>
 <h1>Upload Tree</h1>
 
-<form name="upload">
-<div>
-<label for="name">Name (1 to 128 characters):</label>
-<input type="text" id="name" name="name" required
+<div id="div_info"></div>
+
+<div id="div_login">
+  <div>
+  <label for="input_username">Username</label>
+  <input type="text" id="input_username" minlength="1">
+  </div>
+
+  <div>
+  <label for="input_password">Password</label>
+  <input type="password" id="input_password">
+  </div>
+
+  <div>
+  <button id="button_login">Login</button>
+  </div>
+</div>
+
+<div id="div_upload">
+  <div>
+  <label for="input_name">Name (1 to 128 characters):</label>
+  <input type="text" id="input_name" required
     placeholder="Tree name" minlength="1" maxlength="128" size="20">
-</div>
+  </div>
 
-<div>
-<label for="description">Description:</label>
-<textarea id="description" name="description" rows="4" cols="50"
+  <div>
+  <label for="input_description">Description:</label>
+  <textarea id="input_description" rows="4" cols="50"
     placeholder="Description of the tree (can be empty)"></textarea>
-</div>
+  </div>
 
-<div>
-<input id="newick-file" type="file" accept=".tree,.newick,.nw,.txt">
-</div>
+  <div>
+  <input id="input_newick_file" type="file" accept=".tree,.newick,.nw,.txt">
+  </div>
 
-<div>
-<button id="upload">Upload</button>
+  <div>
+  <button id="button_upload">Upload</button>
+  </div>
 </div>
-</form>
-
-<script>
-const button = document.getElementById("upload");
-button.addEventListener("click", () =>{
-    const form = document.forms["upload"];
-    const data = new FormData(form);
-    fetch("/trees", {
-            method: "POST",
-            mode: "cors",
-            headers: "Content-Type: application/json",
-            body: JSON.stringify(data)})  // TODO: see how many of those headers are really necessary
-        .then(response => response.json())
-        .then(data => {
-            console.log(data);
-            window.location.href="gui.html";
-        })
-        .catch(error => console.log(error));
-});
-</script>
 
 </body>
 </html>

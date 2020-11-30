@@ -31,10 +31,25 @@ const view = {
 
 // Run when the page is loaded (the "main" function).
 document.addEventListener("DOMContentLoaded", () => {
+  if (get_query_param("name"))
+    view.tree_name = get_query_param("name");
+  if (get_query_param("id"))
+    view.tree_id = get_query_param("id");
   view.datgui = create_datgui();
   draw_minimap();
   update();
 });
+
+
+// Return the value corresponding to a key given in a GET query string.
+function get_query_param(key) {
+  const params = window.location.search.substr(1).split("&");
+  for (let key_value of params) {
+    const [param_key, param_value] = key_value.split("=", 2);
+    if (key === param_key)
+      return param_value;
+  }
+}
 
 
 // Update when the window is resized too.
