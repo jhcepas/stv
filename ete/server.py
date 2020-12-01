@@ -223,7 +223,7 @@ class Trees(Resource):
             raise InvalidUsage('owner set different from current user')
 
         try:
-            t = tree.loads(data['newick'])  # load it to validate
+            tree.loads(data['newick'])  # load it to validate
         except tree.NewickError as e:
             raise InvalidUsage(f'malformed tree - {e}')
 
