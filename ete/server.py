@@ -222,6 +222,11 @@ class Trees(Resource):
         if g.user_id not in [owner, admin_id]:
             raise InvalidUsage('owner set different from current user')
 
+        try:
+            t = tree.loads(data['newick'])  # load it to validate
+        except tree.NewickError as e:
+            raise InvalidUsage(f'malformed tree - {e}')
+
         tree_id = None  # will be filled later if it all works
         with shared_connection([dbget0, dbexe]) as [get0, exe]:
             cols, vals = zip(*data.items())
