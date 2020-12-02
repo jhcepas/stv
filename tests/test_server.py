@@ -282,6 +282,26 @@ def test_change_password():
         # If we are not authenticated, that request will raise an error.
 
 
+def test_get_unknown_tree():
+    nonexistent_tree_id = 22342342
+    for endpoint in ['', '/newick', '/draw', '/size']:
+        try:
+            get(f'trees/{nonexistent_tree_id}{endpoint}')
+        except urllib.error.HTTPError as e:
+            assert e.code == 404
+            res = json.loads(e.file.read())
+            assert res['message'].startswith('Error: unknown tree id')
+
+
+def test_get_known_tree():
+    assert get('trees/1/newick').endswith(';')
+
+    elements = get('trees/1/draw')
+    assert all(x[0] in ['r', 'tl', 'tn', 'l', 'a'] for x in elements)
+
+    assert set(get('trees/1/size').keys()) == {'width', 'height'}
+
+
 
 def main():
     tests = [f for name, f in globals().items() if name.startswith('test_')]

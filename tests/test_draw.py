@@ -69,8 +69,9 @@ def test_draw_tree():
     tree_text = '((B:200,(C:250,D:300)E:350)A:100)F;'
     t = tree.loads(tree_text)
     draw.store_sizes(t)
-    print(list(draw.draw(t)))
-    assert list(draw.draw(t)) == [
+    elements = list(draw.draw(t))
+    print(elements)
+    assert [x for x in elements if not x[0] == 'a'] == [
         ['l', 0, 12.0, 100, 12.0],
         ['l', 100, 12.0, 100, 12.0],
         ['l', 100, 12.0, 10100.0, 12.0],

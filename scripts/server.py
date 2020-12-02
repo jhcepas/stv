@@ -30,8 +30,12 @@ REST call examples:
 #   owner: int (user id)
 #   readers: list of ints (user ids)
 
-
 import os
+os.chdir(os.path.abspath(os.path.dirname(__file__)))
+
+import sys
+sys.path.insert(0, '..')
+
 from functools import partial
 from contextlib import contextmanager
 from flask import Flask, request, jsonify, g
@@ -42,8 +46,7 @@ import sqlalchemy
 from itsdangerous import TimedJSONWebSignatureSerializer as JSONSigSerializer
 from werkzeug.security import generate_password_hash, check_password_hash
 
-import tree
-import draw
+from ete import tree, draw
 
 
 db = None  # call initialize() to fill these up
@@ -170,7 +173,7 @@ class Users(Resource):
         with shared_connection([dbget0, dbexe]) as [get0, exe]:
             res = exe('delete from users where id=?', user_id)
             if res.rowcount != 1:
-                raise InvalidUsage('unknown user id %d' % user_id, 409)
+                raise InvalidUsage('unknown user id %d' % user_id, 404)
 
             for tid in get0('id_tree', 'user_owns_trees where id_user=?', user_id):
                 del_tree(tid)
@@ -196,14 +199,17 @@ class Trees(Resource):
         elif request.url_rule.rule == '/trees/<int:tree_id>':
             return get_tree(tree_id)
         elif request.url_rule.rule == '/trees/<int:tree_id>/newick':
-            return dbget0('newick', 'trees where id=?', tree_id)[0]
+            newicks = dbget0('newick', 'trees where id=?', tree_id)
+            if len(newicks) != 1:
+                raise InvalidUsage(f'unknown tree id {tree_id}', 404)
+            return newicks[0]
         elif request.url_rule.rule == '/trees/<int:tree_id>/draw':
             viewport = get_viewport(request.args)
-            t = add_tree(tree_id)
             z = float(request.args.get('z', 1))
+            t = load_tree(tree_id)
             return list(draw.draw(t, viewport=viewport, zoom=z))
         elif request.url_rule.rule == '/trees/<int:tree_id>/size':
-            t = add_tree(tree_id)
+            t = load_tree(tree_id)
             width, height = draw.node_size(t)
             return {'width': width, 'height': height}
         else:
@@ -276,7 +282,7 @@ class Trees(Resource):
     def delete(self, tree_id):
         "Delete tree and all references to it"
         if dbcount('trees where id=?', tree_id) != 1:
-            raise InvalidUsage('unknown tree id %d' % tree_id, 409)
+            raise InvalidUsage('unknown tree id %d' % tree_id, 404)
 
         admin_id = 1
         if g.user_id not in [get_owner(tree_id), admin_id]:
@@ -314,13 +320,16 @@ class Id(Resource):
 
 # Auxiliary functions.
 
-def add_tree(tree_id):
+def load_tree(tree_id):
     "Add tree to app.trees and initialize it if not there, and return it"
     if tree_id in app.trees:
         return app.trees[tree_id]
 
-    tree_text = dbget0('newick', 'trees where id=?', tree_id)[0]
-    t = tree.loads(tree_text)
+    newicks = dbget0('newick', 'trees where id=?', tree_id)
+    if len(newicks) != 1:
+        raise InvalidUsage(f'unknown tree id {tree_id}', 404)
+
+    t = tree.loads(newicks[0])
     draw.store_sizes(t)
     app.trees[tree_id] = t
     return t
@@ -373,7 +382,7 @@ def get_user(uid):
     with shared_connection([dbget, dbget0]) as [get, get0]:
         users = get('id,username,name', 'users where id=?', uid)
         if len(users) == 0:
-            raise InvalidUsage('unknown user id %d' % uid, 409)
+            raise InvalidUsage('unknown user id %d' % uid, 404)
 
         user = users[0]
 
@@ -391,7 +400,7 @@ def get_tree(tid):
     with shared_connection([dbget, dbget0]) as [get, get0]:
         trees = get('id,name,description', 'trees where id=?', tid)
         if len(trees) == 0:
-            raise InvalidUsage('unknown tree id %d' % tid, 409)
+            raise InvalidUsage('unknown tree id %d' % tid, 404)
 
         tree = trees[0]
 
@@ -472,17 +481,24 @@ def get_fields(required=None, valid_extra=None):
 
 # App initialization.
 
-def initialize(db_name='trees.db'):
+def initialize():
     "Initialize the database and the flask app"
     global db, serializer
-    db = sqlalchemy.create_engine('sqlite:///%s' % db_name)
-    app = Flask(__name__)
+    app = Flask(__name__, instance_relative_config=True)
     CORS(app)
 
-    app.config['SECRET_KEY'] = os.urandom(256)
+    app.config.from_mapping(
+        DATABASE=f'{app.instance_path}/trees.db',
+        SECRET_KEY=' '.join(os.uname()))  # for testing, or else use config.py
+
+    if os.path.exists(f'{app.instance_path}/config.py'):
+        app.config.from_pyfile(f'{app.instance_path}/config.py')  # overrides
+
     serializer = JSONSigSerializer(app.config['SECRET_KEY'], expires_in=3600)
 
     app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # do not cache static files
+
+    db = sqlalchemy.create_engine('sqlite:///' + app.config['DATABASE'])
 
     api = Api(app)
     add_resources(api)
@@ -526,12 +542,13 @@ def add_resources(api):
 app = initialize()
 
 if __name__ == '__main__':
-    if not os.path.exists('trees.db'):
-        os.system('sqlite3 trees.db < ../tests/create_tables.sql')
-        os.system('sqlite3 trees.db < ../tests/sample_data.sql')
-        os.system('../tests/add_tree.py ../tests/example_tree_data/HmuY.aln2.tree')
-        os.system('../tests/add_tree.py ../tests/example_tree_data/aves.tree')
-    app.run(debug=True)
+    db_path = app.config['DATABASE']
+    if not os.path.exists(db_path):
+        os.system(f'sqlite3 {db_path} < create_tables.sql')
+        os.system(f'sqlite3 {db_path} < sample_data.sql')
+        os.system(f'./add_tree.py --db {db_path} ../examples/HmuY.aln2.tree')
+        os.system(f'./add_tree.py --db {db_path} ../examples/aves.tree')
+    app.run(debug=True, use_reloader=False)
 
 # But for production it's better if we serve it with something like:
 #   gunicorn server:app

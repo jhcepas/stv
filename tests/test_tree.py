@@ -6,10 +6,11 @@ Tests for tree-related functions.
 To run with pytest, but you can run interactively too if you want.
 """
 
-import sys
 import os
-PATH = os.path.abspath(os.path.dirname(__file__))
-sys.path.insert(0, f'{PATH}/..')
+PATH = os.path.abspath(f'{os.path.dirname(__file__)}/..')
+
+import sys
+sys.path.insert(0, PATH)
 
 import random
 from tempfile import TemporaryFile
@@ -277,7 +278,7 @@ def test_load_dump():
 
 def test_from_example_files():
     for fname in ['aves.tree', 'bac120_r95.tree', 'HmuY.aln2.tree']:
-        t = tree.load(open(f'{PATH}/example_tree_data/{fname}'))
+        t = tree.load(open(f'{PATH}/examples/{fname}'))
         print(t)
 
 

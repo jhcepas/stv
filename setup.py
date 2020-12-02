@@ -12,8 +12,9 @@ setup(
     license='GPLv3',
     url='http://etetoolkit.org',
     packages=['ete'],
+    scripts=glob('scripts/*.py'),
     data_files=[
-        ('server', glob('ete/static/gui.*')),
-        ('server/external', glob('ete/static/external/*')),
-        ('sql', glob('tests/*.sql')),
-        ('example_tree_data', glob('tests/example_tree_data/*'))])
+        ('server', glob('scripts/static/*.*')),
+        ('server/external', glob('scripts/static/external/*')),
+        ('sql', glob('scripts/*.sql')),
+        ('examples', glob('examples/*'))])
