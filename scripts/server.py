@@ -19,8 +19,8 @@ REST call examples:
 #   username: str
 #   name: str
 #   password: str
-#   trees_owner: list of ints (tree ids)
-#   trees_reader: list of ints (tree ids)
+#   owns: list of ints (tree ids)
+#   reads: list of ints (tree ids)
 #
 # tree
 #   id: int
