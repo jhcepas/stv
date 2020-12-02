@@ -8,6 +8,8 @@ const view = {
   tree_name: "HmuY.aln2",
   tree_id: 4,
   show_tree_info: () => window.location.href = `/trees/${view.tree_id}`,
+  show_newick: () => window.location.href = `/trees/${view.tree_id}/newick`,
+  download_image: download_image,
   upload_tree: () => window.location.href = "upload_tree.html",
   representation: "default",
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
@@ -85,6 +87,8 @@ function create_datgui() {
 
   add_trees(dgui_tree).then(() => {
     dgui_tree.add(view, "show_tree_info").name("info");
+    dgui_tree.add(view, "show_newick").name("newick");
+    dgui_tree.add(view, "download_image").name("download image");
     dgui_tree.add(view, "upload_tree").name("upload");
     add_representations(dgui_tree);  // so they will be added in order
   });
@@ -123,9 +127,7 @@ function create_datgui() {
       .onChange(() => style_font.fontSize = `${view.font_size}px`);
   }
 
-  const dgui_minimap = dgui.addFolder("minimap");
-
-  dgui_minimap.add(view, "minimap_show").name("active").onChange(() => {
+  dgui.add(view, "minimap_show").name("minimap").onChange(() => {
       const status = (view.minimap_show ? "visible" : "hidden");
       div_minimap.style.visibility = div_visible_rect.style.visibility = status;
       if (view.minimap_show)
@@ -136,6 +138,7 @@ function create_datgui() {
 }
 
 
+// Populate the trees option in dat.gui with the trees available in the server.
 async function add_trees(dgui_tree) {
   const response = await fetch(`http://${location.host}/trees`);
   const data = await response.json();
@@ -157,6 +160,22 @@ async function add_representations(dgui_tree) {
   const response = await fetch(`http://${location.host}/trees/representations`);
   const data = await response.json();
   dgui_tree.add(view, "representation", data).onChange(update);
+}
+
+
+function download_image() {
+  const canvas = document.createElement("canvas");
+  canvas.width = div_tree.offsetWidth;
+  canvas.height = div_tree.offsetHeight;
+  const svg = div_tree.children[0];
+  const svg_xml = (new XMLSerializer()).serializeToString(svg);
+  const ctx = canvas.getContext("2d");
+  const img = new Image();
+  img.src = "data:image/svg+xml;base64," + btoa(svg_xml);
+  img.addEventListener("load", () => {
+    ctx.drawImage(img, 0, 0);
+    window.location = canvas.toDataURL("image/png");
+  });
 }
 
 
