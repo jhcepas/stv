@@ -104,6 +104,9 @@ The REST api has the following endpoints::
   /users/<id>
   /trees
   /trees/<id>
+  /trees/<id>/newick
+  /trees/<id>/size
+  /trees/<id>/draw
   /info
   /id/users/<username>
   /id/trees/<name>
