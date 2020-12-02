@@ -53,8 +53,8 @@ bad_trees = """\
 ([&&NHX:a,b]);
 ([&&NHX:a)b];
 ([&&NX:p1=v1:p2=v2],c);
+([&&NHX:p1=v1|p2=v2],c);
 """.splitlines()
-# TODO: (maybe) add to bad_trees: '([&&NHX:p1=v1|p2=v2],c);' (bad separator)
 
 
 good_contents = """\

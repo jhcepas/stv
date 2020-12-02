@@ -172,7 +172,7 @@ def read_properties(text):
         assert text.startswith('[&&NHX:') and text.endswith(']'), \
             'properties not contained between "[&&NHX:" and "]"'
         pairs = text[len('[&&NHX:'):-1].split(':')
-        return dict(pair.split('=', 1) for pair in pairs)
+        return dict(pair.split('=') for pair in pairs)
     except (AssertionError, ValueError) as e:
         raise NewickError('invalid NHX format (%s) in text %r' % (e, text))
 
