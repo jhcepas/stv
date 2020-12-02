@@ -8,7 +8,8 @@ const view = {
   tree_name: "HmuY.aln2",
   tree_id: 4,
   show_tree_info: () => window.location.href = `/trees/${view.tree_id}`,
-  show_newick: () => window.location.href = `/trees/${view.tree_id}/newick`,
+  get_newick: () => get_newick(),
+  download_svg: download_svg,
   download_image: download_image,
   upload_tree: () => window.location.href = "upload_tree.html",
   representation: "default",
@@ -87,7 +88,8 @@ function create_datgui() {
 
   add_trees(dgui_tree).then(() => {
     dgui_tree.add(view, "show_tree_info").name("info");
-    dgui_tree.add(view, "show_newick").name("newick");
+    dgui_tree.add(view, "get_newick").name("get newick");
+    dgui_tree.add(view, "download_svg").name("download svg");
     dgui_tree.add(view, "download_image").name("download image");
     dgui_tree.add(view, "upload_tree").name("upload");
     add_representations(dgui_tree);  // so they will be added in order
@@ -163,6 +165,24 @@ async function add_representations(dgui_tree) {
 }
 
 
+// Download a file with the newick representation of the tree.
+async function get_newick() {
+  const response = await fetch(`/trees/${view.tree_id}/newick`);
+  const newick = await response.json();
+  download(view.tree_name + ".newick", "data:text/plain;charset=utf-8," + newick);
+}
+
+
+// Download a file with the current view of the tree as a svg.
+function download_svg() {
+  const svg = div_tree.children[0];
+  const svg_xml = (new XMLSerializer()).serializeToString(svg);
+  const content = "data:image/svg+xml;base64," + btoa(svg_xml);
+  download(view.tree_name + ".svg", content);
+}
+
+
+// Download a file with the current view of the tree as a png.
 function download_image() {
   const canvas = document.createElement("canvas");
   canvas.width = div_tree.offsetWidth;
@@ -174,8 +194,20 @@ function download_image() {
   img.src = "data:image/svg+xml;base64," + btoa(svg_xml);
   img.addEventListener("load", () => {
     ctx.drawImage(img, 0, 0);
-    window.location = canvas.toDataURL("image/png");
+    download(view.tree_name + ".png", canvas.toDataURL("image/png"));
   });
+}
+
+
+// Make the browser download a file.
+function download(fname, content) {
+  const element = document.createElement("a");
+  element.setAttribute("href", encodeURI(content));
+  element.setAttribute("download", fname);
+  element.style.display = "none";
+  document.body.appendChild(element);
+  element.click();
+  document.body.removeChild(element);
 }
 
 
