@@ -484,26 +484,18 @@ def get_fields(required=None, valid_extra=None):
 def initialize():
     "Initialize the database and the flask app"
     global db, serializer
+
     app = Flask(__name__, instance_relative_config=True)
-    CORS(app)
-
-    app.config.from_mapping(
-        DATABASE=f'{app.instance_path}/trees.db',
-        SECRET_KEY=' '.join(os.uname()))  # for testing, or else use config.py
-
-    if os.path.exists(f'{app.instance_path}/config.py'):
-        app.config.from_pyfile(f'{app.instance_path}/config.py')  # overrides
-
-    serializer = JSONSigSerializer(app.config['SECRET_KEY'], expires_in=3600)
-
-    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # do not cache static files
-
-    db = sqlalchemy.create_engine('sqlite:///' + app.config['DATABASE'])
+    configure(app)
 
     api = Api(app)
     add_resources(api)
 
     app.trees = {}  # to keep in memory loaded trees
+
+    serializer = JSONSigSerializer(app.config['SECRET_KEY'], expires_in=3600)
+
+    db = sqlalchemy.create_engine('sqlite:///' + app.config['DATABASE'])
 
     @app.route('/')
     def description():
@@ -522,6 +514,21 @@ def initialize():
     # so our handling is called even when being served from gunicorn
 
     return app
+
+
+def configure(app):
+    "Set the configuration for the flask app"
+    app.root_path = os.path.abspath('.')  # in case we launched from another dir
+
+    CORS(app)  # allows cross-origin resource sharing (requests from other domains)
+
+    app.config.from_mapping(
+        SEND_FILE_MAX_AGE_DEFAULT=0,  # do not cache static files
+        DATABASE=f'{app.instance_path}/trees.db',
+        SECRET_KEY=' '.join(os.uname()))  # for testing, or else use config.py
+
+    if os.path.exists(f'{app.instance_path}/config.py'):
+        app.config.from_pyfile(f'{app.instance_path}/config.py')  # overrides
 
 
 def add_resources(api):
