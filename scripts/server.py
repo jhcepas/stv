@@ -204,9 +204,9 @@ class Trees(Resource):
             return newicks[0]
         elif request.url_rule.rule == '/trees/<int:tree_id>/draw':
             viewport = get_viewport(request.args)
-            z = float(request.args.get('z', 1))
+            zoom = [float(request.args.get(z, 1)) for z in ['zx', 'zy']]
             t = load_tree(tree_id)
-            return list(draw.draw(t, viewport=viewport, zoom=z))
+            return list(draw.draw(t, viewport=viewport, zoom=zoom))
         elif request.url_rule.rule == '/trees/<int:tree_id>/size':
             t = load_tree(tree_id)
             width, height = draw.node_size(t)

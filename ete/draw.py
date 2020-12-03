@@ -34,7 +34,8 @@ MIN_HEIGHT_RECT = 1  # or if the rectangle is very small, not even that!
 def draw_or_outline(drawing_f, rect, viewport, zoom):
     "Yield the graphic elements of drawing_f() or an outline of rect"
     if intersects(rect, viewport):
-        height_draw = rect.h * zoom
+        zx, zy = zoom
+        height_draw = rect.h * zy
         if height_draw > MIN_HEIGHT_DRAW:
             yield from drawing_f()
         elif height_draw > MIN_HEIGHT_RECT:
@@ -50,9 +51,12 @@ def draw_or_outline(drawing_f, rect, viewport, zoom):
 #         [   ][    ]
 #         .....[  ]..
 
-def draw(tree, point=(0, 0), viewport=None, zoom=1):
+def draw(tree, point=(0, 0), viewport=None, zoom=(1, 1)):
     "Yield graphic elements to draw the tree"
     r_node = make_rect(point, node_size(tree))
+
+    if not intersects(r_node, viewport):
+        return
 
     p_content = (r_node.x, r_node.y + (r_node.h - tree.content_size.h) / 2)
     r_content = make_rect(p_content, tree.content_size)
@@ -74,7 +78,7 @@ def draw(tree, point=(0, 0), viewport=None, zoom=1):
     yield from draw_or_outline(f, r_childs, viewport, zoom)
 
 
-def draw_childs(tree, point=(0, 0), viewport=None, zoom=1):
+def draw_childs(tree, point=(0, 0), viewport=None, zoom=(1, 1)):
     "Yield lines to the childs and all the graphic elements to draw them"
     x, y = point  # top-left of childs
     pc = (x, y + tree.childs_size.h / 2)  # center-left of childs
@@ -89,21 +93,22 @@ def draw_childs(tree, point=(0, 0), viewport=None, zoom=1):
 # These are the functions that the user would supply to decide how to
 # represent a node.
 
-def draw_content_inline(node, point=(0, 0), viewport=None, zoom=1):
+def draw_content_inline(node, point=(0, 0), viewport=None, zoom=(1, 1)):
     "Yield graphic elements to draw the inline contents of the node"
     if node.length:
         x, y = point
         w, h = node.content_size
         text = '%.2g' % node.length
         fs = min(h/2, 1.5 * w / len(text))  # font size
-        g_text = draw_length((x, y + h/2 - fs), fs, text)
-        if zoom * fs > 4:
+        g_text = draw_label((x, y + h/2 - fs), fs, text)
+        zx, zy = zoom
+        if zy * fs > 4:
             yield g_text
         else:
             yield draw_rect(get_rect(g_text))
 
 
-def draw_content_float(node, point=(0, 0), viewport=None, zoom=1):
+def draw_content_float(node, point=(0, 0), viewport=None, zoom=(1, 1)):
     "Yield graphic elements to draw the floated contents of the node"
     if not node.childs:
         x, y = point
@@ -111,7 +116,7 @@ def draw_content_float(node, point=(0, 0), viewport=None, zoom=1):
         yield draw_name((x + node.content_size.w + 1, y + h/6), h/2, node.name)
 
 
-def draw_content_align(node, point=(0, 0), viewport=None, zoom=1):
+def draw_content_align(node, point=(0, 0), viewport=None, zoom=(1, 1)):
     "Yield graphic elements to draw the aligned contents of the node"
     if not node.childs:
         w, h = node.content_size
@@ -133,7 +138,7 @@ def draw_text(point, fontsize, text, text_type=''):
     return ['t' + text_type, x, y, fontsize, text]
 
 draw_name = lambda *args, **kwargs: draw_text(*args, **kwargs, text_type='n')
-draw_length = lambda *args, **kwargs: draw_text(*args, **kwargs, text_type='l')
+draw_label = lambda *args, **kwargs: draw_text(*args, **kwargs, text_type='l')
 
 def align(element):
     return ['a'] + element

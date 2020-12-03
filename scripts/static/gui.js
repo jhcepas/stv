@@ -14,7 +14,7 @@ const view = {
   upload_tree: () => window.location.href = "upload_tree.html",
   representation: "default",
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
-  zoom: 1,
+  zoom: {x: 1, y: 1},
   update_on_drag: true,
   drag: {x0: 0, y0: 0, element: undefined},  // used when dragging
   select_text: false,
@@ -27,7 +27,7 @@ const view = {
   font_size_scroller: undefined,
   font_size: 10,
   minimap_show: true,
-  minimap_zoom: 1,
+  minimap_zoom: {x: 1, y: 1},
   datgui: undefined
 };
 
@@ -52,8 +52,10 @@ function set_query_string_values() {
     view.tl.x = Number(params.x);
   if ("y" in params)
     view.tl.y = Number(params.y);
-  if ("z" in params)
-    view.zoom = Number(params.z);
+  if ("zx" in params)
+    view.zoom = Number(params.zx);
+  if ("zy" in params)
+    view.zoom = Number(params.zy);
 }
 
 
@@ -100,7 +102,8 @@ function create_datgui() {
 
   dgui_ctl.add(view.tl, "x").name("top-left x").onChange(update);
   dgui_ctl.add(view.tl, "y").name("top-left y").onChange(update);
-  dgui_ctl.add(view, "zoom").onChange(update);
+  dgui_ctl.add(view.zoom, "x").name("zoom x").onChange(update);
+  dgui_ctl.add(view.zoom, "y").name("zoom y").onChange(update);
   dgui_ctl.add(view, "update_on_drag").name("continuous dragging");
   dgui_ctl.add(view, "select_text").name("select text").onChange(() =>
     style_font.userSelect = (view.select_text ? "text" : "none"));
@@ -141,10 +144,15 @@ function create_datgui() {
 }
 
 
+async function api(endpoint) {
+  const response = await fetch(endpoint);
+  return await response.json();
+}
+
+
 // Populate the trees option in dat.gui with the trees available in the server.
 async function add_trees(dgui_tree) {
-  const response = await fetch(`http://${location.host}/trees`);
-  const data = await response.json();
+  const data = await api("/trees");
   const trees = {};
   data.map(t => trees[t.name] = t.id);
   dgui_tree.add(view, "tree_name", Object.keys(trees)).name("name")
@@ -152,7 +160,8 @@ async function add_trees(dgui_tree) {
       view.tree_id = trees[view.tree_name];
       view.tl.x = 0;
       view.tl.y = 0;
-      view.zoom = 1;
+      view.zoom.x = 1;
+      view.zoom.y = 1;
       draw_minimap();
       update();
     });
@@ -160,16 +169,14 @@ async function add_trees(dgui_tree) {
 
 
 async function add_representations(dgui_tree) {
-  const response = await fetch(`http://${location.host}/trees/representations`);
-  const data = await response.json();
-  dgui_tree.add(view, "representation", data).onChange(update);
+  const representations = await api("/trees/representations");
+  dgui_tree.add(view, "representation", representations).onChange(update);
 }
 
 
 // Download a file with the newick representation of the tree.
 async function download_newick() {
-  const response = await fetch(`/trees/${view.tree_id}/newick`);
-  const newick = await response.json();
+  const newick = await api(`/trees/${view.tree_id}/newick`);
   download(view.tree_name + ".newick", "data:text/plain;charset=utf-8," + newick);
 }
 
@@ -216,20 +223,24 @@ function download(fname, content) {
 document.body.addEventListener("wheel", event => {
   event.preventDefault();
   const zr = (event.deltaY < 0 ? 1.25 : 0.8);  // zoom change (ratio)
-  if (is_valid_zoom_change(zr)) {
-    const zoom_new =  zr * view.zoom;
-    const a = 1 / view.zoom - 1 / zoom_new;
-    view.tl.x += a * event.pageX;
-    view.tl.y += a * event.pageY;
-    view.zoom = zoom_new;
-    update();
+
+  const [do_zoom_x, do_zoom_y] = [!event.altKey, !event.ctrlKey];
+
+  if (do_zoom_x) {
+    const zoom_new = zr * view.zoom.x;
+    view.tl.x += (1 / view.zoom.x - 1 / zoom_new) * event.pageX;
+    view.zoom.x = zoom_new;
   }
+
+  if (do_zoom_y) {
+    const zoom_new = zr * view.zoom.y;
+    view.tl.y += (1 / view.zoom.y - 1 / zoom_new) * event.pageY;
+    view.zoom.y = zoom_new;
+  }
+
+  if (do_zoom_x || do_zoom_y)
+    update();
 }, {passive: false});  // chrome now uses passive=true otherwise
-
-
-function is_valid_zoom_change(zr) {
-  return (zr > 1 && view.zoom < 1e6) || (zr < 1 && view.zoom > 1e-6);
-}
 
 
 // Mouse down -- select text, or move in minimap, or start dragging.
@@ -280,9 +291,9 @@ function drag_stop(event) {
         dy = event.pageY - view.drag.y0;
 
   if (dx != 0 || dy != 0) {
-    const scale = get_drag_scale();
-    view.tl.x += scale * dx;
-    view.tl.y += scale * dy;
+    const [scale_x, scale_y] = get_drag_scale();
+    view.tl.x += scale_x * dx;
+    view.tl.y += scale_y * dy;
     update();
   }
 }
@@ -290,9 +301,9 @@ function drag_stop(event) {
 
 function get_drag_scale() {
   if (view.drag.element === div_tree)
-    return -1 / view.zoom;
+    return [-1 / view.zoom.x, -1 / view.zoom.y];
   else if (view.drag.element === div_visible_rect)
-    return 1 / view.minimap_zoom;
+    return [1 / view.minimap_zoom.x, 1 / view.minimap_zoom.y];
   else
     console.log(`Cannot find dragging scale for ${view.drag.element}.`);
 }
@@ -306,8 +317,8 @@ function move_minimap_view(event) {
   // Size of the visible rectangle.
   const [w, h] = [div_visible_rect.offsetWidth, div_visible_rect.offsetHeight];
 
-  view.tl.x = (event.pageX - w/2 - x0) / view.minimap_zoom;
-  view.tl.y = (event.pageY - h/2 - y0) / view.minimap_zoom ;
+  view.tl.x = (event.pageX - w/2 - x0) / view.minimap_zoom.x;
+  view.tl.y = (event.pageY - h/2 - y0) / view.minimap_zoom.y;
   // So the center of the visible rectangle will be where the mouse is.
 
   update();
@@ -316,8 +327,8 @@ function move_minimap_view(event) {
 
 // Update the coordinates of the pointer, as shown in the top-right gui.
 function update_pointer_pos(event) {
-  view.pos.x = view.tl.x + event.pageX / view.zoom;
-  view.pos.y = view.tl.y + event.pageY / view.zoom;
+  view.pos.x = view.tl.x + event.pageX / view.zoom.x;
+  view.pos.y = view.tl.y + event.pageY / view.zoom.y;
 }
 
 
@@ -333,17 +344,15 @@ function update() {
 
 
 // Ask the server for a tree in the new defined region, and draw it.
-function update_tree() {
-  const z = view.zoom;
+async function update_tree() {
+  const [zx, zy] = [view.zoom.x, view.zoom.y];
   const [x, y] = [view.tl.x, view.tl.y];
-  const [w, h] = [div_tree.offsetWidth / z, div_tree.offsetHeight / z];
+  const [w, h] = [div_tree.offsetWidth / zx, div_tree.offsetHeight / zy];
 
-  const url = `http://${location.host}/trees/${view.tree_id}/draw`;
+  const qs = `zx=${zx}&zy=${zy}&x=${x}&y=${y}&w=${w}&h=${h}`;
+  const items = await api(`/trees/${view.tree_id}/draw?${qs}`);
 
-  fetch(`${url}?z=${z}&x=${x}&y=${y}&w=${w}&h=${h}`)
-    .then(response => response.json())
-    .then(data => draw(div_tree, data, view.tl, view.zoom))
-    .catch(error => console.log(error));
+  draw(div_tree, items, view.tl, view.zoom);
 }
 
 
@@ -352,8 +361,8 @@ function draw(element, items, tl, zoom) {
   const [w, h] = [element.offsetWidth, element.offsetHeight];
 
   element.innerHTML = `
-    <svg width="${w}" height="${h}"
-         viewBox="${tl.x} ${tl.y} ${w / zoom} ${h / zoom}">
+    <svg width="${w}" height="${h}" preserveAspectRatio="none"
+         viewBox="${tl.x} ${tl.y} ${w / zoom.x} ${h / zoom.y}">
       ${items.map(item => item2svg(item, zoom)).join("\n")}
     </svg>`;
 }
@@ -365,23 +374,27 @@ function item2svg(item, zoom) {
   if (item[0] === 'r') {       // rectangle
     const [ , x, y, w, h] = item;
 
-    return `<rect class="rect" x="${x}" y="${y}" width="${w}" height="${h}"
-                  fill="none"
-                  stroke="${view.rect_color}"
-                  stroke-width="${1 / zoom}"/>`;
+    return `<rect class="rect"
+      x="${x}" y="${y}" width="${w}" height="${h}"
+      fill="none"
+      stroke="${view.rect_color}"
+      stroke-width="${1 / zoom.x}"/>`;
   }
   else if (item[0] === 'l') {  // line
     const [ , x1, y1, x2, y2] = item;
 
-    return `<line class="line" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
-                  stroke="${view.line_color}"
-                  stroke-width="${1 / zoom}"/>`;
+    return `<line class="line"
+      x1="${x1}" y1="${y1}"
+      x2="${x2}" y2="${y2}"
+      stroke="${view.line_color}"
+      stroke-width="${1 / zoom.x}"/>`;
   }
   else if (item[0].startsWith('t')) {  // text
     const [text_type, x, y, fs, txt] = item;
 
-    return `<text class="text ${get_class(text_type)}" x="${x}" y="${y+fs}"
-                  font-size="${fs}px">${txt}</text>`;
+    return `<text class="text ${get_class(text_type)}"
+      x="${x}" y="${y+fs}"
+      font-size="${fs}px">${txt}</text>`;
     // NOTE: If we wanted to use the exact width of the item, we could add:
     //   textLength="${w}px"
   }
@@ -403,32 +416,18 @@ function get_class(text_type) {
 
 
 // Draw the full tree on a small div on the bottom-right ("minimap").
-function draw_minimap() {
-  fetch(`http://${location.host}/trees/${view.tree_id}/size`)
-    .then(response => response.json())
-    .then(size => draw_minimap_with_size(size))
-    .catch(error => console.log(error));
-}
+async function draw_minimap() {
+  const size = await api(`/trees/${view.tree_id}/size`);
+  const zx = div_minimap.offsetWidth / size.width,
+        zy = div_minimap.offsetHeight / size.height;
 
+  view.minimap_zoom = {x: zx, y: zy};
 
-function draw_minimap_with_size(size) {
-  const [tw, th] = [size.width, size.height];  // tree width and height
-  const [w_min, h_min] = [20, 20];  // minimum size of the minimap
-  const w_max = 0.2 * window.innerWidth,
-        h_max = 0.8 * window.innerHeight;  // maximum size of the minimap
-  const zoom = Math.min(1, w_max / tw, h_max / th);  // zoom that accomodates
+  const items = await api(`/trees/${view.tree_id}/draw?zx=${zx}&zy=${zy}`);
 
-  // Adjust minimap's size.
-  div_minimap.style.width = `${Math.ceil(Math.max(w_min, zoom * tw))}px`;
-  div_minimap.style.height = `${Math.ceil(Math.max(h_min, zoom * th))}px`;
+  draw(div_minimap, items, {x: 0, y: 0}, view.minimap_zoom);
 
-  view.minimap_zoom = zoom;
-
-  fetch(`http://${location.host}/trees/${view.tree_id}/draw?z=${zoom}`)
-    .then(response => response.json())
-    .then(data => draw(div_minimap, data, {x: 0, y: 0}, view.minimap_zoom))
-    .then(() => update_minimap_visible_rect())
-    .catch(error => console.log(error));
+  update_minimap_visible_rect();
 }
 
 
@@ -442,10 +441,10 @@ function update_minimap_visible_rect() {
   const mw = div_minimap.offsetWidth - 2 * (mbw + rbw),    // minimap size
         mh = div_minimap.offsetHeight - 2 * (mbw + rbw);
   const wz = view.zoom, mz = view.minimap_zoom;
-  const ww = round(mz / wz * div_tree.offsetWidth),  // viewport size (scaled)
-        wh = round(mz / wz * div_tree.offsetHeight);
-  const tx = round(mz * view.tl.x),  // top-left corner of visible area
-        ty = round(mz * view.tl.y);  //   in tree coordinates (scaled)
+  const ww = round(mz.x / wz.x * div_tree.offsetWidth),  // viewport size (scaled)
+        wh = round(mz.y / wz.y * div_tree.offsetHeight);
+  const tx = round(mz.x * view.tl.x),  // top-left corner of visible area
+        ty = round(mz.y * view.tl.y);  //   in tree coordinates (scaled)
 
   const x = max(0, min(tx, mw)),  // clip tx to the interval [0, mw]
         y = max(0, min(ty, mh)),
