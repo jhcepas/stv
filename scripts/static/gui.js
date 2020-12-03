@@ -8,7 +8,7 @@ const view = {
   tree_name: "HmuY.aln2",
   tree_id: 4,
   show_tree_info: () => window.location.href = `/trees/${view.tree_id}`,
-  get_newick: () => get_newick(),
+  download_newick: () => download_newick(),  // calls an async function
   download_svg: download_svg,
   download_image: download_image,
   upload_tree: () => window.location.href = "upload_tree.html",
@@ -88,9 +88,10 @@ function create_datgui() {
 
   add_trees(dgui_tree).then(() => {
     dgui_tree.add(view, "show_tree_info").name("info");
-    dgui_tree.add(view, "get_newick").name("get newick");
-    dgui_tree.add(view, "download_svg").name("download svg");
-    dgui_tree.add(view, "download_image").name("download image");
+    const dgui_download = dgui_tree.addFolder("download");
+    dgui_download.add(view, "download_newick").name("newick");
+    dgui_download.add(view, "download_svg").name("svg");
+    dgui_download.add(view, "download_image").name("image");
     dgui_tree.add(view, "upload_tree").name("upload");
     add_representations(dgui_tree);  // so they will be added in order
   });
@@ -166,7 +167,7 @@ async function add_representations(dgui_tree) {
 
 
 // Download a file with the newick representation of the tree.
-async function get_newick() {
+async function download_newick() {
   const response = await fetch(`/trees/${view.tree_id}/newick`);
   const newick = await response.json();
   download(view.tree_name + ".newick", "data:text/plain;charset=utf-8," + newick);
