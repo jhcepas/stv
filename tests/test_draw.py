@@ -19,7 +19,7 @@ def test_draw_elements():
     assert draw.draw_rect(Rect(1, 2, 3, 4)) == ['r', 1, 2, 3, 4]
     assert draw.draw_text((1, 2), 3, 'hello') == ['t', 1, 2, 3, 'hello']
     assert draw.draw_name((1, 2), 3, 'world') == ['tn', 1, 2, 3, 'world']
-    assert draw.draw_length((1, 2), 3, 'again') == ['tl', 1, 2, 3, 'again']
+    assert draw.draw_label((1, 2), 3, 'again') == ['tl', 1, 2, 3, 'again']
 
 
 def test_drawn_size():
@@ -61,7 +61,7 @@ def test_draw_content_inline():
     print('->', list(draw.draw_content_inline(t)))
     assert list(draw.draw_content_inline(t)) == [
         ['r', 0, 0.0, 5.333333333333333, 4.0]]
-    assert list(draw.draw_content_inline(t, zoom=2)) == [
+    assert list(draw.draw_content_inline(t, zoom=(2, 2))) == [
         ['tl', 0, 0.0, 4.0, '10']]
 
 
