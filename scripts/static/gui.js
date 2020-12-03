@@ -378,16 +378,16 @@ function item2svg(item, zoom) {
       x="${x}" y="${y}" width="${w}" height="${h}"
       fill="none"
       stroke="${view.rect_color}"
-      stroke-width="${1 / zoom.x}"/>`;
+      stroke-width="${1 / Math.min(zoom.x, zoom.y)}"/>`;
   }
   else if (item[0] === 'l') {  // line
-    const [ , x1, y1, x2, y2] = item;
+    const [ , x1, y1, x2, y2, w] = item;
 
     return `<line class="line"
       x1="${x1}" y1="${y1}"
       x2="${x2}" y2="${y2}"
       stroke="${view.line_color}"
-      stroke-width="${1 / zoom.x}"/>`;
+      stroke-width="${w}"/>`;
   }
   else if (item[0].startsWith('t')) {  // text
     const [text_type, x, y, fs, txt] = item;

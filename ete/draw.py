@@ -55,15 +55,13 @@ def draw(tree, point=(0, 0), viewport=None, zoom=(1, 1)):
     "Yield graphic elements to draw the tree"
     r_node = make_rect(point, node_size(tree))
 
-    if not intersects(r_node, viewport):
-        return
-
     p_content = (r_node.x, r_node.y + (r_node.h - tree.content_size.h) / 2)
     r_content = make_rect(p_content, tree.content_size)
 
     p_left = (r_content.x, r_content.y + r_content.h / 2)
     p_right = (r_content.x + r_content.w, r_content.y + r_content.h / 2)
-    yield draw_line(p_left, p_right)
+    zx, zy = zoom
+    yield draw_line(p_left, p_right, 1 / zy)
 
     f = lambda: draw_content_inline(tree, p_content, viewport, zoom)
     yield from draw_or_outline(f, r_content, viewport, zoom)
@@ -80,11 +78,12 @@ def draw(tree, point=(0, 0), viewport=None, zoom=(1, 1)):
 
 def draw_childs(tree, point=(0, 0), viewport=None, zoom=(1, 1)):
     "Yield lines to the childs and all the graphic elements to draw them"
+    zx, zy = zoom
     x, y = point  # top-left of childs
     pc = (x, y + tree.childs_size.h / 2)  # center-left of childs
     for node in tree.childs:
         w, h = node_size(node)
-        yield draw_line(pc, (x, y + h/2))
+        yield draw_line(pc, (x, y + h/2), 1 / zx)
         f = lambda: draw(node, (x, y), viewport, zoom)
         yield from draw_or_outline(f, Rect(x, y, w, h), viewport, zoom)
         y += h
@@ -128,10 +127,10 @@ def draw_content_align(node, point=(0, 0), viewport=None, zoom=(1, 1)):
 def draw_rect(r):
     return ['r', r.x, r.y, r.w, r.h]
 
-def draw_line(p1, p2):
+def draw_line(p1, p2, w=1):
     x1, y1 = p1
     x2, y2 = p2
-    return ['l', x1, y1, x2, y2]
+    return ['l', x1, y1, x2, y2, w]
 
 def draw_text(point, fontsize, text, text_type=''):
     x, y = point
