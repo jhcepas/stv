@@ -186,10 +186,9 @@ class Users(Resource):
 
 
 class Trees(Resource):
-    # TODO: Decide if we are going to use the 'readers' associated to each tree
-    # to limit the access to them. In that case, we would need to add
-    #   @auth.login_required
-    # here, and also check that g.user_id is a reader (or the owner, or admin).
+    # NOTE: If we wanted to enforce that only the 'readers' (or owner) of a
+    #   tree have access to it, we would need to add  @auth.login_required
+    # and check that g.user_id is a reader (or the owner, or admin).
     def get(self, tree_id=None):
         "Return info about the tree (or all trees if no id given)"
         if request.url_rule.rule == '/trees':
