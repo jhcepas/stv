@@ -549,11 +549,13 @@ app = initialize()
 
 if __name__ == '__main__':
     db_path = app.config['DATABASE']
+    add = lambda x: os.system(f'./add_tree.py --db {db_path} ../examples/{x}')
     if not os.path.exists(db_path):
         os.system(f'sqlite3 {db_path} < create_tables.sql')
         os.system(f'sqlite3 {db_path} < sample_data.sql')
-        os.system(f'./add_tree.py --db {db_path} ../examples/HmuY.aln2.tree')
-        os.system(f'./add_tree.py --db {db_path} ../examples/aves.tree')
+        add('HmuY.aln2.tree')
+        add('aves.tree')
+        add('bac120_r95.tree')
     app.run(debug=True, use_reloader=False)
 
 # But for production it's better if we serve it with something like:
