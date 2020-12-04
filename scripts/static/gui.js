@@ -19,7 +19,7 @@ const view = {
   drag: {x0: 0, y0: 0, element: undefined},  // used when dragging
   select_text: false,
   line_color: "#000",
-  rect_color: "#0A0",
+  rect_color: "#000",
   names_color: "#00A",
   lengths_color: "#888",
   font_family: "sans-serif",
@@ -387,6 +387,7 @@ function item2svg(item, tl, zoom) {
     return `<rect class="rect"
       x="${x}" y="${y}" width="${w}" height="${h}"
       fill="none"
+      stroke-width="0.2"
       stroke="${view.rect_color}"/>`;
   }
   else if (item[0] === 'l') {  // line
@@ -402,14 +403,15 @@ function item2svg(item, tl, zoom) {
       stroke="${view.line_color}"/>`;
   }
   else if (item[0].startsWith('t')) {  // text
-    let [text_type, x, y, fs, txt] = item;
+    let [text_type, x, y, w, h, txt] = item;
     x = zoom.x * (x - tl.x);
     y = zoom.y * (y - tl.y);
-    fs *= zoom.y;
-
+    w *= zoom.x;
+    h *= zoom.y;
+    const fs = w !== 0 ? Math.min(h, 1.5 * w / txt.length) : h;
 
     return `<text class="text ${get_class(text_type)}"
-      x="${x}" y="${y+fs}"
+      x="${x}" y="${y}"
       font-size="${fs}px">${txt}</text>`;
     // NOTE: If we wanted to use the exact width of the item, we could add:
     //   textLength="${w}px"

@@ -96,10 +96,9 @@ def draw_content_inline(node, point=(0, 0), viewport=None, zoom=(1, 1)):
         w, h = node.content_size
         zx, zy = zoom
         text = '%.2g' % node.length
-        fs = min(h/2, 1.5 * w * zx/zy  / len(text))  # font size
-        g_text = draw_label((x, y + h/2 - fs), fs, text)
+        g_text = draw_label(Rect(x, y + h/2, w, h/2), text)
 
-        if True: #zy * fs > 4:
+        if zy * h > 1:  # NOTE: we may want to change this, but it's tricky
             yield g_text
         else:
             yield draw_rect(get_rect(g_text))
@@ -111,15 +110,15 @@ def draw_content_float(node, point=(0, 0), viewport=None, zoom=(1, 1)):
         x, y = point
         w, h = node.content_size
         zx, zy = zoom
-        p_after_content = (x + node.content_size.w + 2 / zx, y + h / 6)
-        yield draw_name(p_after_content, h/2, node.name)
+        p_after_content = (x + node.content_size.w + 2 / zx, y + h / 1.5)
+        yield draw_name(make_rect(p_after_content, Size(0, h/2)), node.name)
 
 
 def draw_content_align(node, point=(0, 0), viewport=None, zoom=(1, 1)):
     "Yield graphic elements to draw the aligned contents of the node"
     if not node.childs:
         w, h = node.content_size
-        yield align(draw_name(point, h/2, node.name))
+        yield align(draw_name(make_rect(point, Size(0, h/2)), node.name))
 
 
 
@@ -132,9 +131,9 @@ def draw_line(p1, p2):
     x2, y2 = p2
     return ['l', x1, y1, x2, y2]
 
-def draw_text(point, fontsize, text, text_type=''):
-    x, y = point
-    return ['t' + text_type, x, y, fontsize, text]
+def draw_text(rect, text, text_type=''):
+    x, y, w, h = rect
+    return ['t' + text_type, x, y, w, h, text]
 
 draw_name = lambda *args, **kwargs: draw_text(*args, **kwargs, text_type='n')
 draw_label = lambda *args, **kwargs: draw_text(*args, **kwargs, text_type='l')
@@ -211,8 +210,8 @@ def get_rect(element):
         return Rect(min(x1, x2), min(y1, y2),
                     abs(x2 - x1), abs(y2 - y1))
     elif element[0].startswith('t'):
-        _, x, y, fontsize, text = element
-        return Rect(x, y, fontsize * len(text) / 1.5, fontsize)
+        _, x, y, w, h, text = element
+        return Rect(x, y - h, w, h)
     else:
         raise ValueError('unrecognized element: ' + repr(element))
 
