@@ -15,28 +15,16 @@ Size, Rect = draw.Size, draw.Rect
 
 
 def test_draw_elements():
-    assert draw.draw_line((1, 2), (3, 4)) == ['l', 1, 2, 3, 4]
-    assert draw.draw_rect(Rect(1, 2, 3, 4)) == ['r', 1, 2, 3, 4]
-    assert draw.draw_text((1, 2), 3, 'hello') == ['t', 1, 2, 3, 'hello']
-    assert draw.draw_name((1, 2), 3, 'world') == ['tn', 1, 2, 3, 'world']
-    assert draw.draw_label((1, 2), 3, 'again') == ['tl', 1, 2, 3, 'again']
-
-
-def test_drawn_size():
-    rects = [
-        Rect(-3, -1, 6, 2),
-        Rect(-1, -5, 3, 10)]
-    assert draw.drawn_size(rects) == Size(6, 10)
-    print('<-', rects)
-    print('->', draw.drawn_size(rects))
-
-    elements = [
-        draw.draw_line((1, 2), (3, 4)),
-        draw.draw_rect(Rect(2, -1, 3, 3)),
-        draw.draw_text((0, 0), 1.5, 'hello')]
-    assert draw.drawn_size(elements) == Size(5, 5)
-    print('<-', elements)
-    print('->', draw.drawn_size(elements))
+    assert draw.draw_line((1, 2), (3, 4)) == \
+        ['l', 1, 2, 3, 4]
+    assert draw.draw_rect(Rect(1, 2, 3, 4)) == \
+        ['r', 1, 2, 3, 4]
+    assert draw.draw_text(Rect(1, 2, 3, 4), 'hello') == \
+        ['t', 1, 2, 3, 4, 'hello']
+    assert draw.draw_name(Rect(1, 2, 3, 4), 'world') == \
+        ['tn', 1, 2, 3, 4, 'world']
+    assert draw.draw_label(Rect(1, 2, 3, 4), 'again') == \
+        ['tl', 1, 2, 3, 4, 'again']
 
 
 def test_store_sizes():
@@ -48,10 +36,10 @@ def test_store_sizes():
     for node in t:
         assert hasattr(node, 'content_size') and hasattr(node, 'childs_size')
 
-    assert t.content_size == Size(100, 8)
-    assert t.childs_size == Size(750, 24)
+    assert t.content_size == Size(1, 24)
+    assert t.childs_size == Size(7.5, 24)
 
-    assert draw.node_size(t) == Size(850, 24)
+    assert draw.node_size(t) == Size(8.5, 24)
 
 
 def test_draw_content_inline():
@@ -60,9 +48,11 @@ def test_draw_content_inline():
     print('<-', t)
     print('->', list(draw.draw_content_inline(t)))
     assert list(draw.draw_content_inline(t)) == [
-        ['r', 0, 0.0, 5.333333333333333, 4.0]]
-    assert list(draw.draw_content_inline(t, zoom=(2, 2))) == [
-        ['tl', 0, 0.0, 4.0, '10']]
+        ['tl', 0, 4.0, 10.0, 4.0, '10']]
+    print('<-', t, 'zoom=(0.1, 0.1)')
+    print('->', list(draw.draw_content_inline(t, zoom=(0.1, 0.1))))
+    assert list(draw.draw_content_inline(t, zoom=(0.1, 0.1))) == [
+        ['r', 0, 0.0, 10.0, 4.0]]
 
 
 def test_draw_tree():
@@ -71,26 +61,32 @@ def test_draw_tree():
     draw.store_sizes(t)
     elements = list(draw.draw(t))
     print(elements)
-    assert [x for x in elements if not x[0] == 'a'] == [
-        ['l', 0, 12.0, 100, 12.0],
-        ['l', 100, 12.0, 100, 12.0],
-        ['l', 100, 12.0, 10100.0, 12.0],
-        ['r', 100, 8.0, 13.333333333333334, 4.0],
-        ['l', 10100.0, 12.0, 10100.0, 4.0],
-        ['l', 10100.0, 4.0, 30100.0, 4.0],
-        ['r', 10100.0, 0.0, 13.333333333333334, 4.0],
-        ['tn', 30101.0, 1.3333333333333333, 4.0, 'B'],
-        ['l', 10100.0, 12.0, 10100.0, 16.0],
-        ['l', 10100.0, 16.0, 45100.0, 16.0],
-        ['r', 10100.0, 12.0, 18.666666666666668, 4.0],
-        ['l', 45100.0, 16.0, 45100.0, 12.0],
-        ['l', 45100.0, 12.0, 70100.0, 12.0],
-        ['r', 45100.0, 8.0, 18.666666666666668, 4.0],
-        ['tn', 70101.0, 9.333333333333334, 4.0, 'C'],
-        ['l', 45100.0, 16.0, 45100.0, 20.0],
-        ['l', 45100.0, 20.0, 75100.0, 20.0],
-        ['r', 45100.0, 16.0, 13.333333333333334, 4.0],
-        ['tn', 75101.0, 17.333333333333332, 4.0, 'D']]
+    assert elements == [
+        ['l', 0, 12.0, 1, 12.0],
+        ['l', 1, 12.0, 1, 12.0],
+        ['l', 1, 12.0, 101.0, 12.0],
+        ['tl', 1, 12.0, 100.0, 12.0, '1e+02'],
+        ['l', 101.0, 12.0, 101.0, 4.0],
+        ['l', 101.0, 4.0, 301.0, 4.0],
+        ['tl', 101.0, 4.0, 200.0, 4.0, '2e+02'],
+        ['tn', 303.0, 5.333333333333333, 0, 4.0, 'B'],
+        ['a', 'tn', 101.0, 0.0, 0, 4.0, 'B'],
+        ['r', 301.0, 0, 0, 0],
+        ['l', 101.0, 12.0, 101.0, 16.0],
+        ['l', 101.0, 16.0, 451.0, 16.0],
+        ['tl', 101.0, 16.0, 350.0, 8.0, '3.5e+02'],
+        ['l', 451.0, 16.0, 451.0, 12.0],
+        ['l', 451.0, 12.0, 701.0, 12.0],
+        ['tl', 451.0, 12.0, 250.0, 4.0, '2.5e+02'],
+        ['tn', 703.0, 13.333333333333332, 0, 4.0, 'C'],
+        ['a', 'tn', 451.0, 8.0, 0, 4.0, 'C'],
+        ['r', 701.0, 8, 0, 0],
+        ['l', 451.0, 16.0, 451.0, 20.0],
+        ['l', 451.0, 20.0, 751.0, 20.0],
+        ['tl', 451.0, 20.0, 300.0, 4.0, '3e+02'],
+        ['tn', 753.0, 21.333333333333332, 0, 4.0, 'D'],
+        ['a', 'tn', 451.0, 16.0, 0, 4.0, 'D'],
+        ['r', 751.0, 16, 0, 0]]
     print('<-', tree_text)
     print(t)
     print('->', list(draw.draw(t)))
