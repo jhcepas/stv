@@ -50,76 +50,92 @@ def draw_or_outline(drawing_f, rect, viewport, zoom):
 #         [   ][    ]
 #         .....[  ]..
 
-def draw(tree, point=(0, 0), viewport=None, zoom=(1, 1)):
-    "Yield graphic elements to draw the tree"
-    r_node = make_rect(point, node_size(tree))
+class DrawerSimple(object):
+    "Draws the skeleton of the tree"
 
-    p_content = (r_node.x, r_node.y + (r_node.h - tree.content_size.h) / 2)
-    r_content = make_rect(p_content, tree.content_size)
+    def draw(self, tree, point=(0, 0), viewport=None, zoom=(1, 1)):
+        "Yield graphic elements to draw the tree"
+        r_node = make_rect(point, node_size(tree))
 
-    p_left = (r_content.x, r_content.y + r_content.h / 2)
-    p_right = (r_content.x + r_content.w, r_content.y + r_content.h / 2)
-    yield draw_line(p_left, p_right)
+        p_content = (r_node.x, r_node.y + (r_node.h - tree.content_size.h) / 2)
+        r_content = make_rect(p_content, tree.content_size)
 
-    f = lambda: draw_content_inline(tree, p_content, viewport, zoom)
-    yield from draw_or_outline(f, r_content, viewport, zoom)
+        p_left = (r_content.x, r_content.y + r_content.h / 2)
+        p_right = (r_content.x + r_content.w, r_content.y + r_content.h / 2)
+        yield draw_line(p_left, p_right)
 
-    yield from draw_content_float(tree, p_content, viewport, zoom)
-    yield from draw_content_align(tree, p_content, viewport, zoom)
+        f = lambda: self.draw_content_inline(tree, p_content, viewport, zoom)
+        yield from draw_or_outline(f, r_content, viewport, zoom)
 
-    p_childs = (r_node.x + r_content.w, r_node.y)
-    r_childs = make_rect(p_childs, tree.childs_size)
+        yield from self.draw_content_float(tree, p_content, viewport, zoom)
+        yield from self.draw_content_align(tree, p_content, viewport, zoom)
 
-    f = lambda: draw_childs(tree, p_childs, viewport, zoom)
-    yield from draw_or_outline(f, r_childs, viewport, zoom)
+        p_childs = (r_node.x + r_content.w, r_node.y)
+        r_childs = make_rect(p_childs, tree.childs_size)
 
-
-def draw_childs(tree, point=(0, 0), viewport=None, zoom=(1, 1)):
-    "Yield lines to the childs and all the graphic elements to draw them"
-    x, y = point  # top-left of childs
-    pc = (x, y + tree.childs_size.h / 2)  # center-left of childs
-    for node in tree.childs:
-        w, h = node_size(node)
-        yield draw_line(pc, (x, y + h/2))
-        f = lambda: draw(node, (x, y), viewport, zoom)
-        yield from draw_or_outline(f, Rect(x, y, w, h), viewport, zoom)
-        y += h
+        f = lambda: self.draw_childs(tree, p_childs, viewport, zoom)
+        yield from draw_or_outline(f, r_childs, viewport, zoom)
 
 
-# These are the functions that the user would supply to decide how to
-# represent a node.
+    def draw_childs(self, tree, point=(0, 0), viewport=None, zoom=(1, 1)):
+        "Yield lines to the childs and all the graphic elements to draw them"
+        x, y = point  # top-left of childs
+        pc = (x, y + tree.childs_size.h / 2)  # center-left of childs
+        for node in tree.childs:
+            w, h = node_size(node)
+            yield draw_line(pc, (x, y + h/2))
+            f = lambda: self.draw(node, (x, y), viewport, zoom)
+            yield from draw_or_outline(f, Rect(x, y, w, h), viewport, zoom)
+            y += h
 
-def draw_content_inline(node, point=(0, 0), viewport=None, zoom=(1, 1)):
-    "Yield graphic elements to draw the inline contents of the node"
-    if node.length:
-        x, y = point
-        w, h = node.content_size
-        zx, zy = zoom
-        text = '%.2g' % node.length
-        g_text = draw_label(Rect(x, y + h/2, w, h/2), text)
+    # These are the functions that the user would supply to decide how to
+    # represent a node.
+    def draw_content_inline(self, node, point=(0, 0), viewport=None, zoom=(1, 1)):
+        "Yield graphic elements to draw the inline contents of the node"
+        yield from []
 
-        if zy * h > 1:  # NOTE: we may want to change this, but it's tricky
-            yield g_text
-        else:
-            yield draw_rect(get_rect(g_text))
+    def draw_content_float(self, node, point=(0, 0), viewport=None, zoom=(1, 1)):
+        "Yield graphic elements to draw the floated contents of the node"
+        yield from []
 
-
-def draw_content_float(node, point=(0, 0), viewport=None, zoom=(1, 1)):
-    "Yield graphic elements to draw the floated contents of the node"
-    if not node.childs:
-        x, y = point
-        w, h = node.content_size
-        zx, zy = zoom
-        p_after_content = (x + node.content_size.w + 2 / zx, y + h / 1.5)
-        yield draw_name(make_rect(p_after_content, Size(0, h/2)), node.name)
+    def draw_content_align(self, node, point=(0, 0), viewport=None, zoom=(1, 1)):
+        "Yield graphic elements to draw the aligned contents of the node"
+        yield from []
 
 
-def draw_content_align(node, point=(0, 0), viewport=None, zoom=(1, 1)):
-    "Yield graphic elements to draw the aligned contents of the node"
-    if not node.childs:
-        w, h = node.content_size
-        yield align(draw_name(make_rect(point, Size(0, h/2)), node.name))
+class DrawerCool(DrawerSimple):
+    "Draws with the name of the leaf nodes and labels on the lengths"
 
+    def draw_content_inline(self, node, point=(0, 0), viewport=None, zoom=(1, 1)):
+        if node.length:
+            x, y = point
+            w, h = node.content_size
+            zx, zy = zoom
+            text = '%.2g' % node.length
+            g_text = draw_label(Rect(x, y + h/2, w, h/2), text)
+
+            if zy * h > 1:  # NOTE: we may want to change this, but it's tricky
+                yield g_text
+            else:
+                yield draw_rect(get_rect(g_text))
+
+    def draw_content_float(self, node, point=(0, 0), viewport=None, zoom=(1, 1)):
+        if not node.childs:
+            x, y = point
+            w, h = node.content_size
+            zx, zy = zoom
+            p_after_content = (x + node.content_size.w + 2 / zx, y + h / 1.5)
+            yield draw_name(make_rect(p_after_content, Size(0, h/2)), node.name)
+
+    def draw_content_align(self, node, point=(0, 0), viewport=None, zoom=(1, 1)):
+        if not node.childs:
+            w, h = node.content_size
+            yield align(draw_name(make_rect(point, Size(0, h/2)), node.name))
+
+
+
+def get_drawers():
+    return [DrawerSimple, DrawerCool]
 
 
 

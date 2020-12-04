@@ -194,7 +194,7 @@ class Trees(Resource):
         if request.url_rule.rule == '/trees':
             return [get_tree(pid) for pid in dbget0('id', 'trees')]
         elif request.url_rule.rule == '/trees/representations':
-            return ['default', 'simple', 'full']  # TODO: get them from a plugin?
+            return [drawer.__name__ for drawer in draw.get_drawers()]
         elif request.url_rule.rule == '/trees/<int:tree_id>':
             return get_tree(tree_id)
         elif request.url_rule.rule == '/trees/<int:tree_id>/newick':
@@ -205,8 +205,11 @@ class Trees(Resource):
         elif request.url_rule.rule == '/trees/<int:tree_id>/draw':
             viewport = get_viewport(request.args)
             zoom = [float(request.args.get(z, 1)) for z in ['zx', 'zy']]
+            drawer_name = request.args.get('drawer', 'DrawerCool')
+            drawers = [d for d in draw.get_drawers() if d.__name__ == drawer_name]
+            drawer = drawers[0]() if drawers else draw.DrawerCool()
             t = load_tree(tree_id)
-            return list(draw.draw(t, viewport=viewport, zoom=zoom))
+            return list(drawer.draw(t, viewport=viewport, zoom=zoom))
         elif request.url_rule.rule == '/trees/<int:tree_id>/size':
             t = load_tree(tree_id)
             width, height = draw.node_size(t)

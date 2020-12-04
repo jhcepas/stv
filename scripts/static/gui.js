@@ -12,7 +12,7 @@ const view = {
   download_svg: download_svg,
   download_image: download_image,
   upload_tree: () => window.location.href = "upload_tree.html",
-  representation: "default",
+  representation: "DrawerCool",
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: {x: 1, y: 1},
   update_on_drag: true,
@@ -356,7 +356,8 @@ async function update_tree() {
   const [x, y] = [view.tl.x, view.tl.y];
   const [w, h] = [div_tree.offsetWidth / zx, div_tree.offsetHeight / zy];
 
-  const qs = `zx=${zx}&zy=${zy}&x=${x}&y=${y}&w=${w}&h=${h}`;
+  const qs = `drawer=${view.representation}&` +
+    `zx=${zx}&zy=${zy}&x=${x}&y=${y}&w=${w}&h=${h}`;
   const items = await api(`/trees/${view.tree_id}/draw?${qs}`);
 
   draw(div_tree, items, view.tl, view.zoom);
@@ -441,7 +442,8 @@ async function draw_minimap() {
 
   view.minimap_zoom = {x: zx, y: zy};
 
-  const items = await api(`/trees/${view.tree_id}/draw?zx=${zx}&zy=${zy}`);
+  const qs = `drawer=DrawerSimple&zx=${zx}&zy=${zy}`;
+  const items = await api(`/trees/${view.tree_id}/draw?${qs}`);
 
   draw(div_minimap, items, {x: 0, y: 0}, view.minimap_zoom);
 
