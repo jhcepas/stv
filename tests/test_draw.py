@@ -45,13 +45,14 @@ def test_store_sizes():
 def test_draw_content_inline():
     t = tree.Tree('A:10')
     draw.store_sizes(t)
+    drawer = draw.DrawerCool()
     print('<-', t)
-    print('->', list(draw.draw_content_inline(t)))
-    assert list(draw.draw_content_inline(t)) == [
+    print('->', list(drawer.draw_content_inline(t)))
+    assert list(drawer.draw_content_inline(t)) == [
         ['tl', 0, 4.0, 10.0, 4.0, '10']]
     print('<-', t, 'zoom=(0.1, 0.1)')
-    print('->', list(draw.draw_content_inline(t, zoom=(0.1, 0.1))))
-    assert list(draw.draw_content_inline(t, zoom=(0.1, 0.1))) == [
+    print('->', list(drawer.draw_content_inline(t, zoom=(0.1, 0.1))))
+    assert list(drawer.draw_content_inline(t, zoom=(0.1, 0.1))) == [
         ['r', 0, 0.0, 10.0, 4.0]]
 
 
@@ -59,7 +60,8 @@ def test_draw_tree():
     tree_text = '((B:200,(C:250,D:300)E:350)A:100)F;'
     t = tree.loads(tree_text)
     draw.store_sizes(t)
-    elements = list(draw.draw(t))
+    drawer = draw.DrawerCool()
+    elements = list(drawer.draw(t))
     print(elements)
     assert elements == [
         ['l', 0, 12.0, 1, 12.0],
@@ -89,7 +91,7 @@ def test_draw_tree():
         ['r', 751.0, 16, 0, 0]]
     print('<-', tree_text)
     print(t)
-    print('->', list(draw.draw(t)))
+    print('->', list(drawer.draw(t)))
 
 
 def test_intersects():
