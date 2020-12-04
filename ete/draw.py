@@ -50,7 +50,7 @@ def draw_or_outline(drawing_f, rect, viewport, zoom):
 #         [   ][    ]
 #         .....[  ]..
 
-class DrawerSimple(object):
+class DrawerSimple:
     "Draws the skeleton of the tree"
 
     def draw(self, tree, point=(0, 0), viewport=None, zoom=(1, 1)):

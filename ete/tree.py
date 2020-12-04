@@ -13,7 +13,7 @@ class NewickError(Exception):
     pass
 
 
-class Tree(object):
+class Tree:
     def __init__(self, content='', childs=None):
         self.name = ''
         self.length = None
