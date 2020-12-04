@@ -60,8 +60,7 @@ def draw(tree, point=(0, 0), viewport=None, zoom=(1, 1)):
 
     p_left = (r_content.x, r_content.y + r_content.h / 2)
     p_right = (r_content.x + r_content.w, r_content.y + r_content.h / 2)
-    zx, zy = zoom
-    yield draw_line(p_left, p_right, 1 / zy)
+    yield draw_line(p_left, p_right)
 
     f = lambda: draw_content_inline(tree, p_content, viewport, zoom)
     yield from draw_or_outline(f, r_content, viewport, zoom)
@@ -78,12 +77,11 @@ def draw(tree, point=(0, 0), viewport=None, zoom=(1, 1)):
 
 def draw_childs(tree, point=(0, 0), viewport=None, zoom=(1, 1)):
     "Yield lines to the childs and all the graphic elements to draw them"
-    zx, zy = zoom
     x, y = point  # top-left of childs
     pc = (x, y + tree.childs_size.h / 2)  # center-left of childs
     for node in tree.childs:
         w, h = node_size(node)
-        yield draw_line(pc, (x, y + h/2), 1 / zx)
+        yield draw_line(pc, (x, y + h/2))
         f = lambda: draw(node, (x, y), viewport, zoom)
         yield from draw_or_outline(f, Rect(x, y, w, h), viewport, zoom)
         y += h
@@ -97,11 +95,12 @@ def draw_content_inline(node, point=(0, 0), viewport=None, zoom=(1, 1)):
     if node.length:
         x, y = point
         w, h = node.content_size
-        text = '%.2g' % node.length
-        fs = min(h/2, 1.5 * w / len(text))  # font size
-        g_text = draw_label((x, y + h/2 - fs), fs, text)
         zx, zy = zoom
-        if zy * fs > 4:
+        text = '%.2g' % node.length
+        fs = min(h/2, 1.5 * w * zx/zy  / len(text))  # font size
+        g_text = draw_label((x, y + h/2 - fs), fs, text)
+
+        if True: #zy * fs > 4:
             yield g_text
         else:
             yield draw_rect(get_rect(g_text))
@@ -112,7 +111,9 @@ def draw_content_float(node, point=(0, 0), viewport=None, zoom=(1, 1)):
     if not node.childs:
         x, y = point
         w, h = node.content_size
-        yield draw_name((x + node.content_size.w + 1, y + h/6), h/2, node.name)
+        zx, zy = zoom
+        p_after_content = (x + node.content_size.w + 2 / zx, y + h / 6)
+        yield draw_name(p_after_content, h/2, node.name)
 
 
 def draw_content_align(node, point=(0, 0), viewport=None, zoom=(1, 1)):
@@ -127,10 +128,10 @@ def draw_content_align(node, point=(0, 0), viewport=None, zoom=(1, 1)):
 def draw_rect(r):
     return ['r', r.x, r.y, r.w, r.h]
 
-def draw_line(p1, p2, w=1):
+def draw_line(p1, p2):
     x1, y1 = p1
     x2, y2 = p2
-    return ['l', x1, y1, x2, y2, w]
+    return ['l', x1, y1, x2, y2]
 
 def draw_text(point, fontsize, text, text_type=''):
     x, y = point
@@ -147,44 +148,21 @@ def align(element):
 
 def store_sizes(tree):
     "Store in each node of the tree its content size and childs size"
-    tree.content_size = Size(0, 0)  # so draw_content_inline can use it
-    size = drawn_size(draw_content_inline(tree))
-
-    MIN_HEIGHT_CONTENT = 8  # TODO: think whether to put this somewhere else
-    content_w = (tree.length or 1) * 100  # TODO: adjust depending on LENGTH_SCALE
-    content_h = max(MIN_HEIGHT_CONTENT, size.h)
-
-    tree.content_size = Size(content_w, content_h)
-
     for node in tree.childs:
         store_sizes(node)
 
     tree.childs_size = stack_vertical_size(node_size(n) for n in tree.childs)
 
+    MIN_HEIGHT_CONTENT = 8  # TODO: think whether to put this somewhere else
+    width = tree.length or 1
+    height = max(tree.childs_size.h, MIN_HEIGHT_CONTENT)
+    tree.content_size = Size(width, height)
+
+
 
 def node_size(node):
     "Return the size of a node (its content and its childs)"
     return stack_horizontal_size([node.content_size, node.childs_size])
-
-
-def drawn_size(elements):
-    "Return the size of a rectangle containing all the elements"
-    elements = list(elements)  # in case it came as an iterator
-    if not elements:
-        return Size(0, 0)
-
-    x, y, w, h = get_rect(elements[0])
-    x_min, x_max = x, x + w
-    y_min, y_max = y, y + h
-
-    for element in elements[1:]:
-        x, y, w, h = get_rect(element)
-        x_min = min(x_min, x)
-        x_max = max(x_max, x + w)
-        y_min = min(y_min, y)
-        y_max = max(y_max, y + h)
-
-    return Size(x_max - x_min, y_max - y_min)
 
 
 def stack_vertical_size(sizes):

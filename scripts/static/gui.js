@@ -33,7 +33,8 @@ const view = {
 
 
 // Run when the page is loaded (the "main" function).
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await load_tree(view.tree_id);
   set_query_string_values();
   view.datgui = create_datgui();
   draw_minimap();
@@ -156,15 +157,21 @@ async function add_trees(dgui_tree) {
   const trees = {};
   data.map(t => trees[t.name] = t.id);
   dgui_tree.add(view, "tree_name", Object.keys(trees)).name("name")
-    .onChange(() => {
-      view.tree_id = trees[view.tree_name];
-      view.tl.x = 0;
-      view.tl.y = 0;
-      view.zoom.x = 1;
-      view.zoom.y = 1;
+    .onChange(async () => {
+      await load_tree(trees[view.tree_name]);
       draw_minimap();
       update();
     });
+}
+
+
+async function load_tree(tree_id) {
+  view.tree_id = tree_id;
+  view.tl.x = 0;
+  view.tl.y = 0;
+  const size = await api(`/trees/${view.tree_id}/size`);
+  view.zoom.x = 0.5 * div_tree.offsetWidth / size.width;
+  view.zoom.y = div_tree.offsetHeight / size.height;
 }
 
 
@@ -361,36 +368,45 @@ function draw(element, items, tl, zoom) {
   const [w, h] = [element.offsetWidth, element.offsetHeight];
 
   element.innerHTML = `
-    <svg width="${w}" height="${h}" preserveAspectRatio="none"
-         viewBox="${tl.x} ${tl.y} ${w / zoom.x} ${h / zoom.y}">
-      ${items.map(item => item2svg(item, zoom)).join("\n")}
+    <svg width="${w}" height="${h}">
+      ${items.map(item => item2svg(item, tl, zoom)).join("\n")}
     </svg>`;
 }
 
 
 // Return the graphical (svg) element corresponding to an ete item.
-function item2svg(item, zoom) {
+function item2svg(item, tl, zoom) {
   // items look like ['r', ...] for a rectangle, etc.
   if (item[0] === 'r') {       // rectangle
-    const [ , x, y, w, h] = item;
+    let [ , x, y, w, h] = item;
+    x = zoom.x * (x - tl.x);
+    y = zoom.y * (y - tl.y);
+    w *= zoom.x;
+    h *= zoom.y;
 
     return `<rect class="rect"
       x="${x}" y="${y}" width="${w}" height="${h}"
       fill="none"
-      stroke="${view.rect_color}"
-      stroke-width="${1 / Math.min(zoom.x, zoom.y)}"/>`;
+      stroke="${view.rect_color}"/>`;
   }
   else if (item[0] === 'l') {  // line
-    const [ , x1, y1, x2, y2, w] = item;
+    let [ , x1, y1, x2, y2] = item;
+    x1 = zoom.x * (x1 - tl.x);
+    y1 = zoom.y * (y1 - tl.y);
+    x2 = zoom.x * (x2 - tl.x);
+    y2 = zoom.y * (y2 - tl.y);
 
     return `<line class="line"
       x1="${x1}" y1="${y1}"
       x2="${x2}" y2="${y2}"
-      stroke="${view.line_color}"
-      stroke-width="${w}"/>`;
+      stroke="${view.line_color}"/>`;
   }
   else if (item[0].startsWith('t')) {  // text
-    const [text_type, x, y, fs, txt] = item;
+    let [text_type, x, y, fs, txt] = item;
+    x = zoom.x * (x - tl.x);
+    y = zoom.y * (y - tl.y);
+    fs *= zoom.y;
+
 
     return `<text class="text ${get_class(text_type)}"
       x="${x}" y="${y+fs}"
