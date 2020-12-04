@@ -29,7 +29,6 @@ Rect = namedtuple('Rect', ['x', 'y', 'w', 'h'])  # top-left corner and size
 # with the right values. They can be filled with store_sizes().
 
 MIN_HEIGHT_DRAW = 4  # anything that has less pixels, we just draw a rectangle
-MIN_HEIGHT_RECT = 1  # or if the rectangle is very small, not even that!
 
 def draw_or_outline(drawing_f, rect, viewport, zoom):
     "Yield the graphic elements of drawing_f() or an outline of rect"
@@ -38,7 +37,7 @@ def draw_or_outline(drawing_f, rect, viewport, zoom):
         height_draw = rect.h * zy
         if height_draw > MIN_HEIGHT_DRAW:
             yield from drawing_f()
-        elif height_draw > MIN_HEIGHT_RECT:
+        else:
             yield draw_rect(rect)  # the "outline" is just a rectangle
 
 
