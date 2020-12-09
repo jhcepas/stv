@@ -207,9 +207,10 @@ class Trees(Resource):
             zoom = [float(request.args.get(z, 1)) for z in ['zx', 'zy']]
             drawer_name = request.args.get('drawer', 'DrawerCool')
             drawers = [d for d in draw.get_drawers() if d.__name__ == drawer_name]
-            drawer = drawers[0]() if drawers else draw.DrawerCool()
+            drawerC = drawers[0] if drawers else draw.DrawerCool
+            drawer = drawerC(viewport, zoom)
             t = load_tree(tree_id)
-            return list(drawer.draw(t, viewport=viewport, zoom=zoom))
+            return list(drawer.draw(t))
         elif request.url_rule.rule == '/trees/<int:tree_id>/size':
             t = load_tree(tree_id)
             width, height = draw.node_size(t)

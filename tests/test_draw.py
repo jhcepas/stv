@@ -45,14 +45,15 @@ def test_store_sizes():
 def test_draw_content_inline():
     t = tree.Tree('A:10')
     draw.store_sizes(t)
-    drawer = draw.DrawerCool()
+    drawer1 = draw.DrawerCool()
     print('<-', t)
-    print('->', list(drawer.draw_content_inline(t)))
-    assert list(drawer.draw_content_inline(t)) == [
+    print('->', list(drawer1.draw_content_inline(t)))
+    assert list(drawer1.draw_content_inline(t)) == [
         ['tl', 0, 4.0, 10.0, 4.0, '10']]
     print('<-', t, 'zoom=(0.1, 0.1)')
-    print('->', list(drawer.draw_content_inline(t, zoom=(0.1, 0.1))))
-    assert list(drawer.draw_content_inline(t, zoom=(0.1, 0.1))) == [
+    drawer2 = draw.DrawerCool(zoom=(0.1, 0.1))
+    print('->', list(drawer2.draw_content_inline(t)))
+    assert list(drawer2.draw_content_inline(t)) == [
         ['r', 0, 0.0, 10.0, 4.0]]
 
 

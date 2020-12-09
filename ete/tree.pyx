@@ -18,14 +18,14 @@ class Tree:
         self.name = ''
         self.length = None
         self.properties = {}
-        if type(content) == str and not content.startswith('('):  # normal case
+        if not content.startswith('('):  # normal case
             if content:
                 self.content = content.rstrip(';')
             self.childs = childs or []
-        else:                                                     # newick case
+        else:                            # newick case
             if childs:
                 raise NewickError(f'newick {content} incompatible with childs')
-            t = loads(content) if type(content) == str else load(content)
+            t = loads(content)
             self.content = t.content
             self.childs = t.childs
 
@@ -80,7 +80,7 @@ def loads(tree_text):
     return Tree(content, nodes)
 
 
-def read_nodes(nodes_text, pos=0):
+def read_nodes(nodes_text, int pos=0):
     "Return a list of nodes and the position in the text where they end"
     # nodes_text looks like '(a,b,c)', where any element can be a list of nodes
     if nodes_text[pos] != '(':
@@ -107,7 +107,7 @@ def read_nodes(nodes_text, pos=0):
     return nodes, pos+1
 
 
-def read_content(text, pos, endings=',);'):
+def read_content(str text, int pos, endings=',);'):
     "Return content starting at position pos in the text, and where it ends"
     start = pos
     if pos < len(text) and text[pos] == "'":
@@ -117,7 +117,7 @@ def read_content(text, pos, endings=',);'):
     return text[start:pos], pos
 
 
-def read_quoted_name(text, pos):
+def read_quoted_name(str text, int pos):
     "Return quoted name and the position where it ends"
     if pos >= len(text) or text[pos] != "'":
         raise NewickError(f'text at position {pos} does not start with "\'"')

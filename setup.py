@@ -2,6 +2,7 @@
 
 from setuptools import setup
 from glob import glob
+from Cython.Build import cythonize
 
 setup(
     name='ete',
@@ -12,6 +13,7 @@ setup(
     license='GPLv3',
     url='http://etetoolkit.org',
     packages=['ete'],
+    ext_modules = cythonize('ete/tree.pyx'),
     scripts=glob('scripts/*.py'),
     data_files=[
         ('server', glob('scripts/static/*.*')),
