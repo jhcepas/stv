@@ -3,9 +3,9 @@
 insert into users values
     (1, 'admin', 'System Administrator',
      'pbkdf2:sha256:50000$713rFBmU$1e10a0e9b5fca0b4550b39dffd01931d8cdc64760d5995856e9c775e94e983dd'),
-    (2, 'user2', 'Maria',
+    (2, 'guest', 'Example guest user',
      'pbkdf2:sha256:50000$w4xHhhi8$75b2502e4680383c5fc89423e446b847021b52b086648897b8a6dcba60e771cb'),
-    (3, 'user3', 'Debbie',
+    (3, 'guest2', 'Other example guest user',
      'pbkdf2:sha256:50000$g2cIiryf$b0da4704216e5128544a831ba293adcc7aae3d730df9464cba5943fdf2b33c92');
 
 -- abc -> pbkdf2:sha256:50000$713rFBmU$1e10a0e9b...
@@ -14,10 +14,10 @@ insert into users values
 
 
 insert into trees values
-    (1, 'My First Tree', 'A simple test of a tree',
+    (1, 'Sample Tree', 'A simple test of a tree',
     '((B:2,(C:3,D:4)E:5)A:1)F;'),
-    (2, 'Tree of Life', 'Every species, more or less',
-    '(ainur,wizards,balrogs:2[&&NHX:temp=hot:fun=no],dwarves,elves,humans,ents,hobbits,orcs,trolls,barrow-wights)?;'),
+    (2, 'Multinest', 'An empty-looking tree',
+    '(((((((((,),),),),),),),),);'),
     (3, 'Directories', 'From the filesystem',
     '(boot/,dev/,etc/,(user1/,user2/)home/,(bin/,lib/)usr/,var/,tmp/)/;');
 
