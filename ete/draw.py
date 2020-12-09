@@ -273,7 +273,7 @@ def intersects(r1, r2):
 
 def stack_vertical_rect(r1, r2):
     "Return the rectangle containing rectangles r1 and r2 vertically stacked"
-    if r1.x == r2.x and r1.y + r1.w == r2.y:
+    if r1.x == r2.x and r1.y + r1.h == r2.y:
         return Rect(r1.x, r1.y, max(r1.w, r2.w), r1.h + r2.h)
     else:
         return None
