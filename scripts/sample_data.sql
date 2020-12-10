@@ -1,11 +1,11 @@
 -- Run this file to add sample values into the database.
 
 insert into users values
-    (1, 'admin', 'System Administrator',
+    (1, 'admin', 'system administrator',
      'pbkdf2:sha256:50000$713rFBmU$1e10a0e9b5fca0b4550b39dffd01931d8cdc64760d5995856e9c775e94e983dd'),
-    (2, 'guest', 'Example guest user',
+    (2, 'guest', 'example guest user',
      'pbkdf2:sha256:50000$w4xHhhi8$75b2502e4680383c5fc89423e446b847021b52b086648897b8a6dcba60e771cb'),
-    (3, 'guest2', 'Other example guest user',
+    (3, 'guest2', 'other example guest user',
      'pbkdf2:sha256:50000$g2cIiryf$b0da4704216e5128544a831ba293adcc7aae3d730df9464cba5943fdf2b33c92');
 
 -- abc -> pbkdf2:sha256:50000$713rFBmU$1e10a0e9b...

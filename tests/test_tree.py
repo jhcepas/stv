@@ -54,6 +54,7 @@ bad_trees = """\
 ([&&NHX:a)b];
 ([&&NX:p1=v1:p2=v2],c);
 ([&&NHX:p1=v1|p2=v2],c);
+(a:b)c;
 """.splitlines()
 
 

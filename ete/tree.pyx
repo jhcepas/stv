@@ -148,7 +148,10 @@ def read_fields(content):
 
     if pos < len(content) and content[pos] == ':':
         length_txt, pos = read_content(content, pos+1, endings='[')
-        length = float(length_txt)
+        try:
+            length = float(length_txt)
+        except ValueError:
+            raise NewickError('invalid number %r in %r' % (length_txt, content))
     else:
         length = None
 
