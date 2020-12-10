@@ -24,12 +24,12 @@ cdef class Tree:
         self.name = ''
         self.length = -1
         self.properties = {}
-        if not content.startswith('('):  # normal case
+        if not content.startswith('('):                         # normal case
             self.content = content.rstrip(';')
             self.childs = childs or []
             size0, size1 = get_size(self.childs)
             self.size = (abs(self.length) + size0, size1 or 1)
-        else:                            # newick case
+        else:                                                   # newick case
             if childs:
                 raise NewickError(f'newick {content} incompatible with childs')
             t = loads(content)

@@ -185,6 +185,7 @@ def get_drawers():
         DrawerTooltips, DrawerAlign]
 
 
+# Basic drawing elements.
 
 def draw_rect(r):
     return ['r', r.x, r.y, r.w, r.h]

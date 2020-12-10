@@ -209,8 +209,7 @@ class Trees(Resource):
             drawer = get_drawer(request.args)
             return list(drawer(viewport, zoom).draw(load_tree(tree_id)))
         elif rule == '/trees/<int:tree_id>/size':
-            t = load_tree(tree_id)
-            width, height = abs(t.length) + t.size[0], t.size[1]
+            width, height = draw.node_size(load_tree(tree_id))
             return {'width': width, 'height': height}
         else:
             raise InvalidUsage('unknown tree GET request')
