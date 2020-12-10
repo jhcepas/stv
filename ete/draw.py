@@ -23,10 +23,7 @@ Rect = namedtuple('Rect', ['x', 'y', 'w', 'h'])  # top-left corner and size
 #                         |     | h        and x+w,y+h its bottom-right one
 #                         +-----+
 
-# Drawing functions.
-#
-# To draw a tree, its nodes must have the members content_size and childs_size
-# with the right values. They can be filled with store_sizes().
+# Drawing.
 
 class Drawer:
     MIN_HEIGHT = 6  # anything that has less pixels will be a rectangle
@@ -61,31 +58,27 @@ class Drawer:
     # To draw a tree, we draw its node content and then we draw its children to
     # its right. The relevant points in the node that we use are:
     #
-    #     p0....p2.....    p0 (p_node): top-left point of the node's rect
-    #       .    [ ]  .    p1 (p_content): top-left point of the content's rect
-    #     p1[   ][]   .    p2 (p_childs): top-left point of the childs' rect
+    #     p0....p1.....    p0 (point): top-left point of the node's rect
+    #       .    [ ]  .    p1 (p_childs): top-left point of the childs' rect
+    #       [   ][]   .
     #       [   ][    ]
     #       .....[  ]..
 
     def draw(self, tree, point=(0, 0)):
         "Yield graphic elements to draw the tree"
-        r_node = make_rect(point, node_size(tree))
+        x, y = point
+        w, h = content_size(tree)
 
-        p_content = (r_node.x, r_node.y + (r_node.h - tree.content_size.h) / 2)
-        r_content = make_rect(p_content, tree.content_size)
+        yield draw_line((x, y + h/2), (x + w, y + h/2))
 
-        p_left = (r_content.x, r_content.y + r_content.h / 2)
-        p_right = (r_content.x + r_content.w, r_content.y + r_content.h / 2)
-        yield draw_line(p_left, p_right)
+        f = lambda: self.draw_content_inline(tree, point)
+        yield from self.draw_or_outline(f, Rect(x, y, w, h))
 
-        f = lambda: self.draw_content_inline(tree, p_content)
-        yield from self.draw_or_outline(f, r_content)
+        yield from self.draw_content_float(tree, point)
+        yield from self.draw_content_align(tree, point)
 
-        yield from self.draw_content_float(tree, p_content)
-        yield from self.draw_content_align(tree, p_content)
-
-        p_childs = (r_node.x + r_content.w, r_node.y)
-        r_childs = make_rect(p_childs, tree.childs_size)
+        p_childs = (x + w, y)
+        r_childs = make_rect(p_childs, childs_size(tree))
 
         f = lambda: self.draw_childs(tree, p_childs)
         yield from self.draw_or_outline(f, r_childs)
@@ -98,7 +91,7 @@ class Drawer:
     def draw_childs(self, tree, point=(0, 0)):
         "Yield lines to the childs and all the graphic elements to draw them"
         x, y = point  # top-left of childs
-        pc = (x, y + tree.childs_size.h / 2)  # center-left of childs
+        pc = (x, y + childs_size(tree).h / 2)  # center-left of childs
         for node in tree.childs:
             w, h = node_size(node)
             yield draw_line(pc, (x, y + h/2))
@@ -133,9 +126,9 @@ class DrawerLeafNames(Drawer):
     def draw_content_float(self, node, point=(0, 0)):
         if not node.childs:
             x, y = point
-            w, h = node.content_size
+            w, h = content_size(node)
             zx, zy = self.zoom
-            p_after_content = (x + node.content_size.w + 2 / zx, y + h / 1.5)
+            p_after_content = (x + w + 2 / zx, y + h / 1.5)
             yield draw_name(make_rect(p_after_content, Size(0, h/2)), node.name)
 
 
@@ -143,9 +136,9 @@ class DrawerLengths(Drawer):
     "With labels on the lengths"
 
     def draw_content_inline(self, node, point=(0, 0)):
-        if node.length:
+        if node.length >= 0:
             x, y = point
-            w, h = node.content_size
+            w, h = content_size(node)
             zx, zy = self.zoom
             text = '%.2g' % node.length
             g_text = draw_label(Rect(x, y + h/2, w, h/2), text)
@@ -169,7 +162,7 @@ class DrawerTooltips(DrawerFull):
 
         if node.name or node.properties:
             x, y = point
-            w, h = node.content_size
+            w, h = content_size(node)
             zx, zy = self.zoom
             ptext = ', '.join(f'{k}: {v}' for k,v in node.properties.items())
             text = node.name + (' - ' if node.name and ptext else '')  + ptext
@@ -182,7 +175,7 @@ class DrawerAlign(DrawerFull):
 
     def draw_content_align(self, node, point=(0, 0)):
         if not node.childs:
-            w, h = node.content_size
+            w, h = content_size(node)
             yield align(draw_name(make_rect(point, Size(0, h/2)), node.name))
 
 
@@ -215,52 +208,15 @@ def align(element):
 
 # Size-related functions.
 
-def store_sizes(tree):
-    "Store in each node of the tree its content size and childs size"
-    for node in tree.childs:
-        store_sizes(node)
-
-    tree.childs_size = stack_vertical_size(node_size(n) for n in tree.childs)
-
-    MIN_HEIGHT_CONTENT = 8  # TODO: think whether to put this somewhere else
-    width = tree.length or 1
-    height = max(tree.childs_size.h, MIN_HEIGHT_CONTENT)
-    tree.content_size = Size(width, height)
-
-# TODO: See if we only want to use childs_size.h (because in our current
-#       implementation, content_size and childs_size.w are irrelevant).
-
-
 def node_size(node):
     "Return the size of a node (its content and its childs)"
-    return stack_horizontal_size([node.content_size, node.childs_size])
+    return Size(abs(node.length) + node.size[0], node.size[1])
 
+def content_size(node):
+    return Size(abs(node.length), node.size[1])
 
-def stack_vertical_size(sizes):
-    "Return the size of a rectangle containing all sizes vertically stacked"
-    # []      [   ]
-    # [  ] -> |   |
-    # [ ]     [   ]
-    max_width = 0
-    sum_height = 0
-    for size in sizes:
-        max_width = max(max_width, size.w)
-        sum_height += size.h
-    return Size(max_width, sum_height)
-
-
-def stack_horizontal_size(sizes):
-    "Return the size of a rectangle containing all sizes horizontally stacked"
-    # [ ] [   ] [  ]     [         ]
-    # | |       [  ] ->  |         |
-    # [ ]                [         ]
-    sum_width = 0
-    max_height = 0
-    for size in sizes:
-        sum_width += size.w
-        max_height = max(max_height, size.h)
-    return Size(sum_width, max_height)
-
+def childs_size(node):
+    return Size(node.size[0], node.size[1])
 
 
 # Rectangle-related functions.

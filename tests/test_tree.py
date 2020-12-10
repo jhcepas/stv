@@ -79,7 +79,7 @@ def test_constructor():
     assert node2.name == '' and node2.length == 22 and node2.properties == {}
     assert node2.content == ':22'
     assert not node2.childs
-    assert node3.name == 'node3' and node3.length is None
+    assert node3.name == 'node3' and node3.length == -1
     assert node3.properties == {}
     assert node3.content == 'node3'
     assert node3.childs == [node1, node2]
@@ -188,7 +188,7 @@ def test_read_content():
     print('<-', tree_text)
     t = tree.loads(tree_text)
     print(t)
-    assert (t.name == '' and t.length == None and t.properties == {} and
+    assert (t.name == '' and t.length == -1 and t.properties == {} and
         t.content == '')
     t1 = t.childs[0]
     assert (t1.name == 'a' and t1.length == 11 and
@@ -198,7 +198,7 @@ def test_read_content():
     assert (t2.name == 'b' and t2.length == 22 and t2.properties == {} and
         t2.content == 'b:22' and t2.childs == [])
     td = t.childs[-1].childs[-1]
-    assert (td.name == 'd' and td.length == None and
+    assert (td.name == 'd' and td.length == -1 and
         td.properties == {'z': 'foo'} and td.content == 'd[&&NHX:z=foo]')
     print('-> Contents look good.\n')
 

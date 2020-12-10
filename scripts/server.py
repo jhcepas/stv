@@ -209,7 +209,8 @@ class Trees(Resource):
             drawer = get_drawer(request.args)
             return list(drawer(viewport, zoom).draw(load_tree(tree_id)))
         elif rule == '/trees/<int:tree_id>/size':
-            width, height = draw.node_size(load_tree(tree_id))
+            t = load_tree(tree_id)
+            width, height = abs(t.length) + t.size[0], t.size[1]
             return {'width': width, 'height': height}
         else:
             raise InvalidUsage('unknown tree GET request')
@@ -329,7 +330,6 @@ def load_tree(tree_id):
         raise InvalidUsage(f'unknown tree id {tree_id}', 404)
 
     t = tree.loads(newicks[0])
-    draw.store_sizes(t)
     app.trees[tree_id] = t
     return t
 

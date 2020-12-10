@@ -13,24 +13,33 @@ class NewickError(Exception):
     pass
 
 
-class Tree:
+cdef class Tree:
+    cdef public str name
+    cdef public double length
+    cdef public dict properties
+    cdef public list childs
+    cdef public (double, double) size
+
     def __init__(self, content='', childs=None):
         self.name = ''
-        self.length = None
+        self.length = -1
         self.properties = {}
         if not content.startswith('('):  # normal case
             self.content = content.rstrip(';')
             self.childs = childs or []
+            size0, size1 = get_size(self.childs)
+            self.size = (abs(self.length) + size0, size1 or 1)
         else:                            # newick case
             if childs:
                 raise NewickError(f'newick {content} incompatible with childs')
             t = loads(content)
             self.content = t.content
             self.childs = t.childs
+            self.size = t.size
 
     @property
     def content(self):
-        length_str = ':%g' % self.length if self.length is not None else ''
+        length_str = ':%g' % self.length if self.length >= 0 else ''
         pairs_str = ':'.join('%s=%s' % kv for kv in self.properties.items())
         props_str = '[&&NHX:%s]' % pairs_str if pairs_str else ''
         return quote(self.name) + length_str + props_str
@@ -49,13 +58,28 @@ class Tree:
         childs_reprs = ', '.join(repr(c) for c in self.childs)
         return 'Tree(%r, [%s])' % (self.content, childs_reprs)
 
-    def __str__(self, are_last=None):
-        are_last = are_last or []
-        line = get_branches_repr(are_last) + (self.content or '<empty>')
-        return '\n'.join([line] +
-            [node.__str__(are_last + [False]) for node in self.childs[:-1]] +
-            [node.__str__(are_last + [True])  for node in self.childs[-1:]])
+    def __str__(self):
+        return to_str(self)
 
+
+
+cdef (double, double) get_size(nodes):
+    "Return the size of all the nodes stacked in the dimension 1"
+    cdef double size0, size1
+    size0 = size1 = 0
+    for node in nodes:
+        size0 = max(size0, node.size[0])
+        size1 += node.size[1]
+    return size0, size1
+
+
+def to_str(node, are_last=None):
+    "Return a string with a visual representation of the node"
+    are_last = are_last or []
+    line = get_branches_repr(are_last) + (node.content or '<empty>')
+    return '\n'.join([line] +
+        [to_str(n, are_last + [False]) for n in node.childs[:-1]] +
+        [to_str(n, are_last + [True])  for n in node.childs[-1:]])
 
 
 def load(fp):
@@ -153,7 +177,7 @@ def read_fields(content):
         except ValueError:
             raise NewickError('invalid number %r in %r' % (length_txt, content))
     else:
-        length = None
+        length = -1
 
     if pos < len(content) and content[pos] == '[':
         properties = read_properties(content[pos:])
