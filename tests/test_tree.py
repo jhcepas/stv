@@ -225,6 +225,7 @@ def test_is_valid():
             tree.loads(tree_text)
         print('-> is not valid\n')
 
+
 def test_read_fields():
     for tree_text in good_contents:
         print('<-', tree_text)
@@ -263,6 +264,7 @@ def test_dumps():
         t_text = tree.dumps(t)
         print('->', t_text)
         assert t_text == tree_text
+        assert tree.dumps(tree.Tree(tree_text)) == tree_text
         # NOTE: we could relax this, it is asking a bit too much really
 
 

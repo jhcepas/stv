@@ -19,8 +19,7 @@ class Tree:
         self.length = None
         self.properties = {}
         if not content.startswith('('):  # normal case
-            if content:
-                self.content = content.rstrip(';')
+            self.content = content.rstrip(';')
             self.childs = childs or []
         else:                            # newick case
             if childs:
