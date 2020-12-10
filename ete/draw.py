@@ -123,13 +123,24 @@ class Drawer:
 
 
 class DrawerSimple(Drawer):
-    "Draws the skeleton of the tree"
+    "Skeleton of the tree"
     pass
 
 
+class DrawerLeafNames(Drawer):
+    "With names on leaf nodes"
 
-class DrawerCool(Drawer):
-    "Draws with the name of the leaf nodes and labels on the lengths"
+    def draw_content_float(self, node, point=(0, 0)):
+        if not node.childs:
+            x, y = point
+            w, h = node.content_size
+            zx, zy = self.zoom
+            p_after_content = (x + node.content_size.w + 2 / zx, y + h / 1.5)
+            yield draw_name(make_rect(p_after_content, Size(0, h/2)), node.name)
+
+
+class DrawerLengths(Drawer):
+    "With labels on the lengths"
 
     def draw_content_inline(self, node, point=(0, 0)):
         if node.length:
@@ -144,13 +155,30 @@ class DrawerCool(Drawer):
             else:
                 yield draw_rect(get_rect(g_text))
 
-    def draw_content_float(self, node, point=(0, 0)):
-        if not node.childs:
+
+class DrawerFull(DrawerLeafNames, DrawerLengths):
+    "With names on leaf nodes and labels on the lengths"
+    pass
+
+
+class DrawerTooltips(DrawerFull):
+    "With tooltips with the names and properties of all nodes"
+
+    def draw_content_inline(self, node, point=(0, 0)):
+        yield from super().draw_content_inline(node, point)
+
+        if node.name or node.properties:
             x, y = point
             w, h = node.content_size
             zx, zy = self.zoom
-            p_after_content = (x + node.content_size.w + 2 / zx, y + h / 1.5)
-            yield draw_name(make_rect(p_after_content, Size(0, h/2)), node.name)
+            ptext = ', '.join(f'{k}: {v}' for k,v in node.properties.items())
+            text = node.name + (' - ' if node.name and ptext else '')  + ptext
+            fs = min(h/2, 15/zy)
+            yield draw_tooltip(Rect(x + w/2, y + h/2, w/2, fs), text)
+
+
+class DrawerAlign(DrawerFull):
+    "With aligned content"
 
     def draw_content_align(self, node, point=(0, 0)):
         if not node.childs:
@@ -160,7 +188,8 @@ class DrawerCool(Drawer):
 
 
 def get_drawers():
-    return [DrawerSimple, DrawerCool]
+    return [DrawerSimple, DrawerLengths, DrawerLeafNames, DrawerFull,
+        DrawerTooltips, DrawerAlign]
 
 
 
@@ -176,8 +205,9 @@ def draw_text(rect, text, text_type=''):
     x, y, w, h = rect
     return ['t' + text_type, x, y, w, h, text]
 
-draw_name = lambda *args, **kwargs: draw_text(*args, **kwargs, text_type='n')
-draw_label = lambda *args, **kwargs: draw_text(*args, **kwargs, text_type='l')
+draw_name = lambda *args: draw_text(*args, text_type='n')
+draw_label = lambda *args: draw_text(*args, text_type='l')
+draw_tooltip = lambda *args: draw_text(*args, text_type='t')
 
 def align(element):
     return ['a'] + element

@@ -205,7 +205,7 @@ class Trees(Resource):
         elif request.url_rule.rule == '/trees/<int:tree_id>/draw':
             viewport = get_viewport(request.args)
             zoom = [float(request.args.get(z, 1)) for z in ['zx', 'zy']]
-            drawer_name = request.args.get('drawer', 'DrawerCool')
+            drawer_name = request.args.get('drawer', 'DrawerFull')
             drawers = [d for d in draw.get_drawers() if d.__name__ == drawer_name]
             drawerC = drawers[0] if drawers else draw.DrawerCool
             drawer = drawerC(viewport, zoom)

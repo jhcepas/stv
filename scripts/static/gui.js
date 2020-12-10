@@ -12,7 +12,7 @@ const view = {
   download_svg: download_svg,
   download_image: download_image,
   upload_tree: () => window.location.href = "upload_tree.html",
-  representation: "DrawerCool",
+  representation: "DrawerFull",
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: {x: 1, y: 1},
   update_on_drag: true,
@@ -429,6 +429,8 @@ function get_class(text_type) {
     return "names";
   else if (text_type === "tl")
     return "lengths";
+  else if (text_type === "tt")
+    return "tooltip";
   else
     return "";
 }

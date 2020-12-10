@@ -45,13 +45,13 @@ def test_store_sizes():
 def test_draw_content_inline():
     t = tree.Tree('A:10')
     draw.store_sizes(t)
-    drawer1 = draw.DrawerCool()
+    drawer1 = draw.DrawerFull()
     print('<-', t)
     print('->', list(drawer1.draw_content_inline(t)))
     assert list(drawer1.draw_content_inline(t)) == [
         ['tl', 0, 4.0, 10.0, 4.0, '10']]
     print('<-', t, 'zoom=(0.1, 0.1)')
-    drawer2 = draw.DrawerCool(zoom=(0.1, 0.1))
+    drawer2 = draw.DrawerFull(zoom=(0.1, 0.1))
     print('->', list(drawer2.draw_content_inline(t)))
     assert list(drawer2.draw_content_inline(t)) == [
         ['r', 0, 0.0, 10.0, 4.0]]
@@ -61,7 +61,7 @@ def test_draw_tree():
     tree_text = '((B:200,(C:250,D:300)E:350)A:100)F;'
     t = tree.loads(tree_text)
     draw.store_sizes(t)
-    drawer = draw.DrawerCool()
+    drawer = draw.DrawerFull()
     elements = list(drawer.draw(t))
     print(elements)
     assert elements == [
@@ -73,7 +73,6 @@ def test_draw_tree():
         ['l', 101.0, 4.0, 301.0, 4.0],
         ['tl', 101.0, 4.0, 200.0, 4.0, '2e+02'],
         ['tn', 303.0, 5.333333333333333, 0, 4.0, 'B'],
-        ['a', 'tn', 101.0, 0.0, 0, 4.0, 'B'],
         ['r', 301.0, 0, 0, 0],
         ['l', 101.0, 12.0, 101.0, 16.0],
         ['l', 101.0, 16.0, 451.0, 16.0],
@@ -82,13 +81,11 @@ def test_draw_tree():
         ['l', 451.0, 12.0, 701.0, 12.0],
         ['tl', 451.0, 12.0, 250.0, 4.0, '2.5e+02'],
         ['tn', 703.0, 13.333333333333332, 0, 4.0, 'C'],
-        ['a', 'tn', 451.0, 8.0, 0, 4.0, 'C'],
         ['r', 701.0, 8, 0, 0],
         ['l', 451.0, 16.0, 451.0, 20.0],
         ['l', 451.0, 20.0, 751.0, 20.0],
         ['tl', 451.0, 20.0, 300.0, 4.0, '3e+02'],
         ['tn', 753.0, 21.333333333333332, 0, 4.0, 'D'],
-        ['a', 'tn', 451.0, 16.0, 0, 4.0, 'D'],
         ['r', 751.0, 16, 0, 0]]
     print('<-', tree_text)
     print(t)

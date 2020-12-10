@@ -24,6 +24,16 @@
     fill: #888;
 }
 
+.tooltip {
+    opacity: 0.05;
+    transition: opacity 1s, font-size 0.5s;
+}
+
+.tooltip:hover {
+    opacity: 1;
+    font-size: 2rem;
+}
+
 .tree {
     position: absolute;
     left: 0px;
