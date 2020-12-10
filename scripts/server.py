@@ -191,26 +191,25 @@ class Trees(Resource):
     # and check that g.user_id is a reader (or the owner, or admin).
     def get(self, tree_id=None):
         "Return info about the tree (or all trees if no id given)"
-        if request.url_rule.rule == '/trees':
+        rule = request.url_rule.rule  # shortcut
+        if rule == '/trees':
             return [get_tree(pid) for pid in dbget0('id', 'trees')]
-        elif request.url_rule.rule == '/trees/representations':
+        elif rule == '/trees/representations':
             return [drawer.__name__ for drawer in draw.get_drawers()]
-        elif request.url_rule.rule == '/trees/<int:tree_id>':
+        elif rule == '/trees/<int:tree_id>':
             return get_tree(tree_id)
-        elif request.url_rule.rule == '/trees/<int:tree_id>/newick':
+        elif rule == '/trees/<int:tree_id>/newick':
             newicks = dbget0('newick', 'trees where id=?', tree_id)
             if len(newicks) != 1:
                 raise InvalidUsage(f'unknown tree id {tree_id}', 404)
             return newicks[0]
-        elif request.url_rule.rule == '/trees/<int:tree_id>/draw':
+        elif rule == '/trees/<int:tree_id>/draw':
             viewport = get_viewport(request.args)
             zoom = [float(request.args.get(z, 1)) for z in ['zx', 'zy']]
             drawer = get_drawer(request.args)
-            t = load_tree(tree_id)
-            return list(drawer(viewport, zoom).draw(t))
-        elif request.url_rule.rule == '/trees/<int:tree_id>/size':
-            t = load_tree(tree_id)
-            width, height = draw.node_size(t)
+            return list(drawer(viewport, zoom).draw(load_tree(tree_id)))
+        elif rule == '/trees/<int:tree_id>/size':
+            width, height = draw.node_size(load_tree(tree_id))
             return {'width': width, 'height': height}
         else:
             raise InvalidUsage('unknown tree GET request')
