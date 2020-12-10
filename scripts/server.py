@@ -195,7 +195,7 @@ class Trees(Resource):
         if rule == '/trees':
             return [get_tree(pid) for pid in dbget0('id', 'trees')]
         elif rule == '/trees/representations':
-            return [drawer.__name__ for drawer in draw.get_drawers()]
+            return [d.__name__[len('Drawer'):] for d in draw.get_drawers()]
         elif rule == '/trees/<int:tree_id>':
             return get_tree(tree_id)
         elif rule == '/trees/<int:tree_id>/newick':
@@ -349,8 +349,9 @@ def get_viewport(args):
 def get_drawer(args):
     "Return the drawer specified in the args"
     try:
-        drawer_name = request.args.get('drawer', 'DrawerFull')
-        return next(d for d in draw.get_drawers() if d.__name__ == drawer_name)
+        drawer_name = request.args.get('drawer', 'Full')
+        return next(d for d in draw.get_drawers()
+            if d.__name__[len('Drawer'):] == drawer_name)
     except StopIteration:
         raise InvalidUsage(f'not a valid drawer: {drawer_name}')
 

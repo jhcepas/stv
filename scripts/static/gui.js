@@ -12,7 +12,7 @@ const view = {
   download_svg: download_svg,
   download_image: download_image,
   upload_tree: () => window.location.href = "upload_tree.html",
-  representation: "DrawerFull",
+  representation: "Full",
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: {x: 1, y: 1},
   update_on_drag: true,
@@ -184,7 +184,7 @@ async function add_representations(dgui_tree) {
 // Download a file with the newick representation of the tree.
 async function download_newick() {
   const newick = await api(`/trees/${view.tree_id}/newick`);
-  download(view.tree_name + ".newick", "data:text/plain;charset=utf-8," + newick);
+  download(view.tree_name + ".tree", "data:text/plain;charset=utf-8," + newick);
 }
 
 
@@ -444,7 +444,7 @@ async function draw_minimap() {
 
   view.minimap_zoom = {x: zx, y: zy};
 
-  const qs = `drawer=DrawerSimple&zx=${zx}&zy=${zy}`;
+  const qs = `drawer=Simple&zx=${zx}&zy=${zy}`;
   const items = await api(`/trees/${view.tree_id}/draw?${qs}`);
 
   draw(div_minimap, items, {x: 0, y: 0}, view.minimap_zoom);
