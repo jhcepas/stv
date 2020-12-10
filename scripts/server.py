@@ -205,12 +205,9 @@ class Trees(Resource):
         elif request.url_rule.rule == '/trees/<int:tree_id>/draw':
             viewport = get_viewport(request.args)
             zoom = [float(request.args.get(z, 1)) for z in ['zx', 'zy']]
-            drawer_name = request.args.get('drawer', 'DrawerFull')
-            drawers = [d for d in draw.get_drawers() if d.__name__ == drawer_name]
-            drawerC = drawers[0] if drawers else draw.DrawerCool
-            drawer = drawerC(viewport, zoom)
+            drawer = get_drawer(request.args)
             t = load_tree(tree_id)
-            return list(drawer.draw(t))
+            return list(drawer(viewport, zoom).draw(t))
         elif request.url_rule.rule == '/trees/<int:tree_id>/size':
             t = load_tree(tree_id)
             width, height = draw.node_size(t)
@@ -339,14 +336,24 @@ def load_tree(tree_id):
 
 
 def get_viewport(args):
+    "Return the viewport (x, y, w, h) specified in the args"
     try:
         x, y, w, h = [float(args[v]) for v in ['x', 'y', 'w', 'h']]
         assert w > 0 and h > 0, 'width and height should be > 0'
         return (x, y, w, h)
     except KeyError as e:
-        return None
+        return None  # None is interpreted as an infinite rectangle
     except (ValueError, AssertionError) as e:
         raise InvalidUsage(f'not a valid viewport: {e}')
+
+
+def get_drawer(args):
+    "Return the drawer specified in the args"
+    try:
+        drawer_name = request.args.get('drawer', 'DrawerFull')
+        return next(d for d in draw.get_drawers() if d.__name__ == drawer_name)
+    except StopIteration:
+        raise InvalidUsage(f'not a valid drawer: {drawer_name}')
 
 
 def dbexe(command, *args, conn=None):
