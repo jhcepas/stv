@@ -7,14 +7,14 @@ const view = {
   pos: {x: 0, y: 0},  // in-tree current pointer position
   tree_name: "HmuY.aln2",
   tree_id: 4,
-  show_tree_info: () => window.location.href = `/trees/${view.tree_id}`,
-  download_newick: () => download_newick(),  // calls an async function
-  download_svg: download_svg,
-  download_image: download_image,
+  show_tree_info: () => show_tree_info(),
+  download_newick: () => download_newick(),
+  download_svg: () => download_svg(),
+  download_image: () => download_image(),
   upload_tree: () => window.location.href = "upload_tree.html",
-  representation: "Full",
+  drawer: "Full",
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
-  zoom: {x: 1, y: 1},
+  zoom: {x: 0, y: 0},  // initially chosen depending on the size of the tree
   update_on_drag: true,
   drag: {x0: 0, y0: 0, element: undefined},  // used when dragging
   select_text: false,
@@ -34,8 +34,8 @@ const view = {
 
 // Run when the page is loaded (the "main" function).
 document.addEventListener("DOMContentLoaded", async () => {
-  await load_tree(view.tree_id);
   set_query_string_values();
+  await reset_zoom(view.zoom.x === 0, view.zoom.y === 0);
   view.datgui = create_datgui();
   draw_minimap();
   update();
@@ -44,30 +44,30 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // Set values that have been given with the query string.
 function set_query_string_values() {
-  const params = get_query_params();
-  if ("id" in params)
-    view.tree_id = params.id;
-  if ("name" in params)
-    view.tree_name = params.name;
-  if ("x" in params)
-    view.tl.x = Number(params.x);
-  if ("y" in params)
-    view.tl.y = Number(params.y);
-  if ("zx" in params)
-    view.zoom = Number(params.zx);
-  if ("zy" in params)
-    view.zoom = Number(params.zy);
-}
+  const unknown_params = [];
+  const params = new URLSearchParams(location.search);
 
+  for (const [param, value] of params) {
+    if (param === "id")
+      view.tree_id = Number(value);
+    else if (param === "name")
+      view.tree_name = value;
+    else if (param === "x")
+      view.tl.x = Number(value);
+    else if (param === "y")
+      view.tl.y = Number(value);
+    else if (param === "w")
+      view.zoom.x = div_tree.offsetWidth / Number(value);
+    else if (param === "h")
+      view.zoom.y = div_tree.offsetHeight / Number(value);
+    else if (param === "drawer")
+      view.drawer = value;
+    else
+      unknown_params.push(param);
+  }
 
-// Return the value corresponding to a key given in a GET query string.
-function get_query_params() {
-  const params = {};
-  window.location.search.substr(1).split("&").forEach(key_value => {
-    const [key, value] = key_value.split("=", 2);
-    params[key] = value;
-  });
-  return params;
+  if (unknown_params.length != 0)
+    swal("There were unkonwn parameters passed: " + unknown_params.join(", "));
 }
 
 
@@ -96,7 +96,7 @@ function create_datgui() {
     dgui_download.add(view, "download_svg").name("svg");
     dgui_download.add(view, "download_image").name("image");
     dgui_tree.add(view, "upload_tree").name("upload");
-    add_representations(dgui_tree);  // so they will be added in order
+    add_drawers(dgui_tree);  // so they will be added in order
   });
 
   const dgui_ctl = dgui.addFolder("control");
@@ -145,6 +145,7 @@ function create_datgui() {
 }
 
 
+// Return the data coming from an api endpoint (like "/trees/<id>/size").
 async function api(endpoint) {
   const response = await fetch(endpoint);
   return await response.json();
@@ -158,26 +159,53 @@ async function add_trees(dgui_tree) {
   data.map(t => trees[t.name] = t.id);
   dgui_tree.add(view, "tree_name", Object.keys(trees)).name("name")
     .onChange(async () => {
-      await load_tree(trees[view.tree_name]);
+      view.tree_id = trees[view.tree_name];
+      view.tl.x = 0;
+      view.tl.y = 0;
+      await reset_zoom();
       draw_minimap();
       update();
     });
 }
 
 
-async function load_tree(tree_id) {
-  view.tree_id = tree_id;
-  view.tl.x = 0;
-  view.tl.y = 0;
-  const size = await api(`/trees/${view.tree_id}/size`);
-  view.zoom.x = 0.5 * div_tree.offsetWidth / size.width;
-  view.zoom.y = div_tree.offsetHeight / size.height;
+// Set the zoom so the full tree fits comfortably on the screen.
+async function reset_zoom(reset_zx=true, reset_zy=true) {
+  if (reset_zx || reset_zy) {
+    const size = await api(`/trees/${view.tree_id}/size`);
+    if (reset_zx)
+      view.zoom.x = 0.5 * div_tree.offsetWidth / size.width;
+    if (reset_zy)
+      view.zoom.y = div_tree.offsetHeight / size.height;
+  }
 }
 
 
-async function add_representations(dgui_tree) {
-  const representations = await api("/trees/representations");
-  dgui_tree.add(view, "representation", representations).onChange(update);
+async function add_drawers(dgui_tree) {
+  const drawers = await api("/trees/drawers");
+  dgui_tree.add(view, "drawer", drawers).onChange(update);
+}
+
+
+// Show an alert with information about the current tree and view.
+async function show_tree_info() {
+  const info = await api(`/trees/${view.tree_id}`);
+  const params = new URLSearchParams({
+    id: view.tree_id,
+    name: view.tree_name,
+    drawer: view.drawer,
+    x: view.tl.x,
+    y: view.tl.y,
+    w: div_tree.offsetWidth / view.zoom.x,
+    h: div_tree.offsetHeight / view.zoom.y});
+
+  const url = window.location.origin + window.location.pathname +
+    "?" + params.toString();
+
+  swal(`Tree id: ${info.id}\n` +
+    `Name: ${info.name}\n` +
+    (info.description ? `Description: ${info.description}` : "") + "\n\n\n" +
+    `URL of the current view:\n\n${url}`);
 }
 
 
@@ -356,7 +384,7 @@ async function update_tree() {
   const [x, y] = [view.tl.x, view.tl.y];
   const [w, h] = [div_tree.offsetWidth / zx, div_tree.offsetHeight / zy];
 
-  const qs = `drawer=${view.representation}&` +
+  const qs = `drawer=${view.drawer}&` +
     `zx=${zx}&zy=${zy}&x=${x}&y=${y}&w=${w}&h=${h}`;
   const items = await api(`/trees/${view.tree_id}/draw?${qs}`);
 

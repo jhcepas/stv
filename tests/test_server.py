@@ -302,6 +302,10 @@ def test_get_known_tree():
     assert set(get('trees/1/size').keys()) == {'width', 'height'}
 
 
+def test_get_drawers():
+    assert type(get('/trees/drawers')) == list
+
+
 
 def main():
     tests = [f for name, f in globals().items() if name.startswith('test_')]

@@ -194,7 +194,7 @@ class Trees(Resource):
         rule = request.url_rule.rule  # shortcut
         if rule == '/trees':
             return [get_tree(pid) for pid in dbget0('id', 'trees')]
-        elif rule == '/trees/representations':
+        elif rule == '/trees/drawers':
             return [d.__name__[len('Drawer'):] for d in draw.get_drawers()]
         elif rule == '/trees/<int:tree_id>':
             return get_tree(tree_id)
@@ -545,7 +545,7 @@ def add_resources(api):
     add = api.add_resource  # shortcut
     add(Login, '/login')
     add(Users, '/users', '/users/<int:user_id>')
-    add(Trees, '/trees', '/trees/representations',
+    add(Trees, '/trees', '/trees/drawers',
         '/trees/<int:tree_id>',
         '/trees/<int:tree_id>/newick',
         '/trees/<int:tree_id>/draw',
