@@ -41,9 +41,9 @@ class Drawer:
             if height_draw > Drawer.MIN_HEIGHT:
                 yield from drawing_f()
             else:
-                yield from self.outline(rect)
+                yield from self.update_outline(rect)
 
-    def outline(self, rect):
+    def update_outline(self, rect):
         "Update the current outline and yield a graphic rect if appropriate"
         if not self.outline_rect:
             self.outline_rect = rect
@@ -52,17 +52,22 @@ class Drawer:
             if stacked_rect:
                 self.outline_rect = stacked_rect
             else:
-                yield draw_rect(self.outline_rect)
-                self.outline_rect = rect
+                yield from self.flush_outline(new_outline_rect=rect)
+
+    def flush_outline(self, new_outline_rect=None):
+        if self.outline_rect:
+            yield draw_rect(self.outline_rect)
+
+        self.outline_rect = new_outline_rect
 
     # To draw a tree, we draw its node content and then we draw its children to
     # its right. The relevant points in the node that we use are:
     #
     #     p0....p1.....    p0 (point): top-left point of the node's rect
-    #       .    [ ]  .    p1 (p_childs): top-left point of the childs' rect
-    #       [   ][]   .
-    #       [   ][    ]
-    #       .....[  ]..
+    #       :    [**] :    p1 (p_childs): top-left point of the childs' rect
+    #       :____[*]  :
+    #       :    [****]
+    #       :....[**].:
 
     def draw(self, tree, point=(0, 0)):
         "Yield graphic elements to draw the tree"
@@ -83,9 +88,7 @@ class Drawer:
         f = lambda: self.draw_childs(tree, p_childs)
         yield from self.draw_or_outline(f, r_childs)
 
-        if self.outline_rect:
-            yield draw_rect(self.outline_rect)
-            self.outline_rect = None
+        yield from self.flush_outline()
 
 
     def draw_childs(self, tree, point=(0, 0)):
