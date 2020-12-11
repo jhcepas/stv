@@ -44,7 +44,7 @@ def test_draw_content_inline():
 def test_draw_tree():
     tree_text = '((B:200,(C:250,D:300)E:350)A:100)F;'
     t = tree.loads(tree_text)
-    drawer = draw.DrawerFull(zoom=(10,10))
+    drawer = draw.DrawerFull(zoom=(10, 10))
     elements = list(drawer.draw(t))
     print(elements)
     assert elements == [
@@ -102,6 +102,13 @@ def test_intersects():
     assert draw.intersects(rects[0], rects[1])
     assert not draw.intersects(rects[1], rects[2])
     assert draw.intersects(rects[2], rects[3])
+
+
+def test_size():
+    t = tree.loads('(a:2,b:3,c:4)d;')
+    assert draw.node_size(t) == (5, 3)
+    assert draw.content_size(t) == (1, 3)
+    assert draw.childs_size(t) == (4, 3)
 
 
 

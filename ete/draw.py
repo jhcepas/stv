@@ -214,13 +214,13 @@ def align(element):
 
 def node_size(node):
     "Return the size of a node (its content and its childs)"
-    return Size(abs(node.length) + node.size[0], node.size[1])
+    return node.size
 
 def content_size(node):
     return Size(abs(node.length), node.size[1])
 
 def childs_size(node):
-    return Size(node.size[0], node.size[1])
+    return Size(node.size[0] - abs(node.length), node.size[1])
 
 
 # Rectangle-related functions.

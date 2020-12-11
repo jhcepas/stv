@@ -285,6 +285,11 @@ def test_from_example_files():
         print(t)
 
 
+def test_tree_size():
+    assert tree.loads('(a:4)c:2;').size == (6, 1)
+    assert tree.loads('(a:4,b:5)c:2;').size == (7, 2)
+
+
 
 def create_random_tree(depth_max=8, branch_factor_max=5):
     r = lambda: random.random()  # shortcut
