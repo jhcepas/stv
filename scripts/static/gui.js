@@ -67,7 +67,9 @@ function set_query_string_values() {
   }
 
   if (unknown_params.length != 0)
-    swal("There were unkonwn parameters passed: " + unknown_params.join(", "));
+    swal("Oops!",
+      "There were unkonwn parameters passed: " + unknown_params.join(", "),
+      "warning");
 }
 
 
@@ -202,9 +204,10 @@ async function show_tree_info() {
   const url = window.location.origin + window.location.pathname +
     "?" + params.toString();
 
-  swal(`Tree id: ${info.id}\n` +
+  swal("Tree Information",
+    `Id: ${info.id}\n` +
     `Name: ${info.name}\n` +
-    (info.description ? `Description: ${info.description}` : "") + "\n\n\n" +
+    (info.description ? `Description: ${info.description}\n` : "") + "\n\n" +
     `URL of the current view:\n\n${url}`);
 }
 
