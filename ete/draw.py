@@ -178,8 +178,9 @@ class DrawerAlign(DrawerFull):
 
     def draw_content_align(self, node, point=(0, 0)):
         if not node.childs:
+            x, y = point
             w, h = content_size(node)
-            yield align(draw_name(make_rect(point, Size(0, h/2)), node.name))
+            yield align(draw_name(Rect(0, y+h/1.5, 0, h/2), node.name))
 
 
 

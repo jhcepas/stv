@@ -401,18 +401,35 @@ function draw(element, items, tl, zoom) {
 
   element.innerHTML = `
     <svg width="${w}" height="${h}">
-      ${items.map(item => item2svg(item, tl, zoom)).join("\n")}
+    <g transform="translate(${-zoom.x * tl.x} ${-zoom.y * tl.y})">
+      ${items.map(item => item2svg(item, zoom)).join("\n")}
+    </g>
     </svg>`;
 }
 
 
-// Return the graphical (svg) element corresponding to an ete item.
-function item2svg(item, tl, zoom) {
+// Return svg code to draw the element, taking into account if it is aligned.
+function item2svg(item, zoom) {
+  if (item[0] === 'a') {  // aligned
+    const dx = zoom.x * view.tl.x + div_tree.offsetWidth - 200;
+    return `<g transform="translate(${dx} 0)">
+      ${item2svgelement(item.slice(1), zoom)}</g>`;
+    // TODO: put the content in a different panel instead, maybe creating it
+    //   with <iframe srcdoc=...>.
+  }
+  else {
+    return item2svgelement(item, zoom);
+  }
+}
+
+
+// Return the graphical (svg) element corresponding to a drawer item.
+function item2svgelement(item, zoom) {
   // items look like ['r', ...] for a rectangle, etc.
   if (item[0] === 'r') {       // rectangle
     let [ , x, y, w, h] = item;
-    x = zoom.x * (x - tl.x);
-    y = zoom.y * (y - tl.y);
+    x = zoom.x * x;
+    y = zoom.y * y;
     w *= zoom.x;
     h *= zoom.y;
 
@@ -424,10 +441,10 @@ function item2svg(item, tl, zoom) {
   }
   else if (item[0] === 'l') {  // line
     let [ , x1, y1, x2, y2] = item;
-    x1 = zoom.x * (x1 - tl.x);
-    y1 = zoom.y * (y1 - tl.y);
-    x2 = zoom.x * (x2 - tl.x);
-    y2 = zoom.y * (y2 - tl.y);
+    x1 = zoom.x * x1;
+    y1 = zoom.y * y1;
+    x2 = zoom.x * x2;
+    y2 = zoom.y * y2;
 
     return `<line class="line"
       x1="${x1}" y1="${y1}"
@@ -436,8 +453,8 @@ function item2svg(item, tl, zoom) {
   }
   else if (item[0].startsWith('t')) {  // text
     let [text_type, x, y, w, h, txt] = item;
-    x = zoom.x * (x - tl.x);
-    y = zoom.y * (y - tl.y);
+    x = zoom.x * x;
+    y = zoom.y * y;
     w *= zoom.x;
     h *= zoom.y;
     const fs = w !== 0 ? Math.min(h, 1.5 * w / txt.length) : h;
