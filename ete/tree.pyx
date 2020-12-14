@@ -91,6 +91,11 @@ def to_str(node, are_last=None):
         [to_str(n, are_last + [True])  for n in node.childs[-1:]])
 
 
+def copy(tree):
+    "Return a copy of a tree"
+    return Tree(tree.content, childs=[copy(node) for node in tree.childs])
+
+
 def load(fp):
     return loads(fp.read().strip())
 
