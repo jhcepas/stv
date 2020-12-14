@@ -73,6 +73,15 @@ cdef (double, double) get_size(nodes):
     return size0, size1
 
 
+def to_cladogram(tree):
+    "Make all branches have a length of 1 (convert the tree into a cladogram)"
+    for node in tree.childs:
+        to_cladogram(node)
+    tree.length = 1
+    size0, size1 = get_size(tree.childs)
+    tree.size = (tree.length + size0, size1 or 1)
+
+
 def to_str(node, are_last=None):
     "Return a string with a visual representation of the node"
     are_last = are_last or []
