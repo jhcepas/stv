@@ -204,11 +204,14 @@ class Trees(Resource):
                 raise InvalidUsage(f'unknown tree id {tree_id}', 404)
             return newicks[0]
         elif rule == '/trees/<int:tree_id>/draw':
-            viewport = get_viewport(request.args)
-            zoom = [float(request.args.get(z, 1)) for z in ['zx', 'zy']]
-            drawer = get_drawer(request.args)
-            drawer.MIN_HEIGHT = float(request.args.get('min_height', 6))
-            return list(drawer(viewport, zoom).draw(load_tree(tree_id)))
+            try:
+                viewport = get_viewport(request.args)
+                zoom = [float(request.args.get(z, 1)) for z in ['zx', 'zy']]
+                drawer = get_drawer(request.args)
+                drawer.MIN_HEIGHT = float(request.args.get('min_height', 6))
+                return list(drawer(viewport, zoom).draw(load_tree(tree_id)))
+            except ValueError as e:
+                raise InvalidUsage(str(e))
         elif rule == '/trees/<int:tree_id>/size':
             width, height = draw.node_size(load_tree(tree_id))
             return {'width': width, 'height': height}
