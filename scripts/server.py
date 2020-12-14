@@ -207,6 +207,7 @@ class Trees(Resource):
             viewport = get_viewport(request.args)
             zoom = [float(request.args.get(z, 1)) for z in ['zx', 'zy']]
             drawer = get_drawer(request.args)
+            drawer.MIN_HEIGHT = float(request.args.get('min_height', 6))
             return list(drawer(viewport, zoom).draw(load_tree(tree_id)))
         elif rule == '/trees/<int:tree_id>/size':
             width, height = draw.node_size(load_tree(tree_id))

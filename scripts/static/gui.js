@@ -15,6 +15,7 @@ const view = {
   drawer: "Full",
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: {x: 0, y: 0},  // initially chosen depending on the size of the tree
+  min_height: 6,
   update_on_drag: true,
   drag: {x0: 0, y0: 0, element: undefined},  // used when dragging
   select_text: false,
@@ -107,6 +108,7 @@ function create_datgui() {
   dgui_ctl.add(view.tl, "y").name("top-left y").onChange(update);
   dgui_ctl.add(view.zoom, "x").name("zoom x").onChange(update);
   dgui_ctl.add(view.zoom, "y").name("zoom y").onChange(update);
+  dgui_ctl.add(view, "min_height", 1, 100).name("collapse at").onChange(update);
   dgui_ctl.add(view, "update_on_drag").name("continuous dragging");
   dgui_ctl.add(view, "select_text").name("select text").onChange(() =>
     style_font.userSelect = (view.select_text ? "text" : "none"));
@@ -387,7 +389,7 @@ async function update_tree() {
   const [x, y] = [view.tl.x, view.tl.y];
   const [w, h] = [div_tree.offsetWidth / zx, div_tree.offsetHeight / zy];
 
-  const qs = `drawer=${view.drawer}&` +
+  const qs = `drawer=${view.drawer}&min_height=${view.min_height}&` +
     `zx=${zx}&zy=${zy}&x=${x}&y=${y}&w=${w}&h=${h}`;
   const items = await api(`/trees/${view.tree_id}/draw?${qs}`);
 

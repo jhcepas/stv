@@ -38,7 +38,7 @@ class Drawer:
         if intersects(rect, self.viewport):
             zx, zy = self.zoom
             height_draw = rect.h * zy
-            if height_draw > Drawer.MIN_HEIGHT:
+            if height_draw > self.MIN_HEIGHT:
                 yield from drawing_f()
             else:
                 yield from self.update_outline(rect)
