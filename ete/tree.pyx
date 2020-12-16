@@ -28,7 +28,7 @@ cdef class Tree:
             self.content = content.rstrip(';')
             self.childs = childs or []
             size0, size1 = get_size(self.childs)
-            self.size = (abs(self.length) + size0, size1 or 1)
+            self.size = (abs(self.length) + size0, max(1, size1))
         else:                                                   # newick case
             if childs:
                 raise NewickError(f'newick {content} incompatible with childs')
@@ -47,6 +47,10 @@ cdef class Tree:
     @content.setter
     def content(self, content):
         self.name, self.length, self.properties = read_fields(content)
+
+    @property
+    def is_leaf(self):
+        return not self.childs
 
     def __iter__(self):
         "Yield all the nodes of the tree with root at the current node"
@@ -79,7 +83,7 @@ def to_cladogram(tree):
         to_cladogram(node)
     tree.length = 1
     size0, size1 = get_size(tree.childs)
-    tree.size = (tree.length + size0, size1 or 1)
+    tree.size = (tree.length + size0, max(1, size1))
 
 
 def to_str(node, are_last=None):

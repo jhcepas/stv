@@ -127,7 +127,7 @@ class DrawerLeafNames(Drawer):
     "With names on leaf nodes"
 
     def draw_content_float(self, node, point=(0, 0)):
-        if not node.childs:
+        if node.is_leaf:
             x, y = point
             w, h = content_size(node)
             zx, zy = self.zoom
@@ -177,7 +177,7 @@ class DrawerAlign(DrawerFull):
     "With aligned content"
 
     def draw_content_align(self, node, point=(0, 0)):
-        if not node.childs:
+        if node.is_leaf:
             x, y = point
             w, h = content_size(node)
             yield align(draw_name(Rect(0, y+h/1.5, 0, h/2), node.name))
