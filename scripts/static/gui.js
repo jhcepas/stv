@@ -397,25 +397,40 @@ async function update_tree() {
 }
 
 
+function create_svg_element(name, attrs) {
+  const element = document.createElementNS("http://www.w3.org/2000/svg", name);
+  for (const [attr, value] of Object.entries(attrs))
+    element.setAttributeNS(null, attr, value);
+  return element;
+}
+
 // Append a svg to the given element, with all the items in the list drawn.
 function draw(element, items, tl, zoom) {
-  const [w, h] = [element.offsetWidth, element.offsetHeight];
+  const svg = create_svg_element("svg", {
+    "width": element.offsetWidth, "height": element.offsetHeight});
 
-  element.innerHTML = `
-    <svg width="${w}" height="${h}">
-    <g transform="translate(${-zoom.x * tl.x} ${-zoom.y * tl.y})">
-      ${items.map(item => item2svg(item, zoom)).join("\n")}
-    </g>
-    </svg>`;
+  if (element.children.length > 0)
+    element.children[0].replaceWith(svg);
+  else
+    element.appendChild(svg);
+
+  const g = create_svg_element("g", {
+    "transform": `translate(${-zoom.x * tl.x} ${-zoom.y * tl.y})`});
+
+  svg.appendChild(g);
+
+  items.forEach(item => g.appendChild(item2svg(item, zoom)));
 }
 
 
-// Return svg code to draw the element, taking into account if it is aligned.
+// Return svg to draw the element, taking into account if it is aligned.
 function item2svg(item, zoom) {
   if (item[0] === 'a') {  // aligned
     const dx = zoom.x * view.tl.x + div_tree.offsetWidth - 200;
-    return `<g transform="translate(${dx} 0)">
-      ${item2svgelement(item.slice(1), zoom)}</g>`;
+    const g = create_svg_element("g", {
+      "transform": `translate(${dx} 0)`});
+    g.appendChild(item2svgelement(item.slice(1), zoom));
+    return g;
     // TODO: put the content in a different panel instead, maybe creating it
     //   with <iframe srcdoc=...>.
   }
@@ -429,47 +444,39 @@ function item2svg(item, zoom) {
 function item2svgelement(item, zoom) {
   // items look like ['r', ...] for a rectangle, etc.
   if (item[0] === 'r') {       // rectangle
-    let [ , x, y, w, h] = item;
-    x = zoom.x * x;
-    y = zoom.y * y;
-    w *= zoom.x;
-    h *= zoom.y;
+    const [ , x, y, w, h] = item;
 
-    return `<rect class="rect"
-      x="${x}" y="${y}" width="${w}" height="${h}"
-      fill="none"
-      stroke-width="0.2"
-      stroke="${view.rect_color}"/>`;
+    return create_svg_element("rect",
+      {"class": "rect",
+       "x": zoom.x * x, "y": zoom.y * y,
+       "width": zoom.x * w, "height": zoom.y * h,
+       "fill": "none",
+       "stroke-width": "0.2",
+       "stroke": view.rect_color});
   }
   else if (item[0] === 'l') {  // line
-    let [ , x1, y1, x2, y2] = item;
-    x1 = zoom.x * x1;
-    y1 = zoom.y * y1;
-    x2 = zoom.x * x2;
-    y2 = zoom.y * y2;
+    const [ , x1, y1, x2, y2] = item;
 
-    return `<line class="line"
-      x1="${x1}" y1="${y1}"
-      x2="${x2}" y2="${y2}"
-      stroke="${view.line_color}"/>`;
+    return create_svg_element("line", {
+      "class": "line",
+      "x1": zoom.x * x1, "y1": zoom.y * y1,
+      "x2": zoom.x * x2, "y2": zoom.y * y2,
+      "stroke": view.line_color});
   }
   else if (item[0].startsWith('t')) {  // text
-    let [text_type, x, y, w, h, txt] = item;
-    x = zoom.x * x;
-    y = zoom.y * y;
-    w *= zoom.x;
-    h *= zoom.y;
-    const fs = w !== 0 ? Math.min(h, 1.5 * w / txt.length) : h;
+    const [text_type, x, y, w, h, txt] = item;
 
-    return `<text class="text ${get_class(text_type)}"
-      x="${x}" y="${y}"
-      font-size="${fs}px">${txt}</text>`;
+    const [zw, zh] = [zoom.x * w, zoom.y * h];
+    const fs = w > 0 ? Math.min(zh, 1.5 * zw / txt.length) : zh;
+
+    const t = create_svg_element("text", {
+      "class": "text " + get_class(text_type),
+      "x": zoom.x * x, "y": zoom.y * y,
+      "font-size": `${fs}px`});
+    t.appendChild(document.createTextNode(txt));
+    return t;
     // NOTE: If we wanted to use the exact width of the item, we could add:
     //   textLength="${w}px"
-  }
-  else {
-    console.log(`Got unknown item of type: ${item[0]}`);
-    return "";
   }
 }
 
