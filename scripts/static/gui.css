@@ -10,7 +10,6 @@
 .rect {
     stroke: #000;
     stroke-width: 0.2;
-    fill: #CCC;
 }
 
 .text {
@@ -26,6 +25,23 @@
     fill: #888;
 }
 
+.noderect {
+    opacity: 0;
+    fill: #00F;
+}
+
+.outlinerect {
+    fill: #CCF;
+}
+
+.noderect:hover {
+    opacity: 0.2;
+}
+
+.outlinerect:hover {
+    fill: #AAF;
+}
+
 .tooltip {
     opacity: 0.05;
     transition: opacity 1s, font-size 0.5s;
@@ -34,15 +50,6 @@
 .tooltip:hover {
     opacity: 1;
     font-size: 2rem;
-}
-
-.noderect {
-    opacity: 0;
-}
-
-.noderect:hover, .outlinerect:hover {
-    opacity: 0.2;
-    fill: #00F;
 }
 
 .tree {

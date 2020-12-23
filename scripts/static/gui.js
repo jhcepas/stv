@@ -19,7 +19,10 @@ const view = {
   update_on_drag: true,
   drag: {x0: 0, y0: 0, element: undefined},  // used when dragging
   select_text: false,
+  node_opacity: 0,
+  node_color: "#00F",
   line_color: "#000",
+  line_width: 1,
   rect_color: "#000",
   names_color: "#00A",
   lengths_color: "#888",
@@ -81,8 +84,9 @@ window.addEventListener("resize", update);  // we could also draw_minimap()
 // Create the top-right box ("gui") with all the options we can see and change.
 function create_datgui() {
   // Shortcut for getting the styles.
-  const [style_line, style_rect, style_font, style_names, style_lengths] =
-    [1, 2, 3, 4, 5].map(i => document.styleSheets[1].cssRules[i].style);
+  const [style_line, style_rect, style_font, style_names, style_lengths,
+    style_node] =
+    [1, 2, 3, 4, 5, 6].map(i => document.styleSheets[1].cssRules[i].style);
 
   const dgui = new dat.GUI({autoPlace: false});
   div_datgui.appendChild(dgui.domElement);
@@ -115,17 +119,29 @@ function create_datgui() {
 
   const dgui_style = dgui.addFolder("style");
 
-  dgui_style.addColor(view, "line_color").name("line color").onChange(() =>
+  const dgui_style_node = dgui_style.addFolder("node");
+
+  dgui_style_node.add(view, "node_opacity", 0, 1).name("opacity").onChange(() =>
+    style_node.opacity = view.node_opacity);
+  dgui_style_node.addColor(view, "node_color").name("color").onChange(() =>
+    style_node.fill = view.node_color);
+
+  const dgui_style_line = dgui_style.addFolder("line");
+
+  dgui_style_line.addColor(view, "line_color").name("color").onChange(() =>
     style_line.stroke = view.line_color);
-  dgui_style.addColor(view, "rect_color").name("rectangle color").onChange(() =>
-    style_rect.stroke = view.rect_color);
-  dgui_style.addColor(view, "names_color").name("names color").onChange(() =>
+  dgui_style_line.add(view, "line_width", 0.1, 10).name("width").onChange(() =>
+    style_line.strokeWidth = view.line_width);
+
+  const dgui_style_text = dgui_style.addFolder("text");
+
+  dgui_style_text.addColor(view, "names_color").name("names").onChange(() =>
     style_names.fill = view.names_color);
-  dgui_style.addColor(view, "lengths_color").name("lengths color").onChange(() =>
+  dgui_style_text.addColor(view, "lengths_color").name("lengths").onChange(() =>
     style_lengths.fill = view.lengths_color);
-  dgui_style.add(view, "font_family", ["sans-serif", "serif", "monospace"])
+  dgui_style_text.add(view, "font_family", ["sans-serif", "serif", "monospace"])
     .name("font").onChange(() => style_font.fontFamily = view.font_family);
-  dgui_style.add(view, "font_size_auto").name("automatic size").onChange(() => {
+  dgui_style_text.add(view, "font_size_auto").name("automatic size").onChange(() => {
     style_font.fontSize = (view.font_size_auto ? "" : `${view.font_size}px`);
     if (view.font_size_auto && view.font_size_scroller)
       view.font_size_scroller.remove();
@@ -134,9 +150,14 @@ function create_datgui() {
   });
 
   function create_font_size_scroller() {
-    return dgui_style.add(view, "font_size", 0.1, 50).name("font size")
+    return dgui_style_text.add(view, "font_size", 0.1, 50).name("font size")
       .onChange(() => style_font.fontSize = `${view.font_size}px`);
   }
+
+  const dgui_style_collapsed = dgui_style.addFolder("collapsed");
+
+  dgui_style_collapsed.addColor(view, "rect_color").name("color").onChange(() =>
+    style_rect.stroke = view.rect_color);
 
   dgui.add(view, "minimap_show").name("minimap").onChange(() => {
       const status = (view.minimap_show ? "visible" : "hidden");
