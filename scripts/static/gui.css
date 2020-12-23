@@ -37,12 +37,12 @@
 }
 
 .noderect {
-    opacity: 0.05;
+    opacity: 0;
 }
 
 .noderect:hover {
     opacity: 0.2;
-    fill: #333;
+    fill: #00F;
 }
 
 .tree {
