@@ -20,7 +20,7 @@ const view = {
   drag: {x0: 0, y0: 0, element: undefined},  // used when dragging
   select_text: false,
   node_opacity: 0,
-  node_color: "#00F",
+  node_color: "#222",
   line_color: "#000",
   line_width: 1,
   rect_color: "#000",

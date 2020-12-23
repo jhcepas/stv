@@ -27,19 +27,19 @@
 
 .noderect {
     opacity: 0;
-    fill: #00F;
+    fill: #222;
 }
 
 .outlinerect {
-    fill: #CCF;
+    fill: #DDF;
 }
 
 .noderect:hover {
-    opacity: 0.2;
+    opacity: 0.05;
 }
 
 .outlinerect:hover {
-    fill: #AAF;
+    fill: #CCF;
 }
 
 .tooltip {
