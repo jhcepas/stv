@@ -82,7 +82,7 @@ window.addEventListener("resize", update);  // we could also draw_minimap()
 function create_datgui() {
   // Shortcut for getting the styles.
   const [style_line, style_rect, style_font, style_names, style_lengths] =
-    [1, 2, 3, 4, 5].map(i => document.styleSheets[0].cssRules[i].style);
+    [1, 2, 3, 4, 5].map(i => document.styleSheets[1].cssRules[i].style);
 
   const dgui = new dat.GUI({autoPlace: false});
   div_datgui.appendChild(dgui.domElement);
@@ -404,6 +404,7 @@ function create_svg_element(name, attrs) {
   return element;
 }
 
+
 // Append a svg to the given element, with all the items in the list drawn.
 function draw(element, items, tl, zoom) {
   const svg = create_svg_element("svg", {
@@ -427,8 +428,7 @@ function draw(element, items, tl, zoom) {
 function item2svg(item, zoom) {
   if (item[0] === 'a') {  // aligned
     const dx = zoom.x * view.tl.x + div_tree.offsetWidth - 200;
-    const g = create_svg_element("g", {
-      "transform": `translate(${dx} 0)`});
+    const g = create_svg_element("g", { "transform": `translate(${dx} 0)`});
     g.appendChild(item2svgelement(item.slice(1), zoom));
     return g;
     // TODO: put the content in a different panel instead, maybe creating it
@@ -443,16 +443,23 @@ function item2svg(item, zoom) {
 // Return the graphical (svg) element corresponding to a drawer item.
 function item2svgelement(item, zoom) {
   // items look like ['r', ...] for a rectangle, etc.
-  if (item[0] === 'r') {       // rectangle
-    const [ , x, y, w, h] = item;
+  if (item[0].startsWith('r')) {       // rectangle
+    const [rect_type, x, y, w, h, name, properties] = item;
 
-    return create_svg_element("rect",
-      {"class": "rect",
+    const r = create_svg_element("rect",
+      {"class": "rect " + get_class(rect_type),
        "x": zoom.x * x, "y": zoom.y * y,
        "width": zoom.x * w, "height": zoom.y * h,
-       "fill": "none",
-       "stroke-width": "0.2",
        "stroke": view.rect_color});
+
+    if (name.length > 0 || Object.entries(properties).length > 0) {
+      const title = create_svg_element("title", {});
+      const text = name + "\n" + JSON.stringify(properties);
+      title.appendChild(document.createTextNode(text));
+      r.appendChild(title);
+    }
+
+    return r;
   }
   else if (item[0] === 'l') {  // line
     const [ , x1, y1, x2, y2] = item;
@@ -481,13 +488,15 @@ function item2svgelement(item, zoom) {
 }
 
 
-function get_class(text_type) {
-  if (text_type === "tn")
+function get_class(element_type) {
+  if (element_type === "tn")
     return "names";
-  else if (text_type === "tl")
+  else if (element_type === "tl")
     return "lengths";
-  else if (text_type === "tt")
+    else if (element_type === "tt")
     return "tooltip";
+  else if (element_type === "rn")
+    return "noderect";
   else
     return "";
 }

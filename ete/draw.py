@@ -74,6 +74,9 @@ class Drawer:
         x, y = point
         w, h = content_size(tree)
 
+        r_node = make_rect(point, node_size(tree))
+        yield draw_noderect(r_node, tree.name, tree.properties)
+
         yield draw_line((x, y + h/2), (x + w, y + h/2))
 
         f = lambda: self.draw_content_inline(tree, point)
@@ -191,8 +194,10 @@ def get_drawers():
 
 # Basic drawing elements.
 
-def draw_rect(r):
-    return ['r', r.x, r.y, r.w, r.h]
+def draw_rect(r, name='', properties=None, rect_type=''):
+    return ['r' + rect_type, r.x, r.y, r.w, r.h, name, properties or {}]
+
+draw_noderect = lambda *args: draw_rect(*args, rect_type='n')
 
 def draw_line(p1, p2):
     x1, y1 = p1
