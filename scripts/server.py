@@ -207,10 +207,12 @@ class Trees(Resource):
             try:
                 viewport = get_viewport(request.args)
                 zoom = [float(request.args.get(z, 1)) for z in ['zx', 'zy']]
+                assert zoom[0] > 0 and zoom[1] > 0, 'zoom must be > 0'
                 drawer = get_drawer(request.args)
                 drawer.MIN_HEIGHT = float(request.args.get('min_height', 6))
+                assert drawer.MIN_HEIGHT > 0, 'min_height must be > 0'
                 return list(drawer(viewport, zoom).draw(load_tree(tree_id)))
-            except ValueError as e:
+            except (ValueError, AssertionError) as e:
                 raise InvalidUsage(str(e))
         elif rule == '/trees/<int:tree_id>/size':
             width, height = draw.node_size(load_tree(tree_id))
