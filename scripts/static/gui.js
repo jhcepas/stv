@@ -499,6 +499,8 @@ function get_class(element_type) {
     return "tooltip";
   else if (element_type === "rn")
     return "noderect";
+  else if (element_type === "ro")
+    return "outlinerect";
   else
     return "";
 }

@@ -40,7 +40,7 @@
     opacity: 0;
 }
 
-.noderect:hover {
+.noderect:hover, .outlinerect:hover {
     opacity: 0.2;
     fill: #00F;
 }

@@ -56,7 +56,7 @@ class Drawer:
 
     def flush_outline(self, new_outline_rect=None):
         if self.outline_rect:
-            yield draw_rect(self.outline_rect)
+            yield draw_outlinerect(self.outline_rect)
 
         self.outline_rect = new_outline_rect
 
@@ -198,6 +198,7 @@ def draw_rect(r, name='', properties=None, rect_type=''):
     return ['r' + rect_type, r.x, r.y, r.w, r.h, name, properties or {}]
 
 draw_noderect = lambda *args: draw_rect(*args, rect_type='n')
+draw_outlinerect = lambda *args: draw_rect(*args, rect_type='o')
 
 def draw_line(p1, p2):
     x1, y1 = p1
