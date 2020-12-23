@@ -191,20 +191,19 @@ async function add_drawers(dgui_tree) {
 }
 
 
+// Return an url with the view of the given rectangle of the tree.
+function get_url_view(x, y, w, h) {
+  const qs = new URLSearchParams({x: x, y: y, w: w, h: h,
+    id: view.tree_id, name: view.tree_name, drawer: view.drawer});
+  return window.location.href.split('?')[0] + "?" + qs.toString();
+}
+
+
 // Show an alert with information about the current tree and view.
 async function show_tree_info() {
   const info = await api(`/trees/${view.tree_id}`);
-  const params = new URLSearchParams({
-    id: view.tree_id,
-    name: view.tree_name,
-    drawer: view.drawer,
-    x: view.tl.x,
-    y: view.tl.y,
-    w: div_tree.offsetWidth / view.zoom.x,
-    h: div_tree.offsetHeight / view.zoom.y});
-
-  const url = window.location.origin + window.location.pathname +
-    "?" + params.toString();
+  const url = get_url_view(view.tl.x, view.tl.y,
+    div_tree.offsetWidth / view.zoom.x, div_tree.offsetHeight / view.zoom.y);
 
   swal("Tree Information",
     `Id: ${info.id}\n` +
@@ -451,6 +450,9 @@ function item2svgelement(item, zoom) {
        "x": zoom.x * x, "y": zoom.y * y,
        "width": zoom.x * w, "height": zoom.y * h,
        "stroke": view.rect_color});
+
+    r.addEventListener("click", event =>
+      window.location.assign(get_url_view(x, y, w, h)));
 
     if (name.length > 0 || Object.entries(properties).length > 0) {
       const title = create_svg_element("title", {});
