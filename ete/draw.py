@@ -33,8 +33,8 @@ class Drawer:
         self.zoom = zoom
         self.outline_rect = None
 
-    def draw_or_outline(self, drawing_f, rect):
-        "Yield the graphic elements of drawing_f() or an outline of rect"
+    def draw_on_viewport(self, drawing_f, rect):
+        "Yield appropriate graphic elements of drawing_f() for the viewport"
         if intersects(rect, self.viewport):
             zx, zy = self.zoom
             height_draw = rect.h * zy
@@ -79,7 +79,7 @@ class Drawer:
             yield draw_noderect(r_node, tree.name, tree.properties)
             yield draw_line((x, y + tree.d1), (x + w, y + tree.d1))
             self.draw_content_inline(tree, point)
-        yield from self.draw_or_outline(f, Rect(x, y, w, h))
+        yield from self.draw_on_viewport(f, Rect(x, y, w, h))
 
         yield from self.draw_content_float(tree, point)
         yield from self.draw_content_align(tree, point)
@@ -88,7 +88,7 @@ class Drawer:
             p_childs = (x + w, y)
             r_childs = make_rect(p_childs, childs_size(tree))
             f = lambda: self.draw_childs(tree, p_childs)
-            yield from self.draw_or_outline(f, r_childs)
+            yield from self.draw_on_viewport(f, r_childs)
 
         yield from self.flush_outline()
 
@@ -105,7 +105,7 @@ class Drawer:
         for node in tree.childs:
             w, h = node_size(node)
             f = lambda: self.draw(node, (x, y))
-            yield from self.draw_or_outline(f, Rect(x, y, w, h))
+            yield from self.draw_on_viewport(f, Rect(x, y, w, h))
             y += h
 
     # These are the functions that the user would supply to decide how to
