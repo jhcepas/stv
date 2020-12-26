@@ -30,6 +30,7 @@ const view = {
   font_size_auto: true,
   font_size_scroller: undefined,
   font_size: 10,
+  font_size_max: 15,
   minimap_show: true,
   minimap_zoom: {x: 1, y: 1},
   datgui: undefined
@@ -148,6 +149,8 @@ function create_datgui() {
     else
       view.font_size_scroller = create_font_size_scroller();
   });
+  dgui_style_text.add(view, "font_size_max", 1, 100).name("max size auto")
+    .onChange(update);
 
   function create_font_size_scroller() {
     return dgui_style_text.add(view, "font_size", 0.1, 50).name("font size")
@@ -497,12 +500,12 @@ function item2svgelement(item, zoom) {
     const [text_type, x, y, w, h, txt] = item;
 
     const [zw, zh] = [zoom.x * w, zoom.y * h];
-    const fs = w > 0 ? Math.min(zh, 1.5 * zw / txt.length) : zh;
+    const fs = Math.min(view.font_size_max, zh, 1.5 * zw / txt.length);
 
     const t = create_svg_element("text", {
       "class": "text " + get_class(text_type),
       "x": zoom.x * x, "y": zoom.y * y,
-      "font-size": `${fs}px`});
+      "font-size": `${w >= 0 ? fs : zh}px`});
     t.appendChild(document.createTextNode(txt));
     return t;
     // NOTE: If we wanted to use the exact width of the item, we could add:

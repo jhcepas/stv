@@ -19,6 +19,7 @@ cdef class Tree:
     cdef public dict properties
     cdef public list childs
     cdef public (double, double) size
+    cdef public double d1
 
     def __init__(self, content='', childs=None):
         self.name = ''
@@ -29,6 +30,8 @@ cdef class Tree:
             self.childs = childs or []
             size0, size1 = get_size(self.childs)
             self.size = (abs(self.length) + size0, max(1, size1))
+            self.d1 = self.size[1] / 2 + (0 if not childs else
+                (childs[0].d1 - childs[-1].size[1] + childs[-1].d1) / 2)
         else:                                                   # newick case
             if childs:
                 raise NewickError(f'newick {content} incompatible with childs')
@@ -36,6 +39,7 @@ cdef class Tree:
             self.content = t.content
             self.childs = t.childs
             self.size = t.size
+            self.d1 = t.d1
 
     @property
     def content(self):

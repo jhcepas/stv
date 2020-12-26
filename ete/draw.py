@@ -75,21 +75,20 @@ class Drawer:
         w, h = content_size(tree)
 
         r_node = make_rect(point, node_size(tree))
-        yield draw_noderect(r_node, tree.name, tree.properties)
-
-        yield draw_line((x, y + h/2), (x + w, y + h/2))
-
-        f = lambda: self.draw_content_inline(tree, point)
+        def f():
+            yield draw_noderect(r_node, tree.name, tree.properties)
+            yield draw_line((x, y + tree.d1), (x + w, y + tree.d1))
+            self.draw_content_inline(tree, point)
         yield from self.draw_or_outline(f, Rect(x, y, w, h))
 
         yield from self.draw_content_float(tree, point)
         yield from self.draw_content_align(tree, point)
 
-        p_childs = (x + w, y)
-        r_childs = make_rect(p_childs, childs_size(tree))
-
-        f = lambda: self.draw_childs(tree, p_childs)
-        yield from self.draw_or_outline(f, r_childs)
+        if tree.childs:
+            p_childs = (x + w, y)
+            r_childs = make_rect(p_childs, childs_size(tree))
+            f = lambda: self.draw_childs(tree, p_childs)
+            yield from self.draw_or_outline(f, r_childs)
 
         yield from self.flush_outline()
 
@@ -97,10 +96,14 @@ class Drawer:
     def draw_childs(self, tree, point=(0, 0)):
         "Yield lines to the childs and all the graphic elements to draw them"
         x, y = point  # top-left of childs
-        pc = (x, y + childs_size(tree).h / 2)  # center-left of childs
+
+        c0, c1 = tree.childs[0], tree.childs[-1]
+        yield draw_line(
+            (x, y + c0.d1),
+            (x, y + node_size(tree).h - node_size(c1).h + c1.d1))
+
         for node in tree.childs:
             w, h = node_size(node)
-            yield draw_line(pc, (x, y + h/2))
             f = lambda: self.draw(node, (x, y))
             yield from self.draw_or_outline(f, Rect(x, y, w, h))
             y += h
@@ -135,7 +138,7 @@ class DrawerLeafNames(Drawer):
             w, h = content_size(node)
             zx, zy = self.zoom
             p_after_content = (x + w + 2 / zx, y + h / 1.5)
-            yield draw_name(make_rect(p_after_content, Size(0, h/2)), node.name)
+            yield draw_name(make_rect(p_after_content, Size(-1, h/2)), node.name)
 
 
 class DrawerLengths(Drawer):
@@ -147,7 +150,7 @@ class DrawerLengths(Drawer):
             w, h = content_size(node)
             zx, zy = self.zoom
             text = '%.2g' % node.length
-            g_text = draw_label(Rect(x, y + h/2, w, h/2), text)
+            g_text = draw_label(Rect(x, y + node.d1, w, node.d1), text)
 
             if zy * h > 1:  # NOTE: we may want to change this, but it's tricky
                 yield g_text
@@ -172,8 +175,8 @@ class DrawerTooltips(DrawerFull):
             zx, zy = self.zoom
             ptext = ', '.join(f'{k}: {v}' for k,v in node.properties.items())
             text = node.name + (' - ' if node.name and ptext else '')  + ptext
-            fs = min(h/2, 15/zy)
-            yield draw_tooltip(Rect(x + w/2, y + h/2, w/2, fs), text)
+            fs = min(node.d1, 15/zy)
+            yield draw_tooltip(Rect(x + w/2, y + node.d1, w/2, fs), text)
 
 
 class DrawerAlign(DrawerFull):
@@ -221,7 +224,7 @@ def align(element):
 
 def node_size(node):
     "Return the size of a node (its content and its childs)"
-    return node.size
+    return Size(node.size[0], node.size[1])
 
 def content_size(node):
     return Size(abs(node.length), node.size[1])
