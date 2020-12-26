@@ -82,12 +82,12 @@ cdef (double, double) get_size(nodes):
 
 
 def to_cladogram(tree):
-    "Make all branches have a length of 1 (convert the tree into a cladogram)"
+    "Make all branches have no length (convert the tree into a cladogram)"
     for node in tree.childs:
         to_cladogram(node)
-    tree.length = 1
+    tree.length = -1
     size0, size1 = get_size(tree.childs)
-    tree.size = (tree.length + size0, max(1, size1))
+    tree.size = (abs(tree.length) + size0, max(1, size1))
 
 
 def to_str(node, are_last=None):
