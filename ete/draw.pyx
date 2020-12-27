@@ -33,16 +33,6 @@ class Drawer:
         self.zoom = zoom
         self.outline_rect = None
 
-    def draw_on_viewport(self, drawing_f, rect):
-        "Yield appropriate graphic elements of drawing_f() for the viewport"
-        if intersects(rect, self.viewport):
-            zx, zy = self.zoom
-            height_draw = rect.h * zy
-            if height_draw > self.MIN_HEIGHT:
-                yield from drawing_f()
-            else:
-                yield from self.update_outline(rect)
-
     def update_outline(self, rect):
         "Update the current outline and yield a graphic rect if appropriate"
         if not self.outline_rect:
@@ -52,61 +42,67 @@ class Drawer:
             if stacked_rect:
                 self.outline_rect = stacked_rect
             else:
-                yield from self.flush_outline(new_outline_rect=rect)
-
-    def flush_outline(self, new_outline_rect=None):
-        if self.outline_rect:
-            yield draw_outlinerect(self.outline_rect)
-
-        self.outline_rect = new_outline_rect
-
-    # To draw a tree, we draw its node content and then we draw its children to
-    # its right. The relevant points in the node that we use are:
-    #
-    #     p0....p1.....    p0 (point): top-left point of the node's rect
-    #       :    [**] :    p1 (p_childs): top-left point of the childs' rect
-    #       :____[*]  :
-    #       :    [****]
-    #       :....[**].:
+                yield draw_outlinerect(self.outline_rect)
+                self.outline_rect = rect
 
     def draw(self, tree, point=(0, 0)):
         "Yield graphic elements to draw the tree"
         x, y = point
-        w, h = content_size(tree)
 
-        r_node = make_rect(point, node_size(tree))
-        def f():
-            yield draw_noderect(r_node, tree.name, tree.properties)
-            yield draw_line((x, y + tree.d1), (x + w, y + tree.d1))
-            self.draw_content_inline(tree, point)
-        yield from self.draw_on_viewport(f, Rect(x, y, w, h))
+        def pop(visiting_nodes, visited_childs):
+            visiting_nodes.pop()
+            visited_childs.pop()
+            if visited_childs:
+                visited_childs[-1] += 1
 
-        yield from self.draw_content_float(tree, point)
-        yield from self.draw_content_align(tree, point)
+        visiting_nodes = [tree]  # root -> child2 -> child20 -> child201 (leaf)
+        visited_childs = [0]     #   2  ->    0   ->    1    ->    0
+        while visiting_nodes:
+            node = visiting_nodes[-1]  # current node
+            nch = visited_childs[-1]   # number of childs visited for this node
 
-        if tree.childs:
-            p_childs = (x + w, y)
-            r_childs = make_rect(p_childs, childs_size(tree))
-            f = lambda: self.draw_childs(tree, p_childs)
-            yield from self.draw_on_viewport(f, r_childs)
+            if nch == 0:  # first time we visit this node
+                r_node = make_rect((x, y), node_size(node))
 
-        yield from self.flush_outline()
+                if not intersects(self.viewport, r_node):      # skip
+                    y += r_node.h
+                    pop(visiting_nodes, visited_childs)
+                    continue
 
+                if r_node.h * self.zoom[1] < self.MIN_HEIGHT:  # outline & skip
+                    yield from self.update_outline(r_node)
+                    y += r_node.h
+                    pop(visiting_nodes, visited_childs)
+                    continue
 
-    def draw_childs(self, tree, point=(0, 0)):
-        "Yield lines to the childs and all the graphic elements to draw them"
-        x, y = point  # top-left of childs
+                w, h = content_size(node)
 
-        c0, c1 = tree.childs[0], tree.childs[-1]
-        yield draw_line(
-            (x, y + c0.d1),
-            (x, y + node_size(tree).h - node_size(c1).h + c1.d1))
+                if intersects(self.viewport, Rect(x, y, w, h)):  # draw content
+                    yield draw_line((x, y + node.d1), (x + w, y + node.d1))
+                    yield from self.draw_content_inline(node, (x, y))
+                    yield draw_noderect(r_node, node.name, node.properties)
 
-        for node in tree.childs:
-            w, h = node_size(node)
-            f = lambda: self.draw(node, (x, y))
-            yield from self.draw_on_viewport(f, Rect(x, y, w, h))
-            y += h
+                yield from self.draw_content_float(node, (x, y))
+                yield from self.draw_content_align(node, (x, y))
+
+                x += w  # move our pointer to the right of the content
+
+                if len(node.childs) > 1:  # draw line spanning childs
+                    c0, c1 = node.childs[0], node.childs[-1]
+                    yield draw_line((x, y + c0.d1),
+                                    (x, y + h - node_size(c1).h + c1.d1))
+
+            if len(node.childs) > nch:  # add next child to the list to visit
+                visiting_nodes.append(node.childs[nch])
+                visited_childs.append(0)
+            else:                       # go back to parent node
+                x -= content_size(node).w  # move our pointer back
+                if node.is_leaf:
+                    y += h
+                pop(visiting_nodes, visited_childs)
+
+        if self.outline_rect:
+            yield draw_outlinerect(self.outline_rect)
 
     # These are the functions that the user would supply to decide how to
     # represent a node.
@@ -261,8 +257,11 @@ def get_rect(element):
 
 def intersects(r1, r2):
     "Return True if the rectangles r1 and r2 intersect"
+    cdef double x1min, x1max, x2min, x2max
+
     if r1 is None or r2 is None:
         return True  # the rectangle "None" represents the full plane
+
     x1min, y1min, w1, h1 = r1
     x1max, y1max = x1min + w1, y1min + h1
     x2min, y2min, w2, h2 = r2

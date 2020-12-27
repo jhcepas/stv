@@ -13,7 +13,7 @@ setup(
     license='GPLv3',
     url='http://etetoolkit.org',
     packages=['ete'],
-    ext_modules = cythonize('ete/tree.pyx', language_level='3'),
+    ext_modules = cythonize('ete/*.pyx', language_level='3'),
     scripts=glob('scripts/*.py'),
     data_files=[
         ('server', glob('scripts/static/*.*')),
