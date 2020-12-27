@@ -246,7 +246,8 @@ async function download_newick() {
 
 // Download a file with the current view of the tree as a svg.
 function download_svg() {
-  const svg = div_tree.children[0];
+  const svg = div_tree.children[0].cloneNode(true);
+  Array.from(svg.getElementsByClassName("noderect")).forEach(e => e.remove());
   const svg_xml = (new XMLSerializer()).serializeToString(svg);
   const content = "data:image/svg+xml;base64," + btoa(svg_xml);
   download(view.tree_name + ".svg", content);
@@ -258,7 +259,8 @@ function download_image() {
   const canvas = document.createElement("canvas");
   canvas.width = div_tree.offsetWidth;
   canvas.height = div_tree.offsetHeight;
-  const svg = div_tree.children[0];
+  const svg = div_tree.children[0].cloneNode(true);
+  Array.from(svg.getElementsByClassName("noderect")).forEach(e => e.remove());
   const svg_xml = (new XMLSerializer()).serializeToString(svg);
   const ctx = canvas.getContext("2d");
   const img = new Image();
