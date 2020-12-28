@@ -491,12 +491,18 @@ function item2svgelement(item, zoom) {
        "width": zoom.x * w, "height": zoom.y * h,
        "stroke": view.rect_color});
 
-    r.addEventListener("click", event =>
-      window.location.assign(get_url_view(x, y, w, h)));
+    r.addEventListener("click", event => {
+      view.tl.x = x;
+      view.tl.y = y;
+      view.zoom.x = div_tree.offsetWidth / w;
+      view.zoom.y = div_tree.offsetHeight / h;
+      update();
+    });
 
     if (name.length > 0 || Object.entries(properties).length > 0) {
       const title = create_svg_element("title", {});
-      const text = name + "\n" + JSON.stringify(properties);
+      const text = name + "\n" +
+        Object.entries(properties).map(x => x[0] + ": " + x[1]).join("\n");
       title.appendChild(document.createTextNode(text));
       r.appendChild(title);
     }
