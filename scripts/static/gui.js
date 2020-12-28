@@ -115,8 +115,12 @@ function create_datgui() {
   dgui_ctl.add(view.zoom, "y").name("zoom y").onChange(update);
   dgui_ctl.add(view, "min_height", 1, 100).name("collapse at").onChange(update);
   dgui_ctl.add(view, "update_on_drag").name("continuous dragging");
-  dgui_ctl.add(view, "select_text").name("select text").onChange(() =>
-    style_font.userSelect = (view.select_text ? "text" : "none"));
+  dgui_ctl.add(view, "select_text").name("select text").onChange(() => {
+    style_font.userSelect = (view.select_text ? "text" : "none");
+    div_tree.style.cursor = (view.select_text ? "text" : "auto");
+    Array.from(div_tree.getElementsByClassName("rect")).forEach(
+      e => e.style.pointerEvents = (view.select_text ? "none" : "auto"));
+  });
 
   const dgui_style = dgui.addFolder("style");
 
@@ -187,6 +191,7 @@ async function add_trees(dgui_tree) {
   data.map(t => trees[t.name] = t.id);
   dgui_tree.add(view, "tree_name", Object.keys(trees)).name("name")
     .onChange(async () => {
+      div_tree.style.cursor = "wait";
       view.tree_id = trees[view.tree_name];
       view.tl.x = 0;
       view.tl.y = 0;
@@ -346,12 +351,17 @@ document.addEventListener("mousemove", event => {
 
 
 function drag_start(event) {
+  div_tree.style.cursor = div_visible_rect.style.cursor = "grabbing";
+
   view.drag.x0 = event.pageX;
   view.drag.y0 = event.pageY;
 }
 
 
 function drag_stop(event) {
+  div_tree.style.cursor = "auto";
+  div_visible_rect.style.cursor = "grab";
+
   const dx = event.pageX - view.drag.x0,  // mouse position increment
         dy = event.pageY - view.drag.y0;
 
@@ -414,11 +424,15 @@ async function update_tree() {
   const [x, y] = [view.tl.x, view.tl.y];
   const [w, h] = [div_tree.offsetWidth / zx, div_tree.offsetHeight / zy];
 
+  div_tree.style.cursor = "wait";
+
   const qs = `drawer=${view.drawer}&min_height=${view.min_height}&` +
     `zx=${zx}&zy=${zy}&x=${x}&y=${y}&w=${w}&h=${h}`;
   const items = await api(`/trees/${view.tree_id}/draw?${qs}`);
 
   draw(div_tree, items, view.tl, view.zoom);
+
+  div_tree.style.cursor = "auto";
 }
 
 
