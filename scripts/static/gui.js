@@ -565,6 +565,9 @@ async function draw_minimap() {
 
   draw(div_minimap, items, {x: 0, y: 0}, view.minimap_zoom);
 
+  Array.from(div_minimap.getElementsByClassName("noderect")).forEach(
+    e => e.remove());
+
   update_minimap_visible_rect();
 }
 
