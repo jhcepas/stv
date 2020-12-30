@@ -38,7 +38,7 @@ sys.path.insert(0, '..')
 
 from functools import partial
 from contextlib import contextmanager
-from flask import Flask, request, jsonify, g
+from flask import Flask, request, jsonify, g, redirect, url_for
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth, MultiAuth
 from flask_restful import Resource, Api
 from flask_cors import CORS
@@ -513,6 +513,10 @@ def initialize():
     db = sqlalchemy.create_engine('sqlite:///' + app.config['DATABASE'])
 
     @app.route('/')
+    def index():
+        return redirect(url_for('static', filename='gui.html'))
+
+    @app.route('/help')
     def description():
         return ('<html>\n<head>\n<title>Description</title>\n</head>\n<body>\n'
             '<pre>' + __doc__ + '</pre>\n'
