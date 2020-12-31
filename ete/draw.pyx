@@ -79,6 +79,10 @@ class Drawer:
 
                 if intersects(self.viewport, Rect(x, y, w, h)):  # draw content
                     yield draw_line((x, y + node.d1), (x + w, y + node.d1))
+                    if len(node.childs) > 1:  # draw line spanning childs
+                        c0, c1 = node.childs[0], node.childs[-1]
+                        yield draw_line((x + w, y + c0.d1),
+                                        (x + w, y + h - node_size(c1).h + c1.d1))
                     yield from self.draw_content_inline(node, (x, y))
                     yield draw_noderect(r_node, node.name, node.properties)
 
@@ -86,11 +90,6 @@ class Drawer:
                 yield from self.draw_content_align(node, (x, y))
 
                 x += w  # move our pointer to the right of the content
-
-                if len(node.childs) > 1:  # draw line spanning childs
-                    c0, c1 = node.childs[0], node.childs[-1]
-                    yield draw_line((x, y + c0.d1),
-                                    (x, y + h - node_size(c1).h + c1.d1))
 
             if len(node.childs) > nch:  # add next child to the list to visit
                 visiting_nodes.append(node.childs[nch])
