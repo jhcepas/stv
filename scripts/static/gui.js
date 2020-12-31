@@ -16,7 +16,7 @@ const view = {
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: {x: 0, y: 0},  // initially chosen depending on the size of the tree
   min_height: 6,
-  update_on_drag: true,
+  update_on_drag: false,
   drag: {x0: 0, y0: 0, element: undefined},  // used when dragging
   select_text: false,
   node_opacity: 0,
@@ -114,7 +114,7 @@ function create_datgui() {
   dgui_ctl.add(view.zoom, "x").name("zoom x").onChange(update);
   dgui_ctl.add(view.zoom, "y").name("zoom y").onChange(update);
   dgui_ctl.add(view, "min_height", 1, 100).name("collapse at").onChange(update);
-  dgui_ctl.add(view, "update_on_drag").name("continuous dragging");
+  dgui_ctl.add(view, "update_on_drag").name("update on drag");
   dgui_ctl.add(view, "select_text").name("select text").onChange(() => {
     style_font.userSelect = (view.select_text ? "text" : "none");
     div_tree.style.cursor = (view.select_text ? "text" : "auto");
@@ -333,8 +333,10 @@ document.addEventListener("mousedown", event => {
 
 
 document.addEventListener("mouseup", event => {
-  if (view.drag.element)
+  if (view.drag.element) {
     drag_stop(event);
+    update_tree();
+  }
 
   view.drag.element = undefined;
 });
@@ -343,8 +345,20 @@ document.addEventListener("mouseup", event => {
 document.addEventListener("mousemove", event => {
   update_pointer_pos(event);
 
-  if (view.drag.element && view.update_on_drag) {
+  if (view.drag.element) {
     drag_stop(event);
+
+    if (view.update_on_drag)
+      update_tree();
+
+    const g = div_tree.children[0].children[0];
+    g.setAttribute("transform",
+      `translate(${-view.zoom.x * view.tl.x} ${-view.zoom.y * view.tl.y})`);
+
+    view.datgui.updateDisplay();  // update the info box on the top-right
+    if (view.minimap_show)
+      update_minimap_visible_rect();
+
     drag_start(event);
   }
 });
@@ -369,7 +383,6 @@ function drag_stop(event) {
     const [scale_x, scale_y] = get_drag_scale();
     view.tl.x += scale_x * dx;
     view.tl.y += scale_y * dy;
-    update();
   }
 }
 
@@ -492,11 +505,13 @@ function item2svgelement(item, zoom) {
        "stroke": view.rect_color});
 
     r.addEventListener("click", event => {
-      view.tl.x = x;
-      view.tl.y = y;
-      view.zoom.x = div_tree.offsetWidth / w;
-      view.zoom.y = div_tree.offsetHeight / h;
-      update();
+      if (event.detail === 2 || event.ctrlKey) {  // double-click or ctrl-click
+        view.tl.x = x;
+        view.tl.y = y;
+        view.zoom.x = div_tree.offsetWidth / w;
+        view.zoom.y = div_tree.offsetHeight / h;
+        update();
+      }
     });
 
     if (name.length > 0 || Object.entries(properties).length > 0) {
