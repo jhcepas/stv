@@ -297,7 +297,7 @@ def test_get_known_tree():
     assert get('trees/1/newick').endswith(';')
 
     elements = get('trees/1/draw')
-    assert all(x[0] in ['r', 'tl', 'tn', 'l', 'a'] for x in elements)
+    assert all(x[0] in ['r', 'rn', 'ro', 'tl', 'tn', 'l', 'a'] for x in elements)
 
     assert set(get('trees/1/size').keys()) == {'width', 'height'}
 
