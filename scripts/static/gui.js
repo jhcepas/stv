@@ -92,8 +92,8 @@ function create_datgui() {
   const dgui = new dat.GUI({autoPlace: false});
   div_datgui.appendChild(dgui.domElement);
 
-  dgui.add(view.pos, "x").listen();
-  dgui.add(view.pos, "y").listen();
+  dgui.add(view.pos, "x").step(0.001).listen();
+  dgui.add(view.pos, "y").step(0.001).listen();
 
   const dgui_tree = dgui.addFolder("tree");
 
