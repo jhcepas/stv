@@ -31,77 +31,19 @@ class Drawer:
     def __init__(self, viewport=None, zoom=(1, 1)):
         self.viewport = viewport
         self.zoom = zoom
-        self.outline_rect = None
+        self.outline_shape = None
 
-    def update_outline(self, rect):
-        "Update the current outline and yield a graphic rect if appropriate"
-        if not self.outline_rect:
-            self.outline_rect = rect
+    def update_outline(self, shape):
+        "Update the current outline and yield a graphic shape if appropriate"
+        if not self.outline_shape:
+            self.outline_shape = shape
         else:
-            stacked_rect = stack_vertical_rect(self.outline_rect, rect)
-            if stacked_rect:
-                self.outline_rect = stacked_rect
+            stacked_shape = stack_vertical_rect(self.outline_shape, shape)  # TODO: shape
+            if stacked_shape:
+                self.outline_shape = stacked_shape
             else:
-                yield draw_outlinerect(self.outline_rect)
-                self.outline_rect = rect
-
-    def draw(self, tree, point=(0, 0)):
-        "Yield graphic elements to draw the tree"
-        x, y = point
-
-        def pop(visiting_nodes, visited_childs):
-            visiting_nodes.pop()
-            visited_childs.pop()
-            if visited_childs:
-                visited_childs[-1] += 1
-
-        visiting_nodes = [tree]  # root -> child2 -> child20 -> child201 (leaf)
-        visited_childs = [0]     #   2  ->    0   ->    1    ->    0
-        while visiting_nodes:
-            node = visiting_nodes[-1]  # current node
-            nch = visited_childs[-1]   # number of childs visited for this node
-
-            if nch == 0:  # first time we visit this node
-                r_node = make_rect((x, y), node_size(node))
-
-                if not intersects(self.viewport, r_node):      # skip
-                    y += r_node.h
-                    pop(visiting_nodes, visited_childs)
-                    continue
-
-                if r_node.h * self.zoom[1] < self.MIN_HEIGHT:  # outline & skip
-                    yield from self.update_outline(r_node)
-                    y += r_node.h
-                    pop(visiting_nodes, visited_childs)
-                    continue
-
-                w, h = content_size(node)
-
-                if intersects(self.viewport, Rect(x, y, w, h)):  # draw content
-                    yield draw_line((x, y + node.d1), (x + w, y + node.d1))
-                    if len(node.childs) > 1:  # draw line spanning childs
-                        c0, c1 = node.childs[0], node.childs[-1]
-                        yield draw_line((x + w, y + c0.d1),
-                                        (x + w, y + h - node_size(c1).h + c1.d1))
-                    yield from self.draw_content_inline(node, (x, y))
-                    yield draw_noderect(r_node, node.name, node.properties)
-
-                yield from self.draw_content_float(node, (x, y))
-                yield from self.draw_content_align(node, (x, y))
-
-                x += w  # move our pointer to the right of the content
-
-            if len(node.childs) > nch:  # add next child to the list to visit
-                visiting_nodes.append(node.childs[nch])
-                visited_childs.append(0)
-            else:                       # go back to parent node
-                x -= content_size(node).w  # move our pointer back
-                if node.is_leaf:
-                    y += h
-                pop(visiting_nodes, visited_childs)
-
-        if self.outline_rect:
-            yield draw_outlinerect(self.outline_rect)
+                yield draw_outlinerect(self.outline_shape)  # TODO: outlineshape
+                self.outline_shape = shape
 
     # These are the functions that the user would supply to decide how to
     # represent a node.
@@ -118,13 +60,83 @@ class Drawer:
         yield from []
 
 
+class DrawerRect(Drawer):
+    def draw(self, tree, point=(0, 0)):
+        "Yield graphic elements to draw the tree"
+        x, y = point
 
-class DrawerSimple(Drawer):
+        visiting_nodes = [tree]  # root -> child2 -> child20 -> child201 (leaf)
+        visited_childs = [0]     #   2  ->    0   ->    1    ->    0
+        while visiting_nodes:
+            node = visiting_nodes[-1]  # current node
+            nch = visited_childs[-1]   # number of childs visited for this node
+            w, h = content_size(node)
+
+            if nch == 0:  # first time we visit this node
+                elements, draw_childs = self.get_content(node, (x, y))
+                yield from elements
+                if draw_childs:
+                    x += w  # move our pointer to the right of the content
+                else:
+                    y += h
+                    pop(visiting_nodes, visited_childs)
+                    continue
+
+            if len(node.childs) > nch:  # add next child to the list to visit
+                visiting_nodes.append(node.childs[nch])
+                visited_childs.append(0)
+            else:                       # go back to parent node
+                x -= w  # move our pointer back
+                if node.is_leaf:
+                    y += h
+                pop(visiting_nodes, visited_childs)
+
+        if self.outline_shape:
+            yield draw_outlinerect(self.outline_shape)
+
+    def get_content(self, node, point):
+        "Return list of content's graphic elements, and if childs need drawing"
+        x, y = point
+        r_node = make_rect(point, node_size(node))
+
+        if not intersects(self.viewport, r_node):      # skip
+            return [], False
+
+        if r_node.h * self.zoom[1] < self.MIN_HEIGHT:  # outline & skip
+            return list(self.update_outline(r_node)), False
+
+        w, h = content_size(node)
+
+        elements = []
+        if intersects(self.viewport, Rect(x, y, w, h)):  # draw content
+            elements.append(draw_line((x, y + node.d1), (x + w, y + node.d1)))
+            if len(node.childs) > 1:  # draw line spanning childs
+                c0, c1 = node.childs[0], node.childs[-1]
+                elements.append(
+                    draw_line((x + w, y + c0.d1),
+                              (x + w, y + h - node_size(c1).h + c1.d1)))
+            elements += self.draw_content_inline(node, (x, y))
+            elements.append(draw_noderect(r_node, node.name, node.properties))
+
+        elements += self.draw_content_float(node, (x, y))
+        elements += self.draw_content_align(node, (x, y))
+
+        return elements, True
+
+
+def pop(visiting_nodes, visited_childs):
+    visiting_nodes.pop()
+    visited_childs.pop()
+    if visited_childs:
+        visited_childs[-1] += 1
+
+
+class DrawerSimple(DrawerRect):
     "Skeleton of the tree"
     pass
 
 
-class DrawerLeafNames(Drawer):
+class DrawerLeafNames(DrawerRect):
     "With names on leaf nodes"
 
     def draw_content_float(self, node, point=(0, 0)):
@@ -136,7 +148,7 @@ class DrawerLeafNames(Drawer):
             yield draw_name(make_rect(p_after_content, Size(-1, h/2)), node.name)
 
 
-class DrawerLengths(Drawer):
+class DrawerLengths(DrawerRect):
     "With labels on the lengths"
 
     def draw_content_inline(self, node, point=(0, 0)):
