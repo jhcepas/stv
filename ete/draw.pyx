@@ -33,6 +33,9 @@ class Drawer:
         self.zoom = zoom
         self.outline_shape = None
 
+    def in_viewport(self, rect):
+        return intersects(self.viewport, rect)
+
     def update_outline(self, shape):
         "Update the current outline and yield a graphic shape if appropriate"
         if not self.outline_shape:
@@ -96,25 +99,29 @@ class DrawerRect(Drawer):
 
     def get_content(self, node, point):
         "Return list of content's graphic elements, and if childs need drawing"
-        x, y = point
+        # Both the node's rect and its content's rect start at the given point.
         r_node = make_rect(point, node_size(node))
 
-        if not intersects(self.viewport, r_node):      # skip
+        if not self.in_viewport(r_node):               # skip
             return [], False
 
         if r_node.h * self.zoom[1] < self.MIN_HEIGHT:  # outline & skip
             return list(self.update_outline(r_node)), False
 
+        x, y = point
         w, h = content_size(node)
 
         elements = []
-        if intersects(self.viewport, Rect(x, y, w, h)):  # draw content
+        if self.in_viewport(Rect(x, y, w, h)):
             elements.append(draw_line((x, y + node.d1), (x + w, y + node.d1)))
-            if len(node.childs) > 1:  # draw line spanning childs
+            # horizontal line representing the node's length ------
+
+            if len(node.childs) > 1:
                 c0, c1 = node.childs[0], node.childs[-1]
-                elements.append(
-                    draw_line((x + w, y + c0.d1),
-                              (x + w, y + h - node_size(c1).h + c1.d1)))
+                elements.append(            # vertical line spanning childs  |
+                    draw_line((x + w, y + c0.d1),                         #  |
+                              (x + w, y + h - node_size(c1).h + c1.d1)))  #  |
+
             elements += self.draw_content_inline(node, (x, y))
             elements.append(draw_noderect(r_node, node.name, node.properties))
 
