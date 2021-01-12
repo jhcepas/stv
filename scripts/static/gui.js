@@ -73,7 +73,7 @@ function set_query_string_values() {
 
   if (unknown_params.length != 0)
     swal("Oops!",
-      "There were unkonwn parameters passed: " + unknown_params.join(", "),
+      "There were unknown parameters passed: " + unknown_params.join(", "),
       "warning");
 }
 
@@ -494,7 +494,7 @@ function item2svg(item, zoom) {
 
 // Return the graphical (svg) element corresponding to a drawer item.
 function item2svgelement(item, zoom) {
-  // items look like ['r', ...] for a rectangle, etc.
+  // item looks like ['r', ...] for a rectangle, etc.
   if (item[0].startsWith('r')) {       // rectangle
     const [rect_type, x, y, w, h, name, properties] = item;
 
@@ -546,7 +546,7 @@ function item2svgelement(item, zoom) {
     t.appendChild(document.createTextNode(txt));
     return t;
     // NOTE: If we wanted to use the exact width of the item, we could add:
-    //   textLength="${w}px"
+    //   "text-length": `${w}px`
   }
 }
 
@@ -556,7 +556,7 @@ function get_class(element_type) {
     return "names";
   else if (element_type === "tl")
     return "lengths";
-    else if (element_type === "tt")
+  else if (element_type === "tt")
     return "tooltip";
   else if (element_type === "rn")
     return "noderect";

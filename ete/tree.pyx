@@ -90,13 +90,13 @@ def to_cladogram(tree):
     tree.size = (abs(tree.length) + size0, max(1, size1))
 
 
-def to_str(node, are_last=None):
-    "Return a string with a visual representation of the node"
+def to_str(tree, are_last=None):
+    "Return a string with a visual representation of the tree"
     are_last = are_last or []
-    line = get_branches_repr(are_last) + (node.content or '<empty>')
+    line = get_branches_repr(are_last) + (tree.content or '<empty>')
     return '\n'.join([line] +
-        [to_str(n, are_last + [False]) for n in node.childs[:-1]] +
-        [to_str(n, are_last + [True])  for n in node.childs[-1:]])
+        [to_str(n, are_last + [False]) for n in tree.childs[:-1]] +
+        [to_str(n, are_last + [True])  for n in tree.childs[-1:]])
 
 
 def copy(tree):
@@ -250,11 +250,11 @@ def quote(name, escaped_chars=" \t\r\n()[]':;,"):
         return name
 
 
-def dumps(node):
+def dumps(tree):
     "Return newick representation from tree"
-    childs_text = ','.join(dumps(n).rstrip(';') for n in node.childs)
-    return ('(%s)' % childs_text if childs_text else '') + node.content + ';'
+    childs_text = ','.join(dumps(n).rstrip(';') for n in tree.childs)
+    return ('(%s)' % childs_text if childs_text else '') + tree.content + ';'
 
 
-def dump(node, fp):
-    fp.write(dumps(node))
+def dump(tree, fp):
+    fp.write(dumps(tree))
