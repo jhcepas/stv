@@ -112,7 +112,7 @@ def test_size():
     t = tree.loads('(a:2,b:3,c:4)d;')
     assert draw.node_size(t) == (5, 3)
     assert draw.content_size(t) == (1, 3)
-    assert draw.childs_size(t) == (4, 3)
+    assert draw.children_size(t) == (4, 3)
 
 
 

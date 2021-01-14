@@ -2,7 +2,7 @@
 Tree utilities.
 
 Class to represent a tree (which is a node connected to other nodes) and
-functions to read, write and validate.
+functions to read and write them.
 
 The text representation of the trees are expected to be in the newick format:
 https://en.wikipedia.org/wiki/Newick_format
@@ -17,29 +17,29 @@ cdef class Tree:
     cdef public str name
     cdef public double length
     cdef public dict properties
-    cdef public list childs
-    cdef public (double, double) size
-    cdef public double d1
+    cdef public list children
+    cdef public (double, double) size  # sum of lenghts, number of leaves
+    cdef public double bh  # branching height (where the branch starts)
 
-    def __init__(self, content='', childs=None):
+    def __init__(self, content='', children=None):
         self.name = ''
         self.length = -1
         self.properties = {}
         if not content.startswith('('):                         # normal case
             self.content = content.rstrip(';')
-            self.childs = childs or []
-            size0, size1 = get_size(self.childs)
-            self.size = (abs(self.length) + size0, max(1, size1))
-            self.d1 = self.size[1] / 2 + (0 if not childs else
-                (childs[0].d1 - childs[-1].size[1] + childs[-1].d1) / 2)
+            self.children = children or []
+            sumlengths, nleaves = get_size(self.children)
+            self.size = (abs(self.length) + sumlengths, max(1, nleaves))
+            self.bh = self.size[1] / 2 + (0 if not children else
+                (children[0].bh - children[-1].size[1] + children[-1].bh) / 2)
         else:                                                   # newick case
-            if childs:
-                raise NewickError(f'newick {content} incompatible with childs')
+            if children:
+                raise NewickError(f'newick {content} incompatible with children')
             t = loads(content)
             self.content = t.content
-            self.childs = t.childs
+            self.children = t.children
             self.size = t.size
-            self.d1 = t.d1
+            self.bh = t.bh
 
     @property
     def content(self):
@@ -54,55 +54,72 @@ cdef class Tree:
 
     @property
     def is_leaf(self):
-        return not self.childs
+        return not self.children
 
     def __iter__(self):
         "Yield all the nodes of the tree with root at the current node"
         yield self
-        for node in self.childs:
+        for node in self.children:
             yield from node
 
     def __repr__(self):
-        childs_reprs = ', '.join(repr(c) for c in self.childs)
-        return 'Tree(%r, [%s])' % (self.content, childs_reprs)
+        children_reprs = ', '.join(repr(c) for c in self.children)
+        return 'Tree(%r, [%s])' % (self.content, children_reprs)
 
     def __str__(self):
         return to_str(self)
 
 
 
-cdef (double, double) get_size(nodes):
-    "Return the size of all the nodes stacked in the dimension 1"
-    cdef double size0, size1
-    size0 = size1 = 0
-    for node in nodes:
-        size0 = max(size0, node.size[0])
-        size1 += node.size[1]
-    return size0, size1
-
-
-def to_cladogram(tree):
-    "Make all branches have no length (convert the tree into a cladogram)"
-    for node in tree.childs:
-        to_cladogram(node)
-    tree.length = -1
-    size0, size1 = get_size(tree.childs)
-    tree.size = (abs(tree.length) + size0, max(1, size1))
-
+# Auxiliary functions.
 
 def to_str(tree, are_last=None):
     "Return a string with a visual representation of the tree"
     are_last = are_last or []
     line = get_branches_repr(are_last) + (tree.content or '<empty>')
     return '\n'.join([line] +
-        [to_str(n, are_last + [False]) for n in tree.childs[:-1]] +
-        [to_str(n, are_last + [True])  for n in tree.childs[-1:]])
+        [to_str(n, are_last + [False]) for n in tree.children[:-1]] +
+        [to_str(n, are_last + [True])  for n in tree.children[-1:]])
 
 
-def copy(tree):
-    "Return a copy of a tree"
-    return Tree(tree.content, childs=[copy(node) for node in tree.childs])
+def get_branches_repr(are_last):
+    """Return a text line representing the open branches according to are_last
 
+    are_last is a list of bools. It says at each level if we are the last node.
+    The line has ' ' or '|' for each level, and '`' or '|' at the end.
+
+    Example (with more spaces for clarity):
+      [True , False, True , True , True ] ->
+      '|             |      |      `-   '
+    """
+    if len(are_last) == 0:
+        return ''
+
+    prefix = ''.join('   ' if is_last else '|  ' for is_last in are_last[:-1])
+    return prefix + ('`- ' if are_last[-1] else '|- ')
+
+
+def quote(name, escaped_chars=" \t\r\n()[]':;,"):
+    "Return the name quoted if it has any characters that need escaping"
+    if any(c in name for c in escaped_chars):
+        return "'%s'" % name.replace("'", "''")  # ' escapes to '' in newicks
+    else:
+        return name
+
+
+cdef (double, double) get_size(nodes):
+    "Return the size of all the nodes stacked"
+    # The size of a node is (sumlengths, nleaves) with sumlengths the length to
+    # its furthest leaf (including itself) and nleaves its number of leaves.
+    cdef double sumlengths, nleaves
+    sumlengths = nleaves = 0
+    for node in nodes:
+        sumlengths = max(sumlengths, node.size[0])
+        nleaves += node.size[1]
+    return sumlengths, nleaves
+
+
+# Read and write.
 
 def load(fp):
     return loads(fp.read().strip())
@@ -141,13 +158,13 @@ def read_nodes(nodes_text, int pos=0):
             pos += 1  # skip whitespace
 
         if nodes_text[pos] == '(':
-            childs, pos = read_nodes(nodes_text, pos)
+            children, pos = read_nodes(nodes_text, pos)
         else:
-            childs = []
+            children = []
 
         content, pos = read_content(nodes_text, pos)
 
-        nodes.append(Tree(content, childs))
+        nodes.append(Tree(content, children))
 
     return nodes, pos+1
 
@@ -225,36 +242,16 @@ def read_properties(text):
         raise NewickError('invalid NHX format (%s) in text %r' % (e, text))
 
 
-def get_branches_repr(are_last):
-    """Return a text line representing the open branches according to are_last
-
-    are_last is a list of bools. It says at each level if we are the last node.
-    The line has ' ' or '|' for each level, and '`' or '|' at the end.
-
-    Example (with more spaces for clarity):
-      [True , False, True , True , True ] ->
-      '|             |      |      `-   '
-    """
-    if len(are_last) == 0:
-        return ''
-
-    prefix = ''.join('   ' if is_last else '|  ' for is_last in are_last[:-1])
-    return prefix + ('`- ' if are_last[-1] else '|- ')
-
-
-def quote(name, escaped_chars=" \t\r\n()[]':;,"):
-    "Return the name quoted if it has any characters that need escaping"
-    if any(c in name for c in escaped_chars):
-        return "'%s'" % name.replace("'", "''")  # ' escapes to '' in newicks
-    else:
-        return name
-
-
 def dumps(tree):
     "Return newick representation from tree"
-    childs_text = ','.join(dumps(n).rstrip(';') for n in tree.childs)
-    return ('(%s)' % childs_text if childs_text else '') + tree.content + ';'
+    children_text = ','.join(dumps(n).rstrip(';') for n in tree.children)
+    return ('(%s)' % children_text if children_text else '') + tree.content + ';'
 
 
 def dump(tree, fp):
     fp.write(dumps(tree))
+
+
+def copy(tree):
+    "Return a copy of a tree"
+    return Tree(tree.content, children=[copy(node) for node in tree.children])

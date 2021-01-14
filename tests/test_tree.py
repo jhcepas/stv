@@ -75,29 +75,29 @@ def test_constructor():
     assert node1.length == 3.1416
     assert node1.properties == {'k1': 'v1', 'k2': 'v2'}
     assert node1.content == 'node1:3.1416[&&NHX:k1=v1:k2=v2]'
-    assert not node1.childs
+    assert not node1.children
     assert node2.name == '' and node2.length == 22 and node2.properties == {}
     assert node2.content == ':22'
-    assert not node2.childs
+    assert not node2.children
     assert node3.name == 'node3' and node3.length == -1
     assert node3.properties == {}
     assert node3.content == 'node3'
-    assert node3.childs == [node1, node2]
+    assert node3.children == [node1, node2]
 
     t = tree.Tree('(b:2,c:3,(e:4[&&NHX:k1=v1:k2=v2],),)a;')
-    assert t.content == 'a' and len(t.childs) == 4
-    node_b = t.childs[0]
-    assert node_b.content == 'b:2' and not node_b.childs
-    node_c = t.childs[1]
-    assert node_c.content == 'c:3' and not node_c.childs
-    node_d = t.childs[2]
-    assert node_d.content == '' and len(node_d.childs) == 2
-    node_e = node_d.childs[0]
-    assert node_e.content == 'e:4[&&NHX:k1=v1:k2=v2]' and not node_e.childs
-    node_f = node_d.childs[1]
-    assert node_f.content == '' and not node_f.childs
-    node_g = t.childs[3]
-    assert node_g.content == '' and not node_g.childs
+    assert t.content == 'a' and len(t.children) == 4
+    node_b = t.children[0]
+    assert node_b.content == 'b:2' and not node_b.children
+    node_c = t.children[1]
+    assert node_c.content == 'c:3' and not node_c.children
+    node_d = t.children[2]
+    assert node_d.content == '' and len(node_d.children) == 2
+    node_e = node_d.children[0]
+    assert node_e.content == 'e:4[&&NHX:k1=v1:k2=v2]' and not node_e.children
+    node_f = node_d.children[1]
+    assert node_f.content == '' and not node_f.children
+    node_g = t.children[3]
+    assert node_g.content == '' and not node_g.children
 
 
 def test_repr():
@@ -116,7 +116,7 @@ def test_repr():
         assert t.name == tr.name and t.length == tr.length
         assert t.properties == tr.properties
         assert t.content == tr.content
-        assert len(t.childs) == len(tr.childs)
+        assert len(t.children) == len(tr.children)
 
     print(repr(node3))  # so we see it when running interactively
 
@@ -150,19 +150,19 @@ def test_loads():
 
     # Do more exhaustive tests on a single tree.
     t = tree.loads('(b:2,c:3,(e:4[&&NHX:k1=v1:k2=v2],),)a;')
-    assert t.content == 'a' and len(t.childs) == 4
-    node_b = t.childs[0]
-    assert node_b.content == 'b:2' and not node_b.childs
-    node_c = t.childs[1]
-    assert node_c.content == 'c:3' and not node_c.childs
-    node_d = t.childs[2]
-    assert node_d.content == '' and len(node_d.childs) == 2
-    node_e = node_d.childs[0]
-    assert node_e.content == 'e:4[&&NHX:k1=v1:k2=v2]' and not node_e.childs
-    node_f = node_d.childs[1]
-    assert node_f.content == '' and not node_f.childs
-    node_g = t.childs[3]
-    assert node_g.content == '' and not node_g.childs
+    assert t.content == 'a' and len(t.children) == 4
+    node_b = t.children[0]
+    assert node_b.content == 'b:2' and not node_b.children
+    node_c = t.children[1]
+    assert node_c.content == 'c:3' and not node_c.children
+    node_d = t.children[2]
+    assert node_d.content == '' and len(node_d.children) == 2
+    node_e = node_d.children[0]
+    assert node_e.content == 'e:4[&&NHX:k1=v1:k2=v2]' and not node_e.children
+    node_f = node_d.children[1]
+    assert node_f.content == '' and not node_f.children
+    node_g = t.children[3]
+    assert node_g.content == '' and not node_g.children
 
 
 def test_read_nodes():
@@ -179,8 +179,8 @@ def test_read_nodes():
     nodes, pos = tree.read_nodes('(b:2,c:3,(e:4[&&NHX:k1=v1:k2=v2],),)a;', 9)
     assert pos == 9 + len('(e:4[&&NHX:k1=v1:k2=v2],)')
     assert len(nodes) == 2
-    assert nodes[0].content == 'e:4[&&NHX:k1=v1:k2=v2]' and not nodes[0].childs
-    assert nodes[1].content == '' and not nodes[1].childs
+    assert nodes[0].content == 'e:4[&&NHX:k1=v1:k2=v2]' and not nodes[0].children
+    assert nodes[1].content == '' and not nodes[1].children
 
 
 def test_read_content():
@@ -190,14 +190,14 @@ def test_read_content():
     print(t)
     assert (t.name == '' and t.length == -1 and t.properties == {} and
         t.content == '')
-    t1 = t.childs[0]
+    t1 = t.children[0]
     assert (t1.name == 'a' and t1.length == 11 and
         t1.properties == {'x': 'foo', 'y': 'bar'} and
-        t1.content == 'a:11[&&NHX:x=foo:y=bar]' and t1.childs == [])
-    t2 = t.childs[1]
+        t1.content == 'a:11[&&NHX:x=foo:y=bar]' and t1.children == [])
+    t2 = t.children[1]
     assert (t2.name == 'b' and t2.length == 22 and t2.properties == {} and
-        t2.content == 'b:22' and t2.childs == [])
-    td = t.childs[-1].childs[-1]
+        t2.content == 'b:22' and t2.children == [])
+    td = t.children[-1].children[-1]
     assert (td.name == 'd' and td.length == -1 and
         td.properties == {'z': 'foo'} and td.content == 'd[&&NHX:z=foo]')
     print('-> Contents look good.\n')
@@ -301,12 +301,12 @@ def create_random_tree(depth_max=8, branch_factor_max=5):
     if depth_max < 1:
         return tree.Tree(content)
 
-    childs = []
+    children = []
     for i in range(int(r() * branch_factor_max)):
         depth_max_new = depth_max - int(r() * 3)
-        childs.append(create_random_tree(depth_max_new, branch_factor_max))
+        children.append(create_random_tree(depth_max_new, branch_factor_max))
 
-    return tree.Tree(content, childs)
+    return tree.Tree(content, children)
 
 
 

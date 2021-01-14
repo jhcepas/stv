@@ -78,36 +78,36 @@ class DrawerRect(Drawer):
         "Yield graphic elements to draw the tree"
         x, y = 0, 0
         visiting_nodes = [tree]  # root -> child2 -> child20 -> child201 (leaf)
-        visited_childs = [0]     #   2  ->    0   ->    1    ->    0
+        visited_children = [0]   #   2  ->    0   ->    1    ->    0
         while visiting_nodes:
-            node = visiting_nodes[-1]  # current node
-            nch = visited_childs[-1]   # number of childs visited for this node
+            node = visiting_nodes[-1]   # current node
+            nch = visited_children[-1]  # number of children visited on the node
             w, h = content_size(node)
 
             if nch == 0:  # first time we visit this node
-                elements, draw_childs = self.get_content(node, (x, y))
+                elements, draw_children = self.get_content(node, (x, y))
                 yield from elements
-                if draw_childs:
+                if draw_children:
                     x += w  # move our pointer to the right of the content
                 else:
                     y += h
-                    pop(visiting_nodes, visited_childs)
+                    pop(visiting_nodes, visited_children)
                     continue
 
-            if len(node.childs) > nch:  # add next child to the list to visit
-                visiting_nodes.append(node.childs[nch])
-                visited_childs.append(0)
+            if len(node.children) > nch:  # add next child to the list to visit
+                visiting_nodes.append(node.children[nch])
+                visited_children.append(0)
             else:                       # go back to parent node
                 x -= w  # move our pointer back
                 if node.is_leaf:
                     y += h
-                pop(visiting_nodes, visited_childs)
+                pop(visiting_nodes, visited_children)
 
         if self.outline_shape:
             yield draw_outlinerect(self.outline_shape)
 
     def get_content(self, node, point):
-        "Return list of content's graphic elements, and if childs need drawing"
+        "Return list of content's graphic elements, and if children need drawing"
         # Both the node's rect and its content's rect start at the given point.
         r_node = make_rect(point, node_size(node))
 
@@ -122,14 +122,14 @@ class DrawerRect(Drawer):
 
         elements = []
         if self.in_viewport(Rect(x, y, w, h)):
-            elements.append(draw_line((x, y + node.d1), (x + w, y + node.d1)))
+            elements.append(draw_line((x, y + node.bh), (x + w, y + node.bh)))
             # horizontal line representing the node's length ------
 
-            if len(node.childs) > 1:
-                c0, c1 = node.childs[0], node.childs[-1]
-                elements.append(            # vertical line spanning childs  |
-                    draw_line((x + w, y + c0.d1),                         #  |
-                              (x + w, y + h - node_size(c1).h + c1.d1)))  #  |
+            if len(node.children) > 1:
+                c0, c1 = node.children[0], node.children[-1]
+                elements.append(          # vertical line spanning children  |
+                    draw_line((x + w, y + c0.bh),                         #  |
+                              (x + w, y + h - node_size(c1).h + c1.bh)))  #  |
 
             elements += self.draw_content_inline(node, (x, y))
             elements.append(draw_noderect(r_node, node.name, node.properties))
@@ -140,11 +140,11 @@ class DrawerRect(Drawer):
         return elements, True
 
 
-def pop(visiting_nodes, visited_childs):
+def pop(visiting_nodes, visited_children):
     visiting_nodes.pop()
-    visited_childs.pop()
-    if visited_childs:
-        visited_childs[-1] += 1
+    visited_children.pop()
+    if visited_children:
+        visited_children[-1] += 1
 
 
 
@@ -175,36 +175,36 @@ class DrawerCirc(Drawer):
         self.y2a = (self.amax - self.amin) / node_size(tree).h
         r, a = 0, self.amin
         visiting_nodes = [tree]  # root -> child2 -> child20 -> child201 (leaf)
-        visited_childs = [0]     #   2  ->    0   ->    1    ->    0
+        visited_children = [0]   #   2  ->    0   ->    1    ->    0
         while visiting_nodes:
             node = visiting_nodes[-1]  # current node
-            nch = visited_childs[-1]   # number of childs visited for this node
+            nch = visited_children[-1]   # number of children visited on node
             dr, dy = content_size(node)
 
             if nch == 0:  # first time we visit this node
-                elements, draw_childs = self.get_content(node, (r, a))
+                elements, draw_children = self.get_content(node, (r, a))
                 yield from elements
-                if draw_childs:
+                if draw_children:
                     r += dr  # move our pointer forward
                 else:
                     a += dy * self.y2a
-                    pop(visiting_nodes, visited_childs)
+                    pop(visiting_nodes, visited_children)
                     continue
 
-            if len(node.childs) > nch:  # add next child to the list to visit
-                visiting_nodes.append(node.childs[nch])
-                visited_childs.append(0)
+            if len(node.children) > nch:  # add next child to the list to visit
+                visiting_nodes.append(node.children[nch])
+                visited_children.append(0)
             else:                       # go back to parent node
                 r -= dr  # move our pointer back
                 if node.is_leaf:
                     a += dy * self.y2a
-                pop(visiting_nodes, visited_childs)
+                pop(visiting_nodes, visited_children)
 
         if self.outline_shape:
             yield draw_outlineasec(self.outline_shape)
 
     def get_content(self, node, point):
-        "Return list of content's graphic elements, and if childs need drawing"
+        "Return list of content's graphic elements, and if children need drawing"
         # Both the node's asec and its content's asec start at the given point.
         y2a = self.y2a  # shortcut
         a_node = make_asec(point, node_size(node), y2a)
@@ -221,15 +221,15 @@ class DrawerCirc(Drawer):
 
         elements = []
         if self.in_viewport(ASec(r, a, dr, da)):
-            a_line = a + node.d1 * y2a
+            a_line = a + node.bh * y2a
             elements.append(draw_line(cartesian(r, a_line),
                                       cartesian(r + dr, a_line)))
             # radial line representing the node's length ------
 
-            if len(node.childs) > 1:
-                c0, c1 = node.childs[0], node.childs[-1]
-                da0, da1 = c0.d1 * y2a, da + (- node_size(c1).h + c1.d1) * y2a
-                elements.append(draw_arc(         # arc spanning childs  .
+            if len(node.children) > 1:
+                c0, c1 = node.children[0], node.children[-1]
+                da0, da1 = c0.bh * y2a, da + (- node_size(c1).h + c1.bh) * y2a
+                elements.append(draw_arc(       # arc spanning children  .
                     cartesian(r + dr, a + da0),                       #    .
                     cartesian(r + dr, a + da1), da1 - da0 > pi))      #     .
 
@@ -268,7 +268,7 @@ class DrawerLengths(DrawerRect):
             w, h = content_size(node)
             zx, zy = self.zoom
             text = '%.2g' % node.length
-            g_text = draw_label(Rect(x, y + node.d1, w, node.d1), text)
+            g_text = draw_label(Rect(x, y + node.bh, w, node.bh), text)
 
             if zy * h > 1:  # NOTE: we may want to change this, but it's tricky
                 yield g_text
@@ -293,8 +293,8 @@ class DrawerTooltips(DrawerFull):
             zx, zy = self.zoom
             ptext = ', '.join(f'{k}: {v}' for k,v in node.properties.items())
             text = node.name + (' - ' if node.name and ptext else '')  + ptext
-            fs = min(node.d1, 15/zy)
-            yield draw_tooltip(Rect(x + w/2, y + node.d1, w/2, fs), text)
+            fs = min(node.bh, 15/zy)
+            yield draw_tooltip(Rect(x + w/2, y + node.bh, w/2, fs), text)
 
 
 class DrawerAlign(DrawerFull):
@@ -352,13 +352,13 @@ def align(element):
 # Size-related functions.
 
 def node_size(node):
-    "Return the size of a node (its content and its childs)"
+    "Return the size of a node (its content and its children)"
     return Size(node.size[0], node.size[1])
 
 def content_size(node):
     return Size(abs(node.length), node.size[1])
 
-def childs_size(node):
+def children_size(node):
     return Size(node.size[0] - abs(node.length), node.size[1])
 
 
