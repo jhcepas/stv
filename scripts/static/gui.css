@@ -5,6 +5,7 @@
 
 .line {
     stroke: #000;
+    fill-opacity: 0;
 }
 
 .rect {

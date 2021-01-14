@@ -15,7 +15,7 @@ const view = {
   drawer: "Full",
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: {x: 0, y: 0},  // initially chosen depending on the size of the tree
-  min_height: 6,
+  min_size: 6,
   update_on_drag: false,
   drag: {x0: 0, y0: 0, element: undefined},  // used when dragging
   select_text: false,
@@ -113,7 +113,7 @@ function create_datgui() {
   dgui_ctl.add(view.tl, "y").name("top-left y").onChange(update);
   dgui_ctl.add(view.zoom, "x").name("zoom x").onChange(update);
   dgui_ctl.add(view.zoom, "y").name("zoom y").onChange(update);
-  dgui_ctl.add(view, "min_height", 1, 100).name("collapse at").onChange(update);
+  dgui_ctl.add(view, "min_size", 1, 100).name("collapse at").onChange(update);
   dgui_ctl.add(view, "update_on_drag").name("update on drag");
   dgui_ctl.add(view, "select_text").name("select text").onChange(() => {
     style_font.userSelect = (view.select_text ? "text" : "none");
@@ -126,8 +126,8 @@ function create_datgui() {
 
   const dgui_style_node = dgui_style.addFolder("node");
 
-  dgui_style_node.add(view, "node_opacity", 0, 1).name("opacity").onChange(() =>
-    style_node.opacity = view.node_opacity);
+  dgui_style_node.add(view, "node_opacity", 0, 0.2).step(0.001).name("opacity")
+    .onChange(() => style_node.opacity = view.node_opacity);
   dgui_style_node.addColor(view, "node_color").name("color").onChange(() =>
     style_node.fill = view.node_color);
 
@@ -166,14 +166,17 @@ function create_datgui() {
   dgui_style_collapsed.addColor(view, "rect_color").name("color").onChange(() =>
     style_rect.stroke = view.rect_color);
 
-  dgui.add(view, "minimap_show").name("minimap").onChange(() => {
-      const status = (view.minimap_show ? "visible" : "hidden");
-      div_minimap.style.visibility = div_visible_rect.style.visibility = status;
-      if (view.minimap_show)
-        update_minimap_visible_rect();
-    });
+  dgui.add(view, "minimap_show").name("minimap").onChange(show_minimap);
 
   return dgui;
+}
+
+
+function show_minimap(show) {
+  const status = (show ? "visible" : "hidden");
+  div_minimap.style.visibility = div_visible_rect.style.visibility = status;
+  if (show)
+    update_minimap_visible_rect();
 }
 
 
@@ -193,9 +196,16 @@ async function add_trees(dgui_tree) {
     .onChange(async () => {
       div_tree.style.cursor = "wait";
       view.tree_id = trees[view.tree_name];
-      view.tl.x = 0;
-      view.tl.y = 0;
       await reset_zoom();
+      if (view.drawer === "Circ") {
+        const size = await api(`/trees/${view.tree_id}/size`);
+        view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
+        view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
+      }
+      else {
+        view.tl.x = 0;
+        view.tl.y = 0;
+      }
       draw_minimap();
       update();
     });
@@ -206,17 +216,33 @@ async function add_trees(dgui_tree) {
 async function reset_zoom(reset_zx=true, reset_zy=true) {
   if (reset_zx || reset_zy) {
     const size = await api(`/trees/${view.tree_id}/size`);
-    if (reset_zx)
-      view.zoom.x = 0.5 * div_tree.offsetWidth / size.width;
-    if (reset_zy)
-      view.zoom.y = div_tree.offsetHeight / size.height;
+    if (view.drawer === "Circ") {
+      const smaller_dim = Math.min(div_tree.offsetWidth, div_tree.offsetHeight);
+      view.zoom.x = view.zoom.y = smaller_dim / size.width / 2;
+    }
+    else {
+      if (reset_zx)
+        view.zoom.x = 0.5 * div_tree.offsetWidth / size.width;
+      if (reset_zy)
+        view.zoom.y = div_tree.offsetHeight / size.height;
+      }
   }
 }
 
 
 async function add_drawers(dgui_tree) {
   const drawers = await api("/trees/drawers");
-  dgui_tree.add(view, "drawer", drawers).onChange(update);
+  dgui_tree.add(view, "drawer", drawers).onChange(async () => {
+    if (view.drawer === "Circ") {
+      await reset_zoom();
+      view.minimap_show = false;
+      show_minimap(false);
+      const size = await api(`/trees/${view.tree_id}/size`);
+      view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
+      view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
+    }
+    update();
+  });
 }
 
 
@@ -439,7 +465,7 @@ async function update_tree() {
 
   div_tree.style.cursor = "wait";
 
-  const qs = `drawer=${view.drawer}&min_height=${view.min_height}&` +
+  const qs = `drawer=${view.drawer}&min_size=${view.min_size}&` +
     `zx=${zx}&zy=${zy}&x=${x}&y=${y}&w=${w}&h=${h}`;
   const items = await api(`/trees/${view.tree_id}/draw?${qs}`);
 
@@ -495,13 +521,16 @@ function item2svg(item, zoom) {
 // Return the graphical (svg) element corresponding to a drawer item.
 function item2svgelement(item, zoom) {
   // item looks like ['r', ...] for a rectangle, etc.
+
+  const [zx, zy] = [zoom.x, zoom.y];  // shortcut
+
   if (item[0].startsWith('r')) {       // rectangle
     const [rect_type, x, y, w, h, name, properties] = item;
 
     const r = create_svg_element("rect",
       {"class": "rect " + get_class(rect_type),
-       "x": zoom.x * x, "y": zoom.y * y,
-       "width": zoom.x * w, "height": zoom.y * h,
+       "x": zx * x, "y": zy * y,
+       "width": zx * w, "height": zy * h,
        "stroke": view.rect_color});
 
     r.addEventListener("click", event => {
@@ -524,30 +553,72 @@ function item2svgelement(item, zoom) {
 
     return r;
   }
+  else if (item[0].startsWith('s')) {  // annulus sector
+    const [asec_type, r, a, dr, da, name, properties] = item;
+    const z = zx;
+    const large = da > Math.PI ? 1 : 0;
+    const p00 = cartesian(z * r, a),
+          p01 = cartesian(z * r, a + da),
+          p10 = cartesian(z * (r + dr), a),
+          p11 = cartesian(z * (r + dr), a + da);
+
+    const s = create_svg_element("path", {
+      "class": "rect " + get_class(asec_type),
+      "d": `M ${p00.x} ${p00.y}
+            L ${p10.x} ${p10.y}
+            A ${z * (r + dr)} ${z * (r + dr)} 0 ${large} 1 ${p11.x} ${p11.y}
+            L ${p01.x} ${p01.y}
+            A ${z * r} ${z * r} 0 ${large} 0 ${p00.x} ${p00.y}`,
+      "stroke": view.rect_color});
+
+    if (name.length > 0 || Object.entries(properties).length > 0) {
+        const title = create_svg_element("title", {});
+        const text = name + "\n" +
+          Object.entries(properties).map(x => x[0] + ": " + x[1]).join("\n");
+        title.appendChild(document.createTextNode(text));
+        s.appendChild(title);
+      }
+
+    return s;
+  }
   else if (item[0] === 'l') {  // line
     const [ , x1, y1, x2, y2] = item;
 
     return create_svg_element("line", {
       "class": "line",
-      "x1": zoom.x * x1, "y1": zoom.y * y1,
-      "x2": zoom.x * x2, "y2": zoom.y * y2,
+      "x1": zx * x1, "y1": zy * y1,
+      "x2": zx * x2, "y2": zy * y2,
+      "stroke": view.line_color});
+  }
+  else if (item[0] === 'c') {  // arc (part of a circle)
+    const [ , x1, y1, x2, y2, large] = item;
+    const r = Math.sqrt(zx*x1 * zx*x1 + zy*y1 * zy*y1);
+
+    return create_svg_element("path", {
+      "class": "line",
+      "d": `M ${zx*x1} ${zy*y1} A ${r} ${r} 0 ${large} 1 ${zx*x2} ${zy*y2}`,
       "stroke": view.line_color});
   }
   else if (item[0].startsWith('t')) {  // text
     const [text_type, x, y, w, h, txt] = item;
 
-    const [zw, zh] = [zoom.x * w, zoom.y * h];
+    const [zw, zh] = [zx * w, zy * h];
     const fs = Math.min(view.font_size_max, zh, 1.5 * zw / txt.length);
 
     const t = create_svg_element("text", {
       "class": "text " + get_class(text_type),
-      "x": zoom.x * x, "y": zoom.y * y,
+      "x": zx * x, "y": zy * y,
       "font-size": `${w >= 0 ? fs : zh}px`});
     t.appendChild(document.createTextNode(txt));
     return t;
     // NOTE: If we wanted to use the exact width of the item, we could add:
     //   "text-length": `${w}px`
   }
+}
+
+
+function cartesian(r, a) {
+  return {x: r * Math.cos(a), y: r * Math.sin(a)};
 }
 
 
@@ -558,9 +629,9 @@ function get_class(element_type) {
     return "lengths";
   else if (element_type === "tt")
     return "tooltip";
-  else if (element_type === "rn")
+  else if (element_type.endsWith("n"))
     return "noderect";
-  else if (element_type === "ro")
+  else if (element_type.endsWith("o"))
     return "outlinerect";
   else
     return "";

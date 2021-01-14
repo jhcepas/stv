@@ -209,8 +209,8 @@ class Trees(Resource):
                 zoom = [float(request.args.get(z, 1)) for z in ['zx', 'zy']]
                 assert zoom[0] > 0 and zoom[1] > 0, 'zoom must be > 0'
                 drawer = get_drawer(request.args)
-                drawer.MIN_HEIGHT = float(request.args.get('min_height', 6))
-                assert drawer.MIN_HEIGHT > 0, 'min_height must be > 0'
+                drawer.MIN_SIZE = float(request.args.get('min_size', 6))
+                assert drawer.MIN_SIZE > 0, 'min_size must be > 0'
                 return list(drawer(viewport, zoom).draw(load_tree(tree_id)))
             except (ValueError, AssertionError) as e:
                 raise InvalidUsage(str(e))
