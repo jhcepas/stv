@@ -198,7 +198,6 @@ async function add_trees(dgui_tree) {
       view.tree_id = trees[view.tree_name];
       await reset_zoom();
       if (view.drawer === "Circ") {
-        const size = await api(`/trees/${view.tree_id}/size`);
         view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
         view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
       }
@@ -237,7 +236,6 @@ async function add_drawers(dgui_tree) {
       await reset_zoom();
       view.minimap_show = false;
       show_minimap(false);
-      const size = await api(`/trees/${view.tree_id}/size`);
       view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
       view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
     }
