@@ -215,7 +215,7 @@ class Trees(Resource):
             except (ValueError, AssertionError) as e:
                 raise InvalidUsage(str(e))
         elif rule == '/trees/<int:tree_id>/size':
-            width, height = draw.node_size(load_tree(tree_id))
+            width, height = load_tree(tree_id).size
             return {'width': width, 'height': height}
         else:
             raise InvalidUsage('unknown tree GET request')
