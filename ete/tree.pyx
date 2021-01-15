@@ -25,21 +25,29 @@ cdef class Tree:
         self.name = ''
         self.length = -1
         self.properties = {}
-        if not content.startswith('('):                         # normal case
-            self.content = content.rstrip(';')
-            self.children = children or []
-            sumlengths, nleaves = get_size(self.children)
-            self.size = (abs(self.length) + sumlengths, max(1, nleaves))
-            self.bh = self.size[1] / 2 + (0 if not children else
-                (children[0].bh - children[-1].size[1] + children[-1].bh) / 2)
-        else:                                                   # newick case
+        if not content.startswith('('):
+            self.init_normal(content.rstrip(';'), children)
+            # the rstrip() avoids ambiguity when the full tree is just ";"
+        else:
             if children:
-                raise NewickError(f'newick {content} incompatible with children')
-            t = loads(content)
-            self.content = t.content
-            self.children = t.children
-            self.size = t.size
-            self.bh = t.bh
+                raise NewickError('init from newick cannot have children')
+            self.init_from_newick(tree_text=content)
+
+    def init_normal(self, content, children):
+        self.content = content
+        self.children = children or []
+
+        sumlengths, nleaves = get_size(self.children)
+        self.size = (abs(self.length) + sumlengths, max(1, nleaves))
+        self.bh = self.size[1] / 2 + (0 if not children else
+            (children[0].bh - children[-1].size[1] + children[-1].bh) / 2)
+
+    def init_from_newick(self, tree_text):
+        t = loads(tree_text)
+        self.content = t.content
+        self.children = t.children
+        self.size = t.size
+        self.bh = t.bh
 
     @property
     def content(self):
