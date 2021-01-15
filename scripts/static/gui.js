@@ -153,7 +153,7 @@ function create_datgui() {
     else
       view.font_size_scroller = create_font_size_scroller();
   });
-  dgui_style_text.add(view, "font_size_max", 1, 100).name("max size auto")
+  dgui_style_text.add(view, "font_size_max", 1, 100).name("max size")
     .onChange(update);
 
   function create_font_size_scroller() {
