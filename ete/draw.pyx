@@ -157,7 +157,7 @@ class DrawerRect(Drawer):
         return intersects(self.viewport, box)
 
     def draw_outline(self, box):
-        return draw_rect(box, 'o')
+        return draw_rect(box, 'outline')
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
@@ -187,7 +187,7 @@ class DrawerRect(Drawer):
         return draw_line(p1, p2)
 
     def draw_nodebox(self, box, name, properties):
-        return draw_rect(box, 'n', name, properties)
+        return draw_rect(box, 'node', name, properties)
 
 
 
@@ -204,7 +204,7 @@ class DrawerCirc(Drawer):
         # TODO: find if the annulus sector intersects the viewport rectangle.
 
     def draw_outline(self, box):
-        return draw_asec(box, 'o')
+        return draw_asec(box, 'outline')
 
     def draw(self, tree):
         self.y2a = (self.ymax - self.ymin) / tree.size[1]
@@ -239,7 +239,7 @@ class DrawerCirc(Drawer):
         return draw_arc(cartesian(*p1), cartesian(*p2), a2 - a1 > pi)
 
     def draw_nodebox(self, box, name, properties):
-        return draw_asec(box, 'n', name, properties)
+        return draw_asec(box, 'node', name, properties)
 
 
 def cartesian(r, a):
@@ -260,7 +260,8 @@ class DrawerLeafNames(DrawerRect):
             w, h = self.content_size(node)
             zx, zy = self.zoom
             p_after_content = (x + w + 2 / zx, y + h / 1.5)
-            yield draw_name(make_box(p_after_content, Size(-1, h/2)), node.name)
+            box_after_content = make_box(p_after_content, Size(-1, h/2))
+            yield draw_text(box_after_content, node.name, 'name')
 
 
 class DrawerLengths(DrawerRect):
@@ -272,7 +273,7 @@ class DrawerLengths(DrawerRect):
             w, h = self.content_size(node)
             zx, zy = self.zoom
             text = '%.2g' % node.length
-            g_text = draw_label((x, y + node.bh, w, node.bh), text)
+            g_text = draw_text((x, y + node.bh, w, node.bh), text, 'length')
 
             if zy * h > 1:  # NOTE: we may want to change this, but it's tricky
                 yield g_text
@@ -292,7 +293,7 @@ class DrawerAlign(DrawerFull):
         if node.is_leaf:
             x, y = point
             w, h = self.content_size(node)
-            yield align(draw_name((0, y+h/1.5, 0, h/2), node.name))
+            yield align(draw_text((0, y+h/1.5, 0, h/2), node.name, 'name'))
 
 
 
@@ -305,11 +306,11 @@ def get_drawers():
 
 def draw_rect(box, box_type='', name='', properties=None):
     x, y, w, h = box
-    return ['r' + box_type, x, y, w, h, name, properties or {}]
+    return ['r', box_type, x, y, w, h, name, properties or {}]
 
 def draw_asec(box, box_type='', name='', properties=None):
     r, a, dr, da = box
-    return ['s' + box_type, r, a, dr, da, name, properties or {}]
+    return ['s', box_type, r, a, dr, da, name, properties or {}]
 
 def draw_line(p1, p2):
     x1, y1 = p1
@@ -323,11 +324,7 @@ def draw_arc(p1, p2, large=False):
 
 def draw_text(rect, text, text_type=''):
     x, y, w, h = rect
-    return ['t' + text_type, x, y, w, h, text]
-
-draw_name = lambda *args: draw_text(*args, text_type='n')
-draw_label = lambda *args: draw_text(*args, text_type='l')
-draw_tooltip = lambda *args: draw_text(*args, text_type='t')
+    return ['t', text_type, x, y, w, h, text]
 
 def align(element):
     return ['a'] + element

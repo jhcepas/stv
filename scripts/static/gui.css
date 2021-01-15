@@ -8,7 +8,7 @@
     fill-opacity: 0;
 }
 
-.rect {
+.box {
     stroke: #000;
     stroke-width: 0.2;
 }
@@ -18,28 +18,28 @@
     user-select: none;
 }
 
-.names {
+.name {
     fill: #00A;
 }
 
-.lengths {
+.length {
     fill: #888;
 }
 
-.noderect {
+.node {
     opacity: 0;
     fill: #222;
 }
 
-.outlinerect {
+.outline {
     fill: #DDF;
 }
 
-.noderect:hover {
+.node:hover {
     opacity: 0.05;
 }
 
-.outlinerect:hover {
+.outline:hover {
     fill: #CCF;
 }
 

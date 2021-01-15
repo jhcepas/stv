@@ -23,7 +23,7 @@ const view = {
   node_color: "#222",
   line_color: "#000",
   line_width: 1,
-  rect_color: "#000",
+  outline_color: "#DDF",
   names_color: "#00A",
   lengths_color: "#888",
   font_family: "sans-serif",
@@ -85,9 +85,9 @@ window.addEventListener("resize", update);  // we could also draw_minimap()
 // Create the top-right box ("gui") with all the options we can see and change.
 function create_datgui() {
   // Shortcut for getting the styles.
-  const [style_line, style_rect, style_font, style_names, style_lengths,
-    style_node] =
-    [1, 2, 3, 4, 5, 6].map(i => document.styleSheets[1].cssRules[i].style);
+  const [style_line, style_font, style_name, style_length,
+    style_node, style_outline] =
+    [1, 3, 4, 5, 6, 7].map(i => document.styleSheets[1].cssRules[i].style);
 
   const dgui = new dat.GUI({autoPlace: false});
   div_datgui.appendChild(dgui.domElement);
@@ -118,7 +118,7 @@ function create_datgui() {
   dgui_ctl.add(view, "select_text").name("select text").onChange(() => {
     style_font.userSelect = (view.select_text ? "text" : "none");
     div_tree.style.cursor = (view.select_text ? "text" : "auto");
-    Array.from(div_tree.getElementsByClassName("rect")).forEach(
+    Array.from(div_tree.getElementsByClassName("box")).forEach(
       e => e.style.pointerEvents = (view.select_text ? "none" : "auto"));
   });
 
@@ -141,9 +141,9 @@ function create_datgui() {
   const dgui_style_text = dgui_style.addFolder("text");
 
   dgui_style_text.addColor(view, "names_color").name("names").onChange(() =>
-    style_names.fill = view.names_color);
+    style_name.fill = view.names_color);
   dgui_style_text.addColor(view, "lengths_color").name("lengths").onChange(() =>
-    style_lengths.fill = view.lengths_color);
+    style_length.fill = view.lengths_color);
   dgui_style_text.add(view, "font_family", ["sans-serif", "serif", "monospace"])
     .name("font").onChange(() => style_font.fontFamily = view.font_family);
   dgui_style_text.add(view, "font_size_auto").name("automatic size").onChange(() => {
@@ -163,8 +163,8 @@ function create_datgui() {
 
   const dgui_style_collapsed = dgui_style.addFolder("collapsed");
 
-  dgui_style_collapsed.addColor(view, "rect_color").name("color").onChange(() =>
-    style_rect.stroke = view.rect_color);
+  dgui_style_collapsed.addColor(view, "outline_color").name("color").onChange(
+    () => style_outline.fill = view.outline_color);
 
   dgui.add(view, "minimap_show").name("minimap").onChange(show_minimap);
 
@@ -278,7 +278,7 @@ async function download_newick() {
 // Download a file with the current view of the tree as a svg.
 function download_svg() {
   const svg = div_tree.children[0].cloneNode(true);
-  Array.from(svg.getElementsByClassName("noderect")).forEach(e => e.remove());
+  Array.from(svg.getElementsByClassName("node")).forEach(e => e.remove());
   const svg_xml = (new XMLSerializer()).serializeToString(svg);
   const content = "data:image/svg+xml;base64," + btoa(svg_xml);
   download(view.tree_name + ".svg", content);
@@ -291,7 +291,7 @@ function download_image() {
   canvas.width = div_tree.offsetWidth;
   canvas.height = div_tree.offsetHeight;
   const svg = div_tree.children[0].cloneNode(true);
-  Array.from(svg.getElementsByClassName("noderect")).forEach(e => e.remove());
+  Array.from(svg.getElementsByClassName("node")).forEach(e => e.remove());
   const svg_xml = (new XMLSerializer()).serializeToString(svg);
   const ctx = canvas.getContext("2d");
   const img = new Image();
@@ -524,11 +524,11 @@ function item2svgelement(item, zoom) {
 
   const [zx, zy] = [zoom.x, zoom.y];  // shortcut
 
-  if (item[0].startsWith('r')) {       // rectangle
-    const [rect_type, x, y, w, h, name, properties] = item;
+  if (item[0] === 'r') {  // rectangle
+    const [ , rect_type, x, y, w, h, name, properties] = item;
 
     const r = create_svg_element("rect",
-      {"class": "rect " + get_class(rect_type),
+      {"class": "box " + rect_type,
        "x": zx * x, "y": zy * y,
        "width": zx * w, "height": zy * h,
        "stroke": view.rect_color});
@@ -553,8 +553,8 @@ function item2svgelement(item, zoom) {
 
     return r;
   }
-  else if (item[0].startsWith('s')) {  // annulus sector
-    const [asec_type, r, a, dr, da, name, properties] = item;
+  else if (item[0] === 's') {  // annulus sector
+    const [ , asec_type, r, a, dr, da, name, properties] = item;
     const z = zx;
     const large = da > Math.PI ? 1 : 0;
     const p00 = cartesian(z * r, a),
@@ -563,13 +563,13 @@ function item2svgelement(item, zoom) {
           p11 = cartesian(z * (r + dr), a + da);
 
     const s = create_svg_element("path", {
-      "class": "rect " + get_class(asec_type),
+      "class": "box " + asec_type,
       "d": `M ${p00.x} ${p00.y}
             L ${p10.x} ${p10.y}
             A ${z * (r + dr)} ${z * (r + dr)} 0 ${large} 1 ${p11.x} ${p11.y}
             L ${p01.x} ${p01.y}
             A ${z * r} ${z * r} 0 ${large} 0 ${p00.x} ${p00.y}`,
-      "stroke": view.rect_color});
+      "fill": view.box_color});
 
     if (name.length > 0 || Object.entries(properties).length > 0) {
         const title = create_svg_element("title", {});
@@ -600,13 +600,13 @@ function item2svgelement(item, zoom) {
       "stroke": view.line_color});
   }
   else if (item[0].startsWith('t')) {  // text
-    const [text_type, x, y, w, h, txt] = item;
+    const [ , text_type, x, y, w, h, txt] = item;
 
     const [zw, zh] = [zx * w, zy * h];
     const fs = Math.min(view.font_size_max, zh, 1.5 * zw / txt.length);
 
     const t = create_svg_element("text", {
-      "class": "text " + get_class(text_type),
+      "class": "text " + text_type,
       "x": zx * x, "y": zy * y,
       "font-size": `${w >= 0 ? fs : zh}px`});
     t.appendChild(document.createTextNode(txt));
@@ -619,22 +619,6 @@ function item2svgelement(item, zoom) {
 
 function cartesian(r, a) {
   return {x: r * Math.cos(a), y: r * Math.sin(a)};
-}
-
-
-function get_class(element_type) {
-  if (element_type === "tn")
-    return "names";
-  else if (element_type === "tl")
-    return "lengths";
-  else if (element_type === "tt")
-    return "tooltip";
-  else if (element_type.endsWith("n"))
-    return "noderect";
-  else if (element_type.endsWith("o"))
-    return "outlinerect";
-  else
-    return "";
 }
 
 
@@ -651,7 +635,7 @@ async function draw_minimap() {
 
   draw(div_minimap, items, {x: 0, y: 0}, view.minimap_zoom);
 
-  Array.from(div_minimap.getElementsByClassName("noderect")).forEach(
+  Array.from(div_minimap.getElementsByClassName("node")).forEach(
     e => e.remove());
 
   update_minimap_visible_rect();
