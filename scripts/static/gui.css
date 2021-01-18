@@ -5,12 +5,13 @@
 
 .line {
     stroke: #000;
+    stroke-width: 1.5;
     fill-opacity: 0;
 }
 
 .box {
     stroke: #000;
-    stroke-width: 0.2;
+    stroke-width: 0.5;
 }
 
 .text {
@@ -32,6 +33,7 @@
 }
 
 .outline {
+    fill-opacity: 0;
     fill: #DDF;
 }
 
@@ -40,17 +42,7 @@
 }
 
 .outline:hover {
-    fill: #CCF;
-}
-
-.tooltip {
-    opacity: 0.05;
-    transition: opacity 1s, font-size 0.5s;
-}
-
-.tooltip:hover {
-    opacity: 1;
-    font-size: 2rem;
+    fill-opacity: 1;
 }
 
 .tree {

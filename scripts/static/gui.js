@@ -1,28 +1,29 @@
-'use strict';
+import { create_datgui } from "./menu.js";
+
+export { update, on_tree_change, on_drawer_change, show_minimap };
 
 
 // Global variables related to the current view on the tree.
 // Most will be shown on the top-right gui (using dat.gui).
 const view = {
   pos: {x: 0, y: 0},  // in-tree current pointer position
-  tree_name: "HmuY.aln2",
-  tree_id: 4,
+  tree: "",
+  drawer: "Full",
   show_tree_info: () => show_tree_info(),
   download_newick: () => download_newick(),
   download_svg: () => download_svg(),
   download_image: () => download_image(),
   upload_tree: () => window.location.href = "upload_tree.html",
-  drawer: "Full",
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: {x: 0, y: 0},  // initially chosen depending on the size of the tree
   min_size: 6,
   update_on_drag: false,
-  drag: {x0: 0, y0: 0, element: undefined},  // used when dragging
   select_text: false,
   node_opacity: 0,
   node_color: "#222",
   line_color: "#000",
-  line_width: 1,
+  line_width: 1.5,
+  outline_opacity: 0,
   outline_color: "#DDF",
   names_color: "#00A",
   lengths_color: "#888",
@@ -33,18 +34,75 @@ const view = {
   font_size_max: 15,
   minimap_show: true,
   minimap_zoom: {x: 1, y: 1},
-  datgui: undefined
 };
+
+const drag = {x0: 0, y0: 0, element: undefined};  // used when dragging
+
+const trees = {};  // will contain trees[tree_name] = tree_id
+let datgui = undefined;
+
+
+
+// Return the data coming from an api endpoint (like "/trees/<id>/size").
+async function api(endpoint) {
+  const response = await fetch(endpoint);
+  return await response.json();
+}
+
+
+async function init_trees() {
+  const tree_info = await api("/trees");
+  tree_info.forEach(t => trees[t.name] = t.id);
+  view.tree = Object.keys(trees)[0];
+}
 
 
 // Run when the page is loaded (the "main" function).
 document.addEventListener("DOMContentLoaded", async () => {
+  await init_trees();
+  const drawers = await api("/trees/drawers");
+  datgui = create_datgui(view, Object.keys(trees), drawers);
+
   set_query_string_values();
+
   await reset_zoom(view.zoom.x === 0, view.zoom.y === 0);
-  view.datgui = create_datgui();
   draw_minimap();
   update();
 });
+
+
+// Update when the window is resized too.
+window.addEventListener("resize", update);  // we could also draw_minimap()
+
+
+// What happens when the user selects a new tree in the datgui menu.
+async function on_tree_change() {
+  div_tree.style.cursor = "wait";
+  await reset_zoom();
+  if (view.drawer === "Circ") {
+    view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
+    view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
+  }
+  else {
+    view.tl.x = 0;
+    view.tl.y = 0;
+  }
+  draw_minimap();
+  update();
+}
+
+
+// What happens when the user selects a new drawer in the datgui menu.
+async function on_drawer_change() {
+  if (view.drawer === "Circ") {
+    await reset_zoom();
+    view.minimap_show = false;
+    show_minimap(false);
+    view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
+    view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
+  }
+  update();
+}
 
 
 // Set values that have been given with the query string.
@@ -53,10 +111,8 @@ function set_query_string_values() {
   const params = new URLSearchParams(location.search);
 
   for (const [param, value] of params) {
-    if (param === "id")
-      view.tree_id = Number(value);
-    else if (param === "name")
-      view.tree_name = value;
+    if (param === "tree")
+      view.tree = value;
     else if (param === "x")
       view.tl.x = Number(value);
     else if (param === "y")
@@ -78,100 +134,6 @@ function set_query_string_values() {
 }
 
 
-// Update when the window is resized too.
-window.addEventListener("resize", update);  // we could also draw_minimap()
-
-
-// Create the top-right box ("gui") with all the options we can see and change.
-function create_datgui() {
-  // Shortcut for getting the styles.
-  const [style_line, style_font, style_name, style_length,
-    style_node, style_outline] =
-    [1, 3, 4, 5, 6, 7].map(i => document.styleSheets[1].cssRules[i].style);
-
-  const dgui = new dat.GUI({autoPlace: false});
-  div_datgui.appendChild(dgui.domElement);
-
-  dgui.add(view.pos, "x").step(0.001).listen();
-  dgui.add(view.pos, "y").step(0.001).listen();
-
-  const dgui_tree = dgui.addFolder("tree");
-
-  add_trees(dgui_tree).then(() => {
-    dgui_tree.add(view, "show_tree_info").name("info");
-    const dgui_download = dgui_tree.addFolder("download");
-    dgui_download.add(view, "download_newick").name("newick");
-    dgui_download.add(view, "download_svg").name("svg");
-    dgui_download.add(view, "download_image").name("image");
-    dgui_tree.add(view, "upload_tree").name("upload");
-    add_drawers(dgui_tree);  // so they will be added in order
-  });
-
-  const dgui_ctl = dgui.addFolder("control");
-
-  dgui_ctl.add(view.tl, "x").name("top-left x").onChange(update);
-  dgui_ctl.add(view.tl, "y").name("top-left y").onChange(update);
-  dgui_ctl.add(view.zoom, "x").name("zoom x").onChange(update);
-  dgui_ctl.add(view.zoom, "y").name("zoom y").onChange(update);
-  dgui_ctl.add(view, "min_size", 1, 100).name("collapse at").onChange(update);
-  dgui_ctl.add(view, "update_on_drag").name("update on drag");
-  dgui_ctl.add(view, "select_text").name("select text").onChange(() => {
-    style_font.userSelect = (view.select_text ? "text" : "none");
-    div_tree.style.cursor = (view.select_text ? "text" : "auto");
-    Array.from(div_tree.getElementsByClassName("box")).forEach(
-      e => e.style.pointerEvents = (view.select_text ? "none" : "auto"));
-  });
-
-  const dgui_style = dgui.addFolder("style");
-
-  const dgui_style_node = dgui_style.addFolder("node");
-
-  dgui_style_node.add(view, "node_opacity", 0, 0.2).step(0.001).name("opacity")
-    .onChange(() => style_node.opacity = view.node_opacity);
-  dgui_style_node.addColor(view, "node_color").name("color").onChange(() =>
-    style_node.fill = view.node_color);
-
-  const dgui_style_line = dgui_style.addFolder("line");
-
-  dgui_style_line.addColor(view, "line_color").name("color").onChange(() =>
-    style_line.stroke = view.line_color);
-  dgui_style_line.add(view, "line_width", 0.1, 10).name("width").onChange(() =>
-    style_line.strokeWidth = view.line_width);
-
-  const dgui_style_text = dgui_style.addFolder("text");
-
-  dgui_style_text.addColor(view, "names_color").name("names").onChange(() =>
-    style_name.fill = view.names_color);
-  dgui_style_text.addColor(view, "lengths_color").name("lengths").onChange(() =>
-    style_length.fill = view.lengths_color);
-  dgui_style_text.add(view, "font_family", ["sans-serif", "serif", "monospace"])
-    .name("font").onChange(() => style_font.fontFamily = view.font_family);
-  dgui_style_text.add(view, "font_size_auto").name("automatic size").onChange(() => {
-    style_font.fontSize = (view.font_size_auto ? "" : `${view.font_size}px`);
-    if (view.font_size_auto && view.font_size_scroller)
-      view.font_size_scroller.remove();
-    else
-      view.font_size_scroller = create_font_size_scroller();
-  });
-  dgui_style_text.add(view, "font_size_max", 1, 100).name("max size")
-    .onChange(update);
-
-  function create_font_size_scroller() {
-    return dgui_style_text.add(view, "font_size", 0.1, 50).name("font size")
-      .onChange(() => style_font.fontSize = `${view.font_size}px`);
-  }
-
-  const dgui_style_collapsed = dgui_style.addFolder("collapsed");
-
-  dgui_style_collapsed.addColor(view, "outline_color").name("color").onChange(
-    () => style_outline.fill = view.outline_color);
-
-  dgui.add(view, "minimap_show").name("minimap").onChange(show_minimap);
-
-  return dgui;
-}
-
-
 function show_minimap(show) {
   const status = (show ? "visible" : "hidden");
   div_minimap.style.visibility = div_visible_rect.style.visibility = status;
@@ -180,41 +142,10 @@ function show_minimap(show) {
 }
 
 
-// Return the data coming from an api endpoint (like "/trees/<id>/size").
-async function api(endpoint) {
-  const response = await fetch(endpoint);
-  return await response.json();
-}
-
-
-// Populate the trees option in dat.gui with the trees available in the server.
-async function add_trees(dgui_tree) {
-  const data = await api("/trees");
-  const trees = {};
-  data.map(t => trees[t.name] = t.id);
-  dgui_tree.add(view, "tree_name", Object.keys(trees)).name("name")
-    .onChange(async () => {
-      div_tree.style.cursor = "wait";
-      view.tree_id = trees[view.tree_name];
-      await reset_zoom();
-      if (view.drawer === "Circ") {
-        view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
-        view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
-      }
-      else {
-        view.tl.x = 0;
-        view.tl.y = 0;
-      }
-      draw_minimap();
-      update();
-    });
-}
-
-
 // Set the zoom so the full tree fits comfortably on the screen.
 async function reset_zoom(reset_zx=true, reset_zy=true) {
   if (reset_zx || reset_zy) {
-    const size = await api(`/trees/${view.tree_id}/size`);
+    const size = await api(`/trees/${trees[view.tree]}/size`);
     if (view.drawer === "Circ") {
       const smaller_dim = Math.min(div_tree.offsetWidth, div_tree.offsetHeight);
       view.zoom.x = view.zoom.y = smaller_dim / size.width / 2;
@@ -229,32 +160,17 @@ async function reset_zoom(reset_zx=true, reset_zy=true) {
 }
 
 
-async function add_drawers(dgui_tree) {
-  const drawers = await api("/trees/drawers");
-  dgui_tree.add(view, "drawer", drawers).onChange(async () => {
-    if (view.drawer === "Circ") {
-      await reset_zoom();
-      view.minimap_show = false;
-      show_minimap(false);
-      view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
-      view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
-    }
-    update();
-  });
-}
-
-
 // Return an url with the view of the given rectangle of the tree.
 function get_url_view(x, y, w, h) {
   const qs = new URLSearchParams({x: x, y: y, w: w, h: h,
-    id: view.tree_id, name: view.tree_name, drawer: view.drawer});
+    tree: view.tree, drawer: view.drawer});
   return window.location.href.split('?')[0] + "?" + qs.toString();
 }
 
 
 // Show an alert with information about the current tree and view.
 async function show_tree_info() {
-  const info = await api(`/trees/${view.tree_id}`);
+  const info = await api(`/trees/${trees[view.tree]}`);
   const url = get_url_view(view.tl.x, view.tl.y,
     div_tree.offsetWidth / view.zoom.x, div_tree.offsetHeight / view.zoom.y);
 
@@ -268,8 +184,8 @@ async function show_tree_info() {
 
 // Download a file with the newick representation of the tree.
 async function download_newick() {
-  const newick = await api(`/trees/${view.tree_id}/newick`);
-  download(view.tree_name + ".tree", "data:text/plain;charset=utf-8," + newick);
+  const newick = await api(`/trees/${trees[view.tree]}/newick`);
+  download(view.tree + ".tree", "data:text/plain;charset=utf-8," + newick);
 }
 
 
@@ -279,7 +195,7 @@ function download_svg() {
   Array.from(svg.getElementsByClassName("node")).forEach(e => e.remove());
   const svg_xml = (new XMLSerializer()).serializeToString(svg);
   const content = "data:image/svg+xml;base64," + btoa(svg_xml);
-  download(view.tree_name + ".svg", content);
+  download(view.tree + ".svg", content);
 }
 
 
@@ -296,7 +212,7 @@ function download_image() {
   img.src = "data:image/svg+xml;base64," + btoa(svg_xml);
   img.addEventListener("load", () => {
     ctx.drawImage(img, 0, 0);
-    download(view.tree_name + ".png", canvas.toDataURL("image/png"));
+    download(view.tree + ".png", canvas.toDataURL("image/png"));
   });
 }
 
@@ -343,33 +259,33 @@ document.addEventListener("mousedown", event => {
     ;  // if by clicking we can select text, don't do anything else
   }
   else if (div_visible_rect.contains(event.target)) {
-    view.drag.element = div_visible_rect;
+    drag.element = div_visible_rect;
     drag_start(event);
   }
   else if (div_minimap.contains(event.target)) {
     move_minimap_view(event);
   }
   else if (div_tree.contains(event.target)) {
-    view.drag.element = div_tree;
+    drag.element = div_tree;
     drag_start(event);
   }
 });
 
 
 document.addEventListener("mouseup", event => {
-  if (view.drag.element) {
+  if (drag.element) {
     drag_stop(event);
     update_tree();
   }
 
-  view.drag.element = undefined;
+  drag.element = undefined;
 });
 
 
 document.addEventListener("mousemove", event => {
   update_pointer_pos(event);
 
-  if (view.drag.element) {
+  if (drag.element) {
     drag_stop(event);
 
     if (view.update_on_drag)
@@ -379,7 +295,7 @@ document.addEventListener("mousemove", event => {
     g.setAttribute("transform",
       `translate(${-view.zoom.x * view.tl.x} ${-view.zoom.y * view.tl.y})`);
 
-    view.datgui.updateDisplay();  // update the info box on the top-right
+    datgui.updateDisplay();  // update the info box on the top-right
     if (view.minimap_show)
       update_minimap_visible_rect();
 
@@ -391,8 +307,8 @@ document.addEventListener("mousemove", event => {
 function drag_start(event) {
   div_tree.style.cursor = div_visible_rect.style.cursor = "grabbing";
 
-  view.drag.x0 = event.pageX;
-  view.drag.y0 = event.pageY;
+  drag.x0 = event.pageX;
+  drag.y0 = event.pageY;
 }
 
 
@@ -400,8 +316,8 @@ function drag_stop(event) {
   div_tree.style.cursor = "auto";
   div_visible_rect.style.cursor = "grab";
 
-  const dx = event.pageX - view.drag.x0,  // mouse position increment
-        dy = event.pageY - view.drag.y0;
+  const dx = event.pageX - drag.x0,  // mouse position increment
+        dy = event.pageY - drag.y0;
 
   if (dx != 0 || dy != 0) {
     const [scale_x, scale_y] = get_drag_scale();
@@ -412,12 +328,12 @@ function drag_stop(event) {
 
 
 function get_drag_scale() {
-  if (view.drag.element === div_tree)
+  if (drag.element === div_tree)
     return [-1 / view.zoom.x, -1 / view.zoom.y];
-  else if (view.drag.element === div_visible_rect)
+  else if (drag.element === div_visible_rect)
     return [1 / view.minimap_zoom.x, 1 / view.minimap_zoom.y];
   else
-    console.log(`Cannot find dragging scale for ${view.drag.element}.`);
+    console.log(`Cannot find dragging scale for ${drag.element}.`);
 }
 
 
@@ -446,7 +362,7 @@ function update_pointer_pos(event) {
 
 // Update the view of all elements (gui, tree, minimap).
 function update() {
-  view.datgui.updateDisplay();  // update the info box on the top-right
+  datgui.updateDisplay();  // update the info box on the top-right
 
   update_tree();
 
@@ -465,7 +381,7 @@ async function update_tree() {
 
   const qs = `drawer=${view.drawer}&min_size=${view.min_size}&` +
     `zx=${zx}&zy=${zy}&x=${x}&y=${y}&w=${w}&h=${h}`;
-  const items = await api(`/trees/${view.tree_id}/draw?${qs}`);
+  const items = await api(`/trees/${trees[view.tree]}/draw?${qs}`);
 
   draw(div_tree, items, view.tl, view.zoom);
 
@@ -622,14 +538,14 @@ function cartesian(r, a) {
 
 // Draw the full tree on a small div on the bottom-right ("minimap").
 async function draw_minimap() {
-  const size = await api(`/trees/${view.tree_id}/size`);
+  const size = await api(`/trees/${trees[view.tree]}/size`);
   const zx = div_minimap.offsetWidth / size.width,
         zy = div_minimap.offsetHeight / size.height;
 
   view.minimap_zoom = {x: zx, y: zy};
 
   const qs = `drawer=Simple&zx=${zx}&zy=${zy}`;
-  const items = await api(`/trees/${view.tree_id}/draw?${qs}`);
+  const items = await api(`/trees/${trees[view.tree]}/draw?${qs}`);
 
   draw(div_minimap, items, {x: 0, y: 0}, view.minimap_zoom);
 

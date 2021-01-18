@@ -100,7 +100,7 @@ button_upload.addEventListener("click", async () => {
   }
 
   const data = await response.json();
-  window.location.href = `gui.html?id=${data.id}&name=${name}`;
+  window.location.href = `gui.html?tree=${name}`;
 });
 
 

@@ -31,7 +31,7 @@ cdef class Tree:
         else:
             if children:
                 raise NewickError('init from newick cannot have children')
-            self.init_from_newick(tree_text=content)
+            self.init_from_newick(content)
 
     def init_normal(self, content, children):
         self.content = content
