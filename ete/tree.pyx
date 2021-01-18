@@ -212,6 +212,7 @@ def read_fields(content):
     Example:
       'abc:123[&&NHX:x=foo:y=bar]' -> ('abc', 123, {'x': 'foo', 'y': 'bar'})
     """
+    cdef double length
     if content.startswith("'"):
         name, pos = read_quoted_name(content, 0)
     else:

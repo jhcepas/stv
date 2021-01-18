@@ -111,8 +111,7 @@ class Drawer:
         elems = []  # graphic elements to return
         if self.in_viewport(Box(x, y, dx, dy)):
             bh = self.bh(node)  # node's branching height (in the right units)
-            elems.append(self.draw_lengthline((x,      y + bh),
-                                              (x + dx, y + bh)))
+            elems.append(self.draw_lengthline((x, y + bh), (x + dx, y + bh)))
 
             if len(node.children) > 1:
                 c0, c1 = node.children[0], node.children[-1]
@@ -242,7 +241,7 @@ class DrawerCirc(Drawer):
         return draw_asec(box, 'node', name, properties)
 
 
-def cartesian(r, a):
+def cartesian(double r, double a):
     return r * cos(a), r * sin(a)
 
 

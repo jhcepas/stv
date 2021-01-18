@@ -51,8 +51,8 @@ async function api(endpoint) {
 
 
 async function init_trees() {
-  const tree_info = await api("/trees");
-  tree_info.forEach(t => trees[t.name] = t.id);
+  const trees_info = await api("/trees");
+  trees_info.forEach(t => trees[t.name] = t.id);
   view.tree = Object.keys(trees)[0];
 }
 
