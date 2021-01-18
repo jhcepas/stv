@@ -2,7 +2,7 @@
 Classes and functions for drawing a tree.
 """
 
-from math import sin, cos, pi
+from math import sin, cos, pi, sqrt, atan2
 from collections import namedtuple
 
 Size = namedtuple('Size', 'dx dy')  # size of a 2D shape (sizes are always >= 0)
@@ -195,12 +195,29 @@ class DrawerCirc(Drawer):
 
     def __init__(self, viewport=None, zoom=(1, 1), limits=(-pi, pi)):
         super().__init__(viewport, zoom)
+
         self.ymin, self.ymax = limits
         self.y2a = 0  # will be computed on self.draw()
 
+        vx, vy, vw, vh = self.viewport
+        points = [(vx, vy), (vx, vy+vh), (vx+vw, vy), (vx+vw, vy+vh)]
+        radius2 = [x*x + y*y for x,y in points]
+        angles = [atan2(y, x) for x,y in points]
+        if vx <= 0 and vx+vw >= 0 and vy <= 0 and vy+vh >= 0:
+            self.rmin = 0
+            self.rmax = sqrt(max(radius2))
+            self.amin = -pi
+            self.amax = pi
+        else:
+            self.rmin = sqrt(min(radius2))
+            self.rmax = sqrt(max(radius2))
+            self.amin = min(angles)
+            self.amax = max(angles)
+
     def in_viewport(self, box):
-        return True
-        # TODO: find if the annulus sector intersects the viewport rectangle.
+        r, a, dr, da = box
+        return ((self.rmin < r + dr and r < self.rmax) and
+                (self.amin < a + da and a < self.amax))
 
     def draw_outline(self, box):
         return draw_asec(box, 'outline')
