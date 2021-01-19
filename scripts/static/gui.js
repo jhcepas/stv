@@ -514,15 +514,15 @@ function item2svgelement(item, zoom) {
       "stroke": view.line_color});
   }
   else if (item[0].startsWith('t')) {  // text
-    const [ , text_type, x, y, w, h, txt] = item;
+    const [ , text_type, x, y, fs, txt] = item;
 
-    const [zw, zh] = [zx * w, zy * h];
-    const fs = Math.min(view.font_size_max, zh, 1.5 * zw / txt.length);
+    const font_size = (text_type === "name" ? zy * fs :
+      Math.min(view.font_size_max, fs));
 
     const t = create_svg_element("text", {
       "class": "text " + text_type,
       "x": zx * x, "y": zy * y,
-      "font-size": `${w >= 0 ? fs : zh}px`});
+      "font-size": `${font_size}px`});
     t.appendChild(document.createTextNode(txt));
     return t;
     // NOTE: If we wanted to use the exact width of the item, we could add:

@@ -270,26 +270,27 @@ class DrawerSimple(DrawerRect):
 class DrawerLeafNames(DrawerRect):
     "With names on leaf nodes"
 
-    def draw_content_float(self, node, point=(0, 0)):
+    def draw_content_float(self, node, point):
         if node.is_leaf:
             x, y = point
             w, h = self.content_size(node)
             zx, zy = self.zoom
             p_after_content = (x + w + 2 / zx, y + h / 1.5)
-            box_after_content = make_box(p_after_content, Size(-1, h/2))
-            yield draw_text(box_after_content, node.name, 'name')
+            fs = h/2
+            yield draw_text(p_after_content, fs, node.name, 'name')
 
 
 class DrawerLengths(DrawerRect):
     "With labels on the lengths"
 
-    def draw_content_inline(self, node, point=(0, 0)):
+    def draw_content_inline(self, node, point):
         if node.length >= 0:
             x, y = point
             w, h = self.content_size(node)
             zx, zy = self.zoom
             text = '%.2g' % node.length
-            g_text = draw_text((x, y + node.bh, w, node.bh), text, 'length')
+            fs = min(zy * node.bh, zx * 1.5 * w / len(text))
+            g_text = draw_text((x, y + node.bh), fs, text, 'length')
 
             if zy * h > 1:  # NOTE: we may want to change this, but it's tricky
                 yield g_text
@@ -305,11 +306,11 @@ class DrawerFull(DrawerLeafNames, DrawerLengths):
 class DrawerAlign(DrawerFull):
     "With aligned content"
 
-    def draw_content_align(self, node, point=(0, 0)):
+    def draw_content_align(self, node, point):
         if node.is_leaf:
             x, y = point
             w, h = self.content_size(node)
-            yield align(draw_text((0, y+h/1.5, 0, h/2), node.name, 'name'))
+            yield align(draw_text((0, y+h/1.5), h/2, node.name, 'name'))
 
 
 
@@ -338,9 +339,9 @@ def draw_arc(p1, p2, large=False):
     x2, y2 = p2
     return ['c', x1, y1, x2, y2, int(large)]
 
-def draw_text(rect, text, text_type=''):
-    x, y, w, h = rect
-    return ['t', text_type, x, y, w, h, text]
+def draw_text(point, fs, text, text_type=''):
+    x, y = point
+    return ['t', text_type, x, y, fs, text]
 
 def align(element):
     return ['a'] + element
@@ -348,8 +349,8 @@ def align(element):
 
 # Box-related functions.
 
-def make_box(p, size):
-    x, y = p
+def make_box(point, size):
+    x, y = point
     dx, dy = size
     return Box(x, y, dx, dy)
 
