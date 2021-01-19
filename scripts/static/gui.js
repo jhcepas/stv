@@ -10,6 +10,7 @@ const view = {
   tree: "",
   drawer: "Full",
   show_tree_info: () => show_tree_info(),
+  reset_zoom: () => on_tree_change(),
   download_newick: () => download_newick(),
   download_svg: () => download_svg(),
   download_image: () => download_image(),
