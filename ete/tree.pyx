@@ -1,7 +1,5 @@
 """
-Tree utilities.
-
-Class to represent a tree (which is a node connected to other nodes) and
+Class to represent trees (which are nodes connected to other nodes) and
 functions to read and write them.
 
 The text representation of the trees are expected to be in the newick format:
@@ -43,11 +41,11 @@ cdef class Tree:
             (children[0].bh - children[-1].size[1] + children[-1].bh) / 2)
 
     def init_from_newick(self, tree_text):
-        t = loads(tree_text)
-        self.content = t.content
-        self.children = t.children
-        self.size = t.size
-        self.bh = t.bh
+        tree = loads(tree_text)
+        self.content = tree.content
+        self.children = tree.children
+        self.size = tree.size
+        self.bh = tree.bh
 
     @property
     def content(self):
