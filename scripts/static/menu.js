@@ -8,7 +8,7 @@ function create_datgui(view, trees, drawers) {
   // Shortcut for getting the styles.
   const [style_line, style_font, style_name, style_length,
     style_node, style_outline] =
-    [1, 3, 4, 5, 6, 7].map(i => document.styleSheets[1].cssRules[i].style);
+    [1, 3, 4, 5, 6, 7].map(i => document.styleSheets[0].cssRules[i].style);
 
   const dgui = new dat.GUI({autoPlace: false});
   div_datgui.appendChild(dgui.domElement);
