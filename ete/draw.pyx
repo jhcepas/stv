@@ -199,25 +199,11 @@ class DrawerCirc(Drawer):
         self.ymin, self.ymax = limits
         self.y2a = 0  # will be computed on self.draw()
 
-        vx, vy, vw, vh = self.viewport
-        points = [(vx, vy), (vx, vy+vh), (vx+vw, vy), (vx+vw, vy+vh)]
-        radius2 = [x*x + y*y for x,y in points]
-        angles = [atan2(y, x) for x,y in points]
-        if vx <= 0 and vx+vw >= 0 and vy <= 0 and vy+vh >= 0:
-            self.rmin = 0
-            self.rmax = sqrt(max(radius2))
-            self.amin = -pi
-            self.amax = pi
-        else:
-            self.rmin = sqrt(min(radius2))
-            self.rmax = sqrt(max(radius2))
-            self.amin = min(angles)
-            self.amax = max(angles)
+        self.circumasec_viewport = circumasec(self.viewport)
 
     def in_viewport(self, box):
-        r, a, dr, da = box
-        return ((self.rmin < r + dr and r < self.rmax) and
-                (self.amin < a + da and a < self.amax))
+        return (intersects(self.circumasec_viewport, box) or
+                intersects(self.viewport, circumrect(box)))
 
     def draw_outline(self, box):
         return draw_asec(box, 'outline')
@@ -376,3 +362,28 @@ def stack(b1, b2):
         return Box(b1.x, b1.y, max(b1.dx, b2.dx), b1.dy + b2.dy)
     else:
         return None
+
+
+def circumrect(asec):
+    "Return the rectangle that circumscribes the given annulus sector"
+    cdef double r, a, dr, da
+    r, a, dr, da = asec
+    points = [(r, a), (r, a+da), (r+dr, a), (r+dr, a+da)]
+    xs = [r * cos(a) for r,a in points]
+    ys = [r * sin(a) for r,a in points]
+    xmin, ymin = min(xs), min(ys)
+    return Box(xmin, ymin, max(xs) - xmin, max(ys) - ymin)
+
+
+def circumasec(rect):
+    "Return the annulus sector that circumscribes the given rectangle"
+    cdef double x, y, w, h
+    x, y, w, h = rect
+    points = [(x, y), (x, y+h), (x+w, y), (x+w, y+h)]
+    radius2 = [x*x + y*y for x,y in points]
+    if x <= 0 and x+w >= 0 and y <= 0 and y+h >= 0:
+        return Box(0, -pi, sqrt(max(radius2)), 2*pi)
+    else:
+        angles = [atan2(y, x) for x,y in points]
+        rmin, amin = sqrt(min(radius2)), min(angles)
+        return Box(rmin, amin, sqrt(max(radius2)) - rmin, max(angles) - amin)
