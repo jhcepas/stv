@@ -266,6 +266,19 @@ class DrawerLeafNames(DrawerRect):
             yield draw_text(p_after_content, fs, node.name, 'name')
 
 
+class DrawerCircLeafNames(DrawerCirc):
+    "With names on leaf nodes"
+
+    def draw_content_float(self, node, point):
+        if node.is_leaf:
+            r, a = point
+            dr, da = self.content_size(node)
+            zx, zy = self.zoom
+            p_after_content = cartesian(r + dr + 2 / zx, a + da/2 + da*pi/90)
+            fs = da / 2
+            yield draw_text(p_after_content, fs, node.name, 'name')
+
+
 class DrawerLengths(DrawerRect):
     "With labels on the lengths"
 
@@ -302,7 +315,7 @@ class DrawerAlign(DrawerFull):
 
 def get_drawers():
     return [DrawerSimple, DrawerLengths, DrawerLeafNames, DrawerFull,
-        DrawerAlign, DrawerCirc]
+        DrawerAlign, DrawerCirc, DrawerCircLeafNames]
 
 
 # Basic drawing elements.

@@ -9,6 +9,7 @@ const view = {
   pos: {x: 0, y: 0},  // in-tree current pointer position
   tree: "",
   drawer: "Full",
+  is_circular: false,
   show_tree_info: () => show_tree_info(),
   reset_zoom: () => on_tree_change(),
   download_newick: () => download_newick(),
@@ -80,7 +81,7 @@ window.addEventListener("resize", update);  // we could also draw_minimap()
 async function on_tree_change() {
   div_tree.style.cursor = "wait";
   await reset_zoom();
-  if (view.drawer === "Circ") {
+  if (view.is_circular) {
     view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
     view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
   }
@@ -95,12 +96,20 @@ async function on_tree_change() {
 
 // What happens when the user selects a new drawer in the datgui menu.
 async function on_drawer_change() {
-  if (view.drawer === "Circ") {
+  const reset_draw = (view.is_circular !== view.drawer.startsWith("Circ"));
+
+  view.is_circular = view.drawer.startsWith("Circ");
+
+  if (reset_draw) {
     await reset_zoom();
-    view.minimap_show = false;
-    show_minimap(false);
-    view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
-    view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
+    if (view.is_circular) {
+      view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
+      view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
+    }
+    else {
+      view.tl.x = 0;
+      view.tl.y = 0;
+    }
   }
   update();
 }
@@ -128,6 +137,8 @@ function set_query_string_values() {
       unknown_params.push(param);
   }
 
+  view.is_circular = view.drawer.startsWith("Circ");
+
   if (unknown_params.length != 0)
     Swal.fire("Oops!",
       "There were unknown parameters passed: " + unknown_params.join(", "),
@@ -147,7 +158,7 @@ function show_minimap(show) {
 async function reset_zoom(reset_zx=true, reset_zy=true) {
   if (reset_zx || reset_zy) {
     const size = await api(`/trees/${trees[view.tree]}/size`);
-    if (view.drawer === "Circ") {
+    if (view.is_circular) {
       const smaller_dim = Math.min(div_tree.offsetWidth, div_tree.offsetHeight);
       view.zoom.x = view.zoom.y = smaller_dim / size.width / 2;
     }
@@ -527,10 +538,17 @@ function item2svgelement(item, zoom) {
     const font_size = (text_type === "name" ? zy * fs :
       Math.min(view.font_size_max, fs));
 
-    const t = create_svg_element("text", {
+    const attrs = {
       "class": "text " + text_type,
       "x": zx * x, "y": zy * y,
-      "font-size": `${font_size}px`});
+      "font-size": `${font_size}px`};
+
+    if (view.is_circular) {
+      const angle = Math.atan2(y, x) * 180 / Math.PI;
+      attrs["transform"] = `rotate(${angle}, ${zx*x}, ${zy*y})`;
+    }
+
+    const t = create_svg_element("text", attrs);
     t.appendChild(document.createTextNode(txt));
     return t;
     // NOTE: If we wanted to use the exact width of the item, we could add:
