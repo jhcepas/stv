@@ -129,7 +129,7 @@ function set_query_string_values() {
   }
 
   if (unknown_params.length != 0)
-    swal("Oops!",
+    Swal.fire("Oops!",
       "There were unknown parameters passed: " + unknown_params.join(", "),
       "warning");
 }
@@ -175,11 +175,18 @@ async function show_tree_info() {
   const url = get_url_view(view.tl.x, view.tl.y,
     div_tree.offsetWidth / view.zoom.x, div_tree.offsetHeight / view.zoom.y);
 
-  swal("Tree Information",
-    `Id: ${info.id}\n` +
-    `Name: ${info.name}\n` +
-    (info.description ? `Description: ${info.description}\n` : "") + "\n\n" +
-    `URL of the current view:\n\n${url}`);
+  Swal.fire({
+    title: "Tree Information",
+    icon: "info",
+    html: `${info.name} (<a href="/trees/${info.id}">${info.id}</a>)<br><br>` +
+    (info.description ? `${info.description}<br><br>` : "") +
+    `(<a href="${url}">current view</a>)`,
+    confirmButtonText: "Copy view to clipboard",
+    showCancelButton: true,
+  }).then(result => {
+    if (result.isConfirmed)
+      navigator.clipboard.writeText(url);
+  });
 }
 
 
