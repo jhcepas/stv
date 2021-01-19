@@ -23,23 +23,23 @@ def test_draw_elements():
         ['l', 1, 2, 3, 4]
     assert draw.draw_arc((1, 2), (3, 4), True) == \
         ['c', 1, 2, 3, 4, 1]
-    assert draw.draw_text(Box(1, 2, 3, 4), 'hello') == \
-        ['t', '', 1, 2, 3, 4, 'hello']
-    assert draw.draw_text(Box(1, 2, 3, 4), 'world', 'node') == \
-        ['t', 'node', 1, 2, 3, 4, 'world']
+    assert draw.draw_text((1, 2), 3, 'hello') == \
+        ['t', '', 1, 2, 3, 'hello']
+    assert draw.draw_text((1, 2), 3, 'world', 'node') == \
+        ['t', 'node', 1, 2, 3, 'world']
 
 
 def test_draw_content_inline():
     t = tree.Tree('A:10')
     drawer1 = draw.DrawerFull(zoom=(10, 10))
     print('<-', t)
-    print('->', list(drawer1.draw_content_inline(t)))
-    assert list(drawer1.draw_content_inline(t)) == [
-        ['t', 'length', 0, 0.5, 10.0, 0.5, '10']]
+    print('->', list(drawer1.draw_content_inline(t, (0, 0))))
+    assert list(drawer1.draw_content_inline(t, (0, 0))) == [
+        ['t', 'length', 0, 0.5, 5.0, '10']]
     print('<-', t, 'zoom=(0.1, 0.1)')
     drawer2 = draw.DrawerFull(zoom=(0.1, 0.1))
-    print('->', list(drawer2.draw_content_inline(t)))
-    assert list(drawer2.draw_content_inline(t)) == []
+    print('->', list(drawer2.draw_content_inline(t, (0, 0))))
+    assert list(drawer2.draw_content_inline(t, (0, 0))) == []
 
 
 def test_draw_tree():
@@ -53,24 +53,24 @@ def test_draw_tree():
         ['r', 'node', 0, 0, 751.0, 3.0, 'F', {}],
         ['l', 1.0, 1.25, 101.0, 1.25],
         ['l', 101.0, 0.5, 101.0, 2.0],
-        ['t', 'length', 1.0, 1.25, 100.0, 1.25, '1e+02'],
+        ['t', 'length', 1.0, 1.25, 12.5, '1e+02'],
         ['r', 'node', 1.0, 0, 750.0, 3.0, 'A', {}],
         ['l', 101.0, 0.5, 301.0, 0.5],
-        ['t', 'length', 101.0, 0.5, 200.0, 0.5, '2e+02'],
+        ['t', 'length', 101.0, 0.5, 5.0, '2e+02'],
         ['r', 'node', 101.0, 0, 200.0, 1.0, 'B', {}],
-        ['t', 'name', 301.2, 0.6666666666666666, -1, 0.5, 'B'],
+        ['t', 'name', 301.2, 0.6666666666666666, 0.5, 'B'],
         ['l', 101.0, 2.0, 451.0, 2.0],
         ['l', 451.0, 1.5, 451.0, 2.5],
-        ['t', 'length', 101.0, 2.0, 350.0, 1.0, '3.5e+02'],
+        ['t', 'length', 101.0, 2.0, 10.0, '3.5e+02'],
         ['r', 'node', 101.0, 1.0, 650.0, 2.0, 'E', {}],
         ['l', 451.0, 1.5, 701.0, 1.5],
-        ['t', 'length', 451.0, 1.5, 250.0, 0.5, '2.5e+02'],
+        ['t', 'length', 451.0, 1.5, 5.0, '2.5e+02'],
         ['r', 'node', 451.0, 1.0, 250.0, 1.0, 'C', {}],
-        ['t', 'name', 701.2, 1.6666666666666665, -1, 0.5, 'C'],
+        ['t', 'name', 701.2, 1.6666666666666665, 0.5, 'C'],
         ['l', 451.0, 2.5, 751.0, 2.5],
-        ['t', 'length', 451.0, 2.5, 300.0, 0.5, '3e+02'],
+        ['t', 'length', 451.0, 2.5, 5.0, '3e+02'],
         ['r', 'node', 451.0, 2.0, 300.0, 1.0, 'D', {}],
-        ['t', 'name', 751.2, 2.6666666666666665, -1, 0.5, 'D']]
+        ['t', 'name', 751.2, 2.6666666666666665, 0.5, 'D']]
 
     print('<-', tree_text)
     print(t)
