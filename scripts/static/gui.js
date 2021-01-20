@@ -261,7 +261,9 @@ document.body.addEventListener("wheel", event => {
   event.preventDefault();
   const qz = (event.deltaY < 0 ? 1.25 : 0.8);  // zoom change (quotient)
 
-  const [do_zoom_x, do_zoom_y] = [!event.altKey, !event.ctrlKey];
+  let [do_zoom_x, do_zoom_y] = [!event.altKey, !event.ctrlKey];
+  if (view.is_circular)
+    do_zoom_x = do_zoom_y = (do_zoom_x || do_zoom_y);  // all together
 
   if (do_zoom_x) {
     const zoom_new = qz * view.zoom.x;
