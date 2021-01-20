@@ -394,15 +394,14 @@ function move_minimap_view(event) {
   const mbw = 3;  // border-width from .minimap css
 
   // Top-left pixel coordinates of the tree (0, 0) position in the minimap.
-  let [x0, y0] = [div_minimap.offsetLeft + 2*mbw, div_minimap.offsetTop + 2*mbw];
+  let [x0, y0] = [div_minimap.offsetLeft + mbw, div_minimap.offsetTop + mbw];
   if (view.is_circular) {
-    x0 += div_minimap.offsetWidth / 2;
-    y0 += div_minimap.offsetHeight / 2;
+    x0 += (div_minimap.offsetWidth - 2 * mbw) / 2;
+    y0 += (div_minimap.offsetHeight - 2 * mbw) / 2;
   }
 
   // Size of the visible rectangle.
-  const w = div_visible_rect.offsetWidth - 2 * mbw,
-        h = div_visible_rect.offsetHeight - 2 * mbw;
+  const [w, h] = [div_visible_rect.offsetWidth, div_visible_rect.offsetHeight];
 
   view.tl.x = (event.pageX - w/2 - x0) / view.minimap_zoom.x;
   view.tl.y = (event.pageY - h/2 - y0) / view.minimap_zoom.y;
