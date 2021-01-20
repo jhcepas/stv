@@ -20,7 +20,7 @@ function create_datgui(view, trees, drawers) {
 
   dgui_tree.add(view, "tree", trees).onChange(on_tree_change);
   dgui_tree.add(view, "drawer", drawers).onChange(on_drawer_change);
-  dgui_tree.add(view, "reset_zoom").name("reset zoom");
+  dgui_tree.add(view, "reset_view").name("reset view");
   dgui_tree.add(view, "show_tree_info").name("info");
   dgui_tree.add(view, "upload_tree").name("upload");
   const dgui_download = dgui_tree.addFolder("download");

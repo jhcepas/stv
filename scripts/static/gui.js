@@ -11,7 +11,7 @@ const view = {
   drawer: "Full",
   is_circular: false,
   show_tree_info: () => show_tree_info(),
-  reset_zoom: () => on_tree_change(),
+  reset_view: () => reset_view(),
   download_newick: () => download_newick(),
   download_svg: () => download_svg(),
   download_image: () => download_image(),
@@ -81,14 +81,7 @@ window.addEventListener("resize", update);  // we could also draw_minimap()
 async function on_tree_change() {
   div_tree.style.cursor = "wait";
   await reset_zoom();
-  if (view.is_circular) {
-    view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
-    view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
-  }
-  else {
-    view.tl.x = 0;
-    view.tl.y = 0;
-  }
+  reset_position();
   draw_minimap();
   update();
 }
@@ -102,15 +95,16 @@ async function on_drawer_change() {
 
   if (reset_draw) {
     await reset_zoom();
-    if (view.is_circular) {
-      view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
-      view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
-    }
-    else {
-      view.tl.x = 0;
-      view.tl.y = 0;
-    }
+    reset_position();
   }
+
+  update();
+}
+
+
+async function reset_view() {
+  await reset_zoom();
+  reset_position();
   update();
 }
 
@@ -167,7 +161,19 @@ async function reset_zoom(reset_zx=true, reset_zy=true) {
         view.zoom.x = 0.5 * div_tree.offsetWidth / size.width;
       if (reset_zy)
         view.zoom.y = div_tree.offsetHeight / size.height;
-      }
+    }
+  }
+}
+
+
+function reset_position() {
+  if (view.is_circular) {
+    view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
+    view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
+  }
+  else {
+    view.tl.x = 0;
+    view.tl.y = 0;
   }
 }
 
