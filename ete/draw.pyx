@@ -380,6 +380,8 @@ def stack(b1, b2):
 def circumrect(asec):
     "Return the rectangle that circumscribes the given annulus sector"
     cdef double r, a, dr, da
+    if asec is None:
+        return None
     r, a, dr, da = asec
     points = [(r, a), (r, a+da), (r+dr, a), (r+dr, a+da)]
     xs = [r * cos(a) for r,a in points]
@@ -391,6 +393,8 @@ def circumrect(asec):
 def circumasec(rect):
     "Return the annulus sector that circumscribes the given rectangle"
     cdef double x, y, w, h
+    if rect is None:
+        return None
     x, y, w, h = rect
     points = [(x, y), (x, y+h), (x+w, y), (x+w, y+h)]
     radius2 = [x*x + y*y for x,y in points]
