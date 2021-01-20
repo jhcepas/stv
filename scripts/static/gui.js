@@ -39,6 +39,7 @@ const view = {
 };
 
 const drag = {x0: 0, y0: 0, element: undefined};  // used when dragging
+const zooming = {qz: {x: 1, y: 1}, timeout: undefined};  // used when zooming
 
 const trees = {};  // will contain trees[tree_name] = tree_id
 let datgui = undefined;
@@ -258,24 +259,47 @@ function download(fname, content) {
 // Use the mouse wheel to zoom in/out (instead of scrolling).
 document.body.addEventListener("wheel", event => {
   event.preventDefault();
-  const zr = (event.deltaY < 0 ? 1.25 : 0.8);  // zoom change (ratio)
+  const qz = (event.deltaY < 0 ? 1.25 : 0.8);  // zoom change (quotient)
 
   const [do_zoom_x, do_zoom_y] = [!event.altKey, !event.ctrlKey];
 
   if (do_zoom_x) {
-    const zoom_new = zr * view.zoom.x;
+    const zoom_new = qz * view.zoom.x;
     view.tl.x += (1 / view.zoom.x - 1 / zoom_new) * event.pageX;
     view.zoom.x = zoom_new;
   }
 
   if (do_zoom_y) {
-    const zoom_new = zr * view.zoom.y;
+    const zoom_new = qz * view.zoom.y;
     view.tl.y += (1 / view.zoom.y - 1 / zoom_new) * event.pageY;
     view.zoom.y = zoom_new;
   }
 
-  if (do_zoom_x || do_zoom_y)
-    update();
+  if (do_zoom_x || do_zoom_y) {
+    if (zooming.timeout)
+      window.clearTimeout(zooming.timeout);
+
+    if (do_zoom_x)
+      zooming.qz.x *= qz;
+    if (do_zoom_y)
+      zooming.qz.y *= qz;
+
+    const g = div_tree.children[0].children[0];
+    g.setAttribute("transform",
+      `translate(${-view.zoom.x * view.tl.x} ${-view.zoom.y * view.tl.y}) ` +
+      `scale(${zooming.qz.x}, ${zooming.qz.y})`);
+
+    if (view.minimap_show)
+      update_minimap_visible_rect();
+
+    zooming.timeout = window.setTimeout(() => {
+      zooming.qz.x = zooming.qz.y = 1;
+      zooming.timeout = undefined;
+      g.setAttribute("transform",
+        `translate(${-view.zoom.x * view.tl.x} ${-view.zoom.y * view.tl.y})`);
+      update();
+    }, 200);
+  }
 }, {passive: false});  // chrome now uses passive=true otherwise
 
 
