@@ -297,7 +297,30 @@ class DrawerLengths(DrawerRect):
                 pass  # TODO: something like  yield draw_box(get_box(g_text))
 
 
+class DrawerCircLengths(DrawerCirc):
+    "With labels on the lengths"
+
+    def draw_content_inline(self, node, point):
+        if node.length >= 0:
+            r, a = point
+            dr, da = self.content_size(node)
+            zx, zy = self.zoom
+            text = '%.2g' % node.length
+            fs = min(zy * self.bh(node), zx * 1.5 * dr / len(text))
+            g_text = draw_text(cartesian(r, a + self.bh(node)), fs, text, 'length')
+
+            if zy * da > 1:  # NOTE: we may want to change this, but it's tricky
+                yield g_text
+            else:
+                pass  # TODO: something like  yield draw_box(get_box(g_text))
+
+
 class DrawerFull(DrawerLeafNames, DrawerLengths):
+    "With names on leaf nodes and labels on the lengths"
+    pass
+
+
+class DrawerCircFull(DrawerCircLeafNames, DrawerCircLengths):
     "With names on leaf nodes and labels on the lengths"
     pass
 
@@ -315,7 +338,8 @@ class DrawerAlign(DrawerFull):
 
 def get_drawers():
     return [DrawerSimple, DrawerLengths, DrawerLeafNames, DrawerFull,
-        DrawerAlign, DrawerCirc, DrawerCircLeafNames]
+        DrawerCirc, DrawerCircLeafNames, DrawerCircLengths, DrawerCircFull,
+        DrawerAlign]
 
 
 # Basic drawing elements.
