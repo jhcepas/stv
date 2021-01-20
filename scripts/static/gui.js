@@ -598,27 +598,31 @@ function cartesian(r, a) {
 // Draw the full tree on a small div on the bottom-right ("minimap").
 async function draw_minimap() {
   const size = await api(`/trees/${trees[view.tree]}/size`);
+  const mbw = 3;  // border-width from .minimap css
   if (view.is_circular) {
     if (div_minimap.offsetWidth < div_minimap.offsetHeight)
-      div_minimap.style.height = `${div_minimap.offsetWidth - 6}px`;
+      div_minimap.style.height = `${div_minimap.offsetWidth - 2 * mbw}px`;
     else
-      div_minimap.style.width = `${div_minimap.offsetHeight - 6}px`;
+      div_minimap.style.width = `${div_minimap.offsetHeight - 2 * mbw}px`;
 
     view.minimap_zoom.x = view.minimap_zoom.y =
-      (div_minimap.offsetWidth - 6) / size.width / 2;
+      (div_minimap.offsetWidth - 2 * mbw) / size.width / 2;
   }
   else {
     div_minimap.style.width = "10%";
     div_minimap.style.height = "60%";
-    view.minimap_zoom.x = div_minimap.offsetWidth / size.width;
-    view.minimap_zoom.y = div_minimap.offsetHeight / size.height;
+    view.minimap_zoom.x = (div_minimap.offsetWidth - 2 * mbw) / size.width;
+    view.minimap_zoom.y = (div_minimap.offsetHeight - 2 * mbw) / size.height;
   }
 
   const qs = `drawer=${view.is_circular ? "Circ" : "Simple"}` +
     `&zx=${view.minimap_zoom.x}&zy=${view.minimap_zoom.y}`;
   const items = await api(`/trees/${trees[view.tree]}/draw?${qs}`);
 
-  draw(div_minimap, items, {x: 0, y: 0}, view.minimap_zoom);
+  const offset = -(div_minimap.offsetWidth - 2 * mbw) / view.minimap_zoom.x / 2;
+  const tl = view.is_circular ? {x: offset, y: offset} : {x: 0, y: 0};
+
+  draw(div_minimap, items, tl, view.minimap_zoom);
 
   Array.from(div_minimap.getElementsByClassName("node")).forEach(
     e => e.remove());
