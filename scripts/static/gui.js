@@ -391,11 +391,18 @@ function get_drag_scale() {
 
 // Move the current tree view to the given mouse position in the minimap.
 function move_minimap_view(event) {
+  const mbw = 3;  // border-width from .minimap css
+
   // Top-left pixel coordinates of the tree (0, 0) position in the minimap.
-  const [x0, y0] = [div_minimap.offsetLeft + 6, div_minimap.offsetTop + 6];
+  let [x0, y0] = [div_minimap.offsetLeft + 2*mbw, div_minimap.offsetTop + 2*mbw];
+  if (view.is_circular) {
+    x0 += div_minimap.offsetWidth / 2;
+    y0 += div_minimap.offsetHeight / 2;
+  }
 
   // Size of the visible rectangle.
-  const [w, h] = [div_visible_rect.offsetWidth, div_visible_rect.offsetHeight];
+  const w = div_visible_rect.offsetWidth - 2 * mbw,
+        h = div_visible_rect.offsetHeight - 2 * mbw;
 
   view.tl.x = (event.pageX - w/2 - x0) / view.minimap_zoom.x;
   view.tl.y = (event.pageY - h/2 - y0) / view.minimap_zoom.y;
@@ -643,8 +650,13 @@ function update_minimap_visible_rect() {
   const wz = view.zoom, mz = view.minimap_zoom;
   const ww = round(mz.x / wz.x * div_tree.offsetWidth),  // viewport size (scaled)
         wh = round(mz.y / wz.y * div_tree.offsetHeight);
-  const tx = round(mz.x * view.tl.x),  // top-left corner of visible area
-        ty = round(mz.y * view.tl.y);  //   in tree coordinates (scaled)
+  let tx = round(mz.x * view.tl.x),  // top-left corner of visible area
+      ty = round(mz.y * view.tl.y);  //   in tree coordinates (scaled)
+
+  if (view.is_circular) {
+    tx += mw / 2;
+    ty += mh / 2;
+  }
 
   const x = max(0, min(tx, mw)),  // clip tx to the interval [0, mw]
         y = max(0, min(ty, mh)),
