@@ -300,8 +300,6 @@ function smooth_zoom() {
   zooming.timeout = window.setTimeout(() => {
     zooming.qz.x = zooming.qz.y = 1;
     zooming.timeout = undefined;
-    g.setAttribute("transform",
-      `translate(${-view.zoom.x * view.tl.x} ${-view.zoom.y * view.tl.y})`);
     update();
   }, 200);
 }
