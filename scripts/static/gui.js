@@ -38,7 +38,7 @@ const view = {
   minimap_zoom: {x: 1, y: 1},
 };
 
-const drag = {x0: 0, y0: 0, element: undefined};  // used when dragging
+const dragging = {x0: 0, y0: 0, element: undefined};  // used when dragging
 const zooming = {qz: {x: 1, y: 1}, timeout: undefined};  // used when zooming
 
 const trees = {};  // will contain trees[tree_name] = tree_id
@@ -309,33 +309,33 @@ document.addEventListener("mousedown", event => {
     ;  // if by clicking we can select text, don't do anything else
   }
   else if (div_visible_rect.contains(event.target)) {
-    drag.element = div_visible_rect;
+    dragging.element = div_visible_rect;
     drag_start(event);
   }
   else if (div_minimap.contains(event.target)) {
     move_minimap_view(event);
   }
   else if (div_tree.contains(event.target)) {
-    drag.element = div_tree;
+    dragging.element = div_tree;
     drag_start(event);
   }
 });
 
 
 document.addEventListener("mouseup", event => {
-  if (drag.element) {
+  if (dragging.element) {
     drag_stop(event);
     update_tree();
   }
 
-  drag.element = undefined;
+  dragging.element = undefined;
 });
 
 
 document.addEventListener("mousemove", event => {
   update_pointer_pos(event);
 
-  if (drag.element) {
+  if (dragging.element) {
     drag_stop(event);
 
     if (view.update_on_drag)
@@ -357,8 +357,8 @@ document.addEventListener("mousemove", event => {
 function drag_start(event) {
   div_tree.style.cursor = div_visible_rect.style.cursor = "grabbing";
 
-  drag.x0 = event.pageX;
-  drag.y0 = event.pageY;
+  dragging.x0 = event.pageX;
+  dragging.y0 = event.pageY;
 }
 
 
@@ -366,8 +366,8 @@ function drag_stop(event) {
   div_tree.style.cursor = "auto";
   div_visible_rect.style.cursor = "grab";
 
-  const dx = event.pageX - drag.x0,  // mouse position increment
-        dy = event.pageY - drag.y0;
+  const dx = event.pageX - dragging.x0,  // mouse position increment
+        dy = event.pageY - dragging.y0;
 
   if (dx != 0 || dy != 0) {
     const [scale_x, scale_y] = get_drag_scale();
@@ -378,12 +378,12 @@ function drag_stop(event) {
 
 
 function get_drag_scale() {
-  if (drag.element === div_tree)
+  if (dragging.element === div_tree)
     return [-1 / view.zoom.x, -1 / view.zoom.y];
-  else if (drag.element === div_visible_rect)
+  else if (dragging.element === div_visible_rect)
     return [1 / view.minimap_zoom.x, 1 / view.minimap_zoom.y];
   else
-    console.log(`Cannot find dragging scale for ${drag.element}.`);
+    console.log(`Cannot find dragging scale for ${dragging.element}.`);
 }
 
 
