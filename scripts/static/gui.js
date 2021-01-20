@@ -267,40 +267,42 @@ document.body.addEventListener("wheel", event => {
     const zoom_new = qz * view.zoom.x;
     view.tl.x += (1 / view.zoom.x - 1 / zoom_new) * event.pageX;
     view.zoom.x = zoom_new;
+    zooming.qz.x *= qz;
   }
 
   if (do_zoom_y) {
     const zoom_new = qz * view.zoom.y;
     view.tl.y += (1 / view.zoom.y - 1 / zoom_new) * event.pageY;
     view.zoom.y = zoom_new;
+    zooming.qz.y *= qz;
   }
 
-  if (do_zoom_x || do_zoom_y) {
-    if (zooming.timeout)
-      window.clearTimeout(zooming.timeout);
-
-    if (do_zoom_x)
-      zooming.qz.x *= qz;
-    if (do_zoom_y)
-      zooming.qz.y *= qz;
-
-    const g = div_tree.children[0].children[0];
-    g.setAttribute("transform",
-      `translate(${-view.zoom.x * view.tl.x} ${-view.zoom.y * view.tl.y}) ` +
-      `scale(${zooming.qz.x}, ${zooming.qz.y})`);
-
-    if (view.minimap_show)
-      update_minimap_visible_rect();
-
-    zooming.timeout = window.setTimeout(() => {
-      zooming.qz.x = zooming.qz.y = 1;
-      zooming.timeout = undefined;
-      g.setAttribute("transform",
-        `translate(${-view.zoom.x * view.tl.x} ${-view.zoom.y * view.tl.y})`);
-      update();
-    }, 200);
-  }
+  if (do_zoom_x || do_zoom_y)
+    smooth_zoom();
 }, {passive: false});  // chrome now uses passive=true otherwise
+
+
+// Perform zoom by scaling the svg, and really update it only after a timeout.
+function smooth_zoom() {
+  if (zooming.timeout)
+    window.clearTimeout(zooming.timeout);
+
+  const g = div_tree.children[0].children[0];
+  g.setAttribute("transform",
+    `translate(${-view.zoom.x * view.tl.x} ${-view.zoom.y * view.tl.y}) ` +
+    `scale(${zooming.qz.x}, ${zooming.qz.y})`);
+
+  if (view.minimap_show)
+    update_minimap_visible_rect();
+
+  zooming.timeout = window.setTimeout(() => {
+    zooming.qz.x = zooming.qz.y = 1;
+    zooming.timeout = undefined;
+    g.setAttribute("transform",
+      `translate(${-view.zoom.x * view.tl.x} ${-view.zoom.y * view.tl.y})`);
+    update();
+  }, 200);
+}
 
 
 // Mouse down -- select text, or move in minimap, or start dragging.
