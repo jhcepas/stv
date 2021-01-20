@@ -261,8 +261,8 @@ class DrawerLeafNames(DrawerRect):
             x, y = point
             w, h = self.content_size(node)
             zx, zy = self.zoom
-            p_after_content = (x + w + 2 / zx, y + h / 1.5)
-            fs = h/2
+            p_after_content = (x + w + 2 / zx, y + h/1.3)
+            fs = h/1.4
             yield draw_text(p_after_content, fs, node.name, 'name')
 
 
