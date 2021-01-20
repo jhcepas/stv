@@ -274,8 +274,8 @@ class DrawerCircLeafNames(DrawerCirc):
             r, a = point
             dr, da = self.content_size(node)
             zx, zy = self.zoom
-            p_after_content = cartesian(r + dr + 2 / zx, a + da/2 + da*pi/90)
-            fs = da / 2
+            p_after_content = cartesian(r + dr + 2 / zx, a + da/1.5)
+            fs = 2 * da
             yield draw_text(p_after_content, fs, node.name, 'name')
 
 
