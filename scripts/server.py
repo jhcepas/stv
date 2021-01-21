@@ -231,8 +231,8 @@ class Trees(Resource):
     def post(self):
         "Add tree"
         data = get_fields(
-            required=['name', 'description', 'newick'],
-            valid_extra=['owner'])
+            required=['name', 'newick'],
+            valid_extra=['description', 'owner'])
 
         owner = data.pop('owner', g.user_id)
 
