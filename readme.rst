@@ -67,12 +67,11 @@ like::
 
   http localhost:5000/trees/1
 
-  http -a guest:123 POST localhost:5000/trees \
-    name='test tree' description='' newick='(a)b;'
+  http -a guest:123 POST localhost:5000/trees name=test newick='(a:1,b:2)c;'
 
   http -a guest:123 DELETE localhost:5000/users/2
 
-  http POST localhost:5000/login username='guest' password='123'
+  http POST localhost:5000/login username=guest password=123
 
 
 To keep on going with bearer authentication, take the returned token and use
