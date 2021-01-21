@@ -240,6 +240,9 @@ class Trees(Resource):
         if g.user_id not in [owner, admin_id]:
             raise InvalidUsage('owner set different from current user')
 
+        if dbcount('trees where name=?', data['name']) != 0:
+            raise InvalidUsage(f'tree %r already exists' % data['name'])
+
         try:
             tree.loads(data['newick'])  # load it to validate
         except tree.NewickError as e:
