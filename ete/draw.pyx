@@ -253,6 +253,11 @@ class DrawerSimple(DrawerRect):
     pass
 
 
+class DrawerCircSimple(DrawerCirc):
+    "Skeleton of the tree"
+    pass
+
+
 class DrawerLeafNames(DrawerRect):
     "With names on leaf nodes"
 
@@ -338,7 +343,7 @@ class DrawerAlign(DrawerFull):
 
 def get_drawers():
     return [DrawerSimple, DrawerLengths, DrawerLeafNames, DrawerFull,
-        DrawerCirc, DrawerCircLeafNames, DrawerCircLengths, DrawerCircFull,
+        DrawerCircSimple, DrawerCircLeafNames, DrawerCircLengths, DrawerCircFull,
         DrawerAlign]
 
 

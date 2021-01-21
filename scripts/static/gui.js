@@ -624,7 +624,7 @@ async function draw_minimap() {
     view.minimap_zoom.y = (div_minimap.offsetHeight - 2 * mbw) / size.height;
   }
 
-  const qs = `drawer=${view.is_circular ? "Circ" : "Simple"}` +
+  const qs = `drawer=${view.is_circular ? "CircSimple" : "Simple"}` +
     `&zx=${view.minimap_zoom.x}&zy=${view.minimap_zoom.y}`;
   const items = await api(`/trees/${trees[view.tree]}/draw?${qs}`);
 

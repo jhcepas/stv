@@ -15,7 +15,7 @@ insert into users values
 
 insert into trees values
     (1, 'Sample Tree', 'A simple test of a tree',
-    '((B:2,(C:3,D:4)E:5)A:1)F;'),
+    '(B:2,(C:3,D:4)E:5)A:1;'),
     (2, 'Multinest', 'An empty-looking tree',
     '(((((((((,),),),),),),),),);'),
     (3, 'Directories', 'From the filesystem',
