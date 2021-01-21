@@ -18,6 +18,7 @@ const view = {
   upload_tree: () => window.location.href = "upload_tree.html",
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: {x: 0, y: 0},  // initially chosen depending on the size of the tree
+  angle: {min: -180, max: 180},
   min_size: 6,
   update_on_drag: false,
   select_text: false,
@@ -301,7 +302,7 @@ function smooth_zoom() {
     zooming.qz.x = zooming.qz.y = 1;
     zooming.timeout = undefined;
     update();
-  }, 200);
+  }, 200);  // 200 ms until we try to actually update (if not cancelled before!)
 }
 
 
@@ -437,8 +438,10 @@ async function update_tree() {
 
   div_tree.style.cursor = "wait";
 
-  const qs = `drawer=${view.drawer}&min_size=${view.min_size}&` +
+  let qs = `drawer=${view.drawer}&min_size=${view.min_size}&` +
     `zx=${zx}&zy=${zy}&x=${x}&y=${y}&w=${w}&h=${h}`;
+  if (view.is_circular)
+    qs += `&amin=${view.angle.min}&amax=${view.angle.max}`;
   const items = await api(`/trees/${trees[view.tree]}/draw?${qs}`);
 
   draw(div_tree, items, view.tl, view.zoom);

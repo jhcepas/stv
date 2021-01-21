@@ -20,7 +20,6 @@ function create_datgui(view, trees, drawers) {
 
   dgui_tree.add(view, "tree", trees).onChange(on_tree_change);
   dgui_tree.add(view, "drawer", drawers).onChange(on_drawer_change);
-  dgui_tree.add(view, "reset_view").name("reset view");
   dgui_tree.add(view, "show_tree_info").name("info");
   dgui_tree.add(view, "upload_tree").name("upload");
   const dgui_download = dgui_tree.addFolder("download");
@@ -30,10 +29,16 @@ function create_datgui(view, trees, drawers) {
 
   const dgui_ctl = dgui.addFolder("control");
 
-  dgui_ctl.add(view.tl, "x").name("top-left x").onChange(update);
-  dgui_ctl.add(view.tl, "y").name("top-left y").onChange(update);
-  dgui_ctl.add(view.zoom, "x").name("zoom x").onChange(update);
-  dgui_ctl.add(view.zoom, "y").name("zoom y").onChange(update);
+  dgui_ctl.add(view, "reset_view").name("reset view");
+  const dgui_ctl_tl = dgui_ctl.addFolder("top-left");
+  dgui_ctl_tl.add(view.tl, "x").onChange(update);
+  dgui_ctl_tl.add(view.tl, "y").onChange(update);
+  const dgui_ctl_zoom = dgui_ctl.addFolder("zoom");
+  dgui_ctl_zoom.add(view.zoom, "x").onChange(update);
+  dgui_ctl_zoom.add(view.zoom, "y").onChange(update);
+  const dgui_ctl_circ = dgui_ctl.addFolder("circular");
+  dgui_ctl_circ.add(view.angle, "min", -180, 180).name("angle min").onChange(update);
+  dgui_ctl_circ.add(view.angle, "max", -180, 180).name("angle max").onChange(update);
   dgui_ctl.add(view, "min_size", 1, 100).name("collapse at").onChange(update);
   dgui_ctl.add(view, "update_on_drag").name("update on drag");
   dgui_ctl.add(view, "select_text").name("select text").onChange(() => {

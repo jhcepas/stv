@@ -36,6 +36,7 @@ os.chdir(os.path.abspath(os.path.dirname(__file__)))
 import sys
 sys.path.insert(0, '..')
 
+from math import pi
 from functools import partial
 from contextlib import contextmanager
 from flask import Flask, request, jsonify, g, redirect, url_for
@@ -206,12 +207,18 @@ class Trees(Resource):
         elif rule == '/trees/<int:tree_id>/draw':
             try:
                 viewport = get_viewport(request.args)
-                zoom = [float(request.args.get(z, 1)) for z in ['zx', 'zy']]
+                get = lambda x, default: float(request.args.get(x, default))
+                zoom = (get('zx', 1), get('zy', 1))
                 assert zoom[0] > 0 and zoom[1] > 0, 'zoom must be > 0'
                 drawer = get_drawer(request.args)
-                drawer.MIN_SIZE = float(request.args.get('min_size', 6))
+                drawer.MIN_SIZE = get('min_size', 6)
                 assert drawer.MIN_SIZE > 0, 'min_size must be > 0'
-                return list(drawer(viewport, zoom).draw(load_tree(tree_id)))
+                if drawer.__name__.startswith('DrawerCirc'):
+                    amin, amax = get('amin', -180), get('amax', +180)
+                    d = drawer(viewport, zoom, (amin * pi/180, amax * pi/180))
+                else:
+                    d = drawer(viewport, zoom)
+                return list(d.draw(load_tree(tree_id)))
             except (ValueError, AssertionError) as e:
                 raise InvalidUsage(str(e))
         elif rule == '/trees/<int:tree_id>/size':
