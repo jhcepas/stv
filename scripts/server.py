@@ -137,7 +137,7 @@ class Users(Resource):
             qs = '(%s)' % ','.join('?' * len(vals))
             dbexe('insert into users %r values %s' % (tuple(cols), qs), vals)
         except sqlalchemy.exc.IntegrityError as e:
-            raise InvalidUsage('database exception adding user: %s' % e)
+            raise InvalidUsage(f'database exception adding user: {e}')
 
         uid = dbget0('id', 'users where username=?', data['username'])
         return {'message': 'ok', 'id': uid}, 201
@@ -160,7 +160,7 @@ class Users(Resource):
         res = dbexe('update users set %s where id=%d' % (qs, user_id), vals)
 
         if res.rowcount != 1:
-            raise InvalidUsage('unknown user id %d' % user_id, 409)
+            raise InvalidUsage(f'unknown user id {user_id}', 409)
 
         return {'message': 'ok'}
 
@@ -174,7 +174,7 @@ class Users(Resource):
         with shared_connection([dbget0, dbexe]) as [get0, exe]:
             res = exe('delete from users where id=?', user_id)
             if res.rowcount != 1:
-                raise InvalidUsage('unknown user id %d' % user_id, 404)
+                raise InvalidUsage(f'unknown user id {user_id}', 404)
 
             for tid in get0('id_tree', 'user_owns_trees where id_user=?', user_id):
                 del_tree(tid)
@@ -241,7 +241,7 @@ class Trees(Resource):
             raise InvalidUsage('owner set different from current user')
 
         if dbcount('trees where name=?', data['name']) != 0:
-            raise InvalidUsage(f'tree %r already exists' % data['name'])
+            raise InvalidUsage('existing tree name %r' % data['name'])
 
         try:
             tree.loads(data['newick'])  # load it to validate
@@ -256,7 +256,7 @@ class Trees(Resource):
                 exe('insert into trees %r values %s' % (tuple(cols), qs),
                     vals)
             except sqlalchemy.exc.IntegrityError as e:
-                raise InvalidUsage('database exception adding tree: %s' % e)
+                raise InvalidUsage(f'database exception adding tree: {e}')
 
             tree_id = get0('id', 'trees where name=?', data['name'])[0]
 
@@ -269,7 +269,7 @@ class Trees(Resource):
     def put(self, tree_id):
         "Modify tree"
         if dbcount('trees where id=?', tree_id) != 1:
-            raise InvalidUsage('unknown tree id %d' % tree_id)
+            raise InvalidUsage(f'unknown tree id {tree_id}')
 
         admin_id = 1
         if g.user_id not in [get_owner(tree_id), admin_id]:
@@ -289,7 +289,7 @@ class Trees(Resource):
         res = dbexe('update trees set %s where id=%d' % (qs, tree_id), vals)
 
         if res.rowcount != 1:
-            raise InvalidUsage('unknown tree id %d' % tree_id, 409)
+            raise InvalidUsage(f'unknown tree id {tree_id}', 409)
 
         return {'message': 'ok'}
 
@@ -297,7 +297,7 @@ class Trees(Resource):
     def delete(self, tree_id):
         "Delete tree and all references to it"
         if dbcount('trees where id=?', tree_id) != 1:
-            raise InvalidUsage('unknown tree id %d' % tree_id, 404)
+            raise InvalidUsage(f'unknown tree id {tree_id}', 404)
 
         admin_id = 1
         if g.user_id not in [get_owner(tree_id), admin_id]:
@@ -407,7 +407,7 @@ def get_user(uid):
     with shared_connection([dbget, dbget0]) as [get, get0]:
         users = get('id,username,name', 'users where id=?', uid)
         if len(users) == 0:
-            raise InvalidUsage('unknown user id %d' % uid, 404)
+            raise InvalidUsage(f'unknown user id {uid}', 404)
 
         user = users[0]
 
@@ -425,7 +425,7 @@ def get_tree(tid):
     with shared_connection([dbget, dbget0]) as [get, get0]:
         trees = get('id,name,description', 'trees where id=?', tid)
         if len(trees) == 0:
-            raise InvalidUsage('unknown tree id %d' % tid, 404)
+            raise InvalidUsage(f'unknown tree id {tid}', 404)
 
         tree = trees[0]
 
@@ -464,7 +464,7 @@ def add_readers(tid, uids):
     uids_str = '(%s)' % ','.join('%d' % x for x in uids)  # -> '(u1, u2, ...)'
 
     if dbcount('users where id in %s' % uids_str) != len(uids):
-        raise InvalidUsage('nonexisting user in %s' % uids_str)
+        raise InvalidUsage(f'nonexisting user in {uids_str}')
     if dbcount('user_reads_trees '
         'where id_tree=%d and id_user in %s' % (tid, uids_str)) != 0:
         raise InvalidUsage('tried to add an existing reader')
@@ -481,7 +481,7 @@ def del_readers(tid, uids):
 
     if dbcount('user_reads_trees '
         'where id_tree=%d and id_user in %s' % (tid, uids_str)) != len(uids):
-        raise InvalidUsage('nonexisting user in %s' % uids_str)
+        raise InvalidUsage(f'nonexisting user in {uids_str}')
 
     dbexe('delete from user_reads_trees where '
         'id_user in %s and id_tree=?' % uids_str, tid)
@@ -495,11 +495,11 @@ def get_fields(required=None, valid_extra=None):
     data = request.json.copy()
 
     if required and any(x not in data for x in required):
-        raise InvalidUsage('must have the fields %s' % required)
+        raise InvalidUsage(f'must have the fields {required}')
 
     valid = (required or []) + (valid_extra or [])
     if not all(x in valid for x in data):
-        raise InvalidUsage('can only have the fields %s' % valid)
+        raise InvalidUsage(f'can only have the fields {valid}')
 
     return data
 
