@@ -62,25 +62,23 @@ connections too.
 Example calls
 -------------
 
-You can use ``curl`` to test the backend with commands like::
+You can use `http <https://httpie.io/>`_ to test the backend with commands
+like::
 
-  curl -H "Content-Type: application/json" -X DELETE -u user2:123 \
-    -w '\nReturn code: %{http_code}\n' http://localhost:5000/users/2
+  http localhost:5000/trees/1
 
-  curl -H "Content-Type: application/json" -X POST -u user2:123 \
-    -d'{"id": 6, "name": "x1", "description": "x2"}' \
-    -w '\nReturn code: %{http_code}\n' http://localhost:5000/trees
+  http -a guest:123 POST localhost:5000/trees \
+    name='test tree' description='' newick='(a)b;'
 
-  curl -H "Content-Type: application/json" -X POST \
-    -d '{"username": "user2", "password": "123"}' \
-    -w '\nReturn code: %{http_code}\n' http://localhost:5000/login
+  http -a guest:123 DELETE localhost:5000/users/2
+
+  http POST localhost:5000/login username='guest' password='123'
 
 
 To keep on going with bearer authentication, take the returned token and use
 it in the next calls like::
 
-  curl -H "Content-Type: application/json" -H "Authorization: Bearer $token" \
-    -w '\nReturn code: %{http_code}\n' http://localhost:5000/users
+  http localhost:5000/info Authorization:"Bearer $token"
 
 
 Tests
