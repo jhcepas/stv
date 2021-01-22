@@ -51,7 +51,7 @@ cdef class Tree:
     def content(self):
         length_str = ':%g' % self.length if self.length >= 0 else ''
         pairs_str = ':'.join('%s=%s' % kv for kv in self.properties.items())
-        props_str = '[&&NHX:%s]' % pairs_str if pairs_str else ''
+        props_str = f'[&&NHX:{pairs_str}]' if pairs_str else ''
         return quote(self.name) + length_str + props_str
 
     @content.setter
@@ -201,7 +201,7 @@ def read_quoted_name(str text, int pos):
         else:
             pos += 1
 
-    raise NewickError('unfinished quoted name: %s' % text[start:])
+    raise NewickError(f'unfinished quoted name: {text[start:]}')
 
 
 def read_fields(content):
@@ -251,8 +251,8 @@ def read_properties(text):
 
 def dumps(tree):
     "Return newick representation from tree"
-    children_text = ','.join(dumps(n).rstrip(';') for n in tree.children)
-    return ('(%s)' % children_text if children_text else '') + tree.content + ';'
+    children_text = ','.join(dumps(node).rstrip(';') for node in tree.children)
+    return (f'({children_text})' if children_text else '') + tree.content + ';'
 
 
 def dump(tree, fp):
@@ -260,5 +260,5 @@ def dump(tree, fp):
 
 
 def copy(tree):
-    "Return a copy of a tree"
+    "Return a copy of the tree"
     return Tree(tree.content, children=[copy(node) for node in tree.children])
