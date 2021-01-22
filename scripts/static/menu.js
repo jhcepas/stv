@@ -1,4 +1,5 @@
-import { update, on_tree_change, on_drawer_change, show_minimap } from "./gui.js";
+import { update, on_tree_change, on_drawer_change, show_minimap, draw_minimap }
+  from "./gui.js";
 
 export { create_datgui };
 
@@ -39,9 +40,12 @@ function create_datgui(view, trees, drawers) {
   dgui_ctl.add(view, "align_bar", 0, 100).name("align bar").onChange((value) =>
     div_aligned.style.width = `${100 - value}%`);
   const dgui_ctl_circ = dgui_ctl.addFolder("circular");
-  dgui_ctl_circ.add(view, "rmin").name("radius min").onChange(update);
-  dgui_ctl_circ.add(view.angle, "min", -180, 180).name("angle min").onChange(update);
-  dgui_ctl_circ.add(view.angle, "max", -180, 180).name("angle max").onChange(update);
+  dgui_ctl_circ.add(view, "rmin").name("radius min").onChange(
+    () => update_with_minimap(view.minimap_show));
+  dgui_ctl_circ.add(view.angle, "min", -180, 180).name("angle min").onChange(
+    () => update_with_minimap(view.minimap_show));
+  dgui_ctl_circ.add(view.angle, "max", -180, 180).name("angle max").onChange(
+    () => update_with_minimap(view.minimap_show));
   dgui_ctl.add(view, "min_size", 1, 100).name("collapse at").onChange(update);
   dgui_ctl.add(view, "update_on_drag").name("update on drag");
   dgui_ctl.add(view, "select_text").name("select text").onChange(() => {
@@ -100,4 +104,11 @@ function create_datgui(view, trees, drawers) {
   dgui.add(view, "minimap_show").name("minimap").onChange(show_minimap);
 
   return dgui;
+}
+
+
+function update_with_minimap(minimap_show) {
+  if (minimap_show)
+    draw_minimap();
+  update();
 }

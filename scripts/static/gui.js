@@ -1,6 +1,6 @@
 import { create_datgui } from "./menu.js";
 
-export { update, on_tree_change, on_drawer_change, show_minimap };
+export { update, on_tree_change, on_drawer_change, show_minimap, draw_minimap };
 
 
 // Global variables related to the current view on the tree.
