@@ -99,7 +99,6 @@ button_upload.addEventListener("click", async () => {
     return;
   }
 
-  const data = await response.json();
   window.location.href = `gui.html?tree=${name}`;
 });
 
