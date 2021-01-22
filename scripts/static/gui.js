@@ -18,6 +18,7 @@ const view = {
   upload_tree: () => window.location.href = "upload_tree.html",
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: {x: 0, y: 0},  // initially chosen depending on the size of the tree
+  align_bar: 80,
   angle: {min: -180, max: 180},
   min_size: 6,
   update_on_drag: false,

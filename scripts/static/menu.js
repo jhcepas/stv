@@ -36,6 +36,8 @@ function create_datgui(view, trees, drawers) {
   const dgui_ctl_zoom = dgui_ctl.addFolder("zoom");
   dgui_ctl_zoom.add(view.zoom, "x").onChange(update);
   dgui_ctl_zoom.add(view.zoom, "y").onChange(update);
+  dgui_ctl.add(view, "align_bar", 0, 100).name("align bar").onChange((value) =>
+    div_aligned.style.width = `${100 - value}%`);
   const dgui_ctl_circ = dgui_ctl.addFolder("circular");
   dgui_ctl_circ.add(view.angle, "min", -180, 180).name("angle min").onChange(update);
   dgui_ctl_circ.add(view.angle, "max", -180, 180).name("angle max").onChange(update);
