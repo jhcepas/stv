@@ -213,12 +213,11 @@ class Trees(Resource):
                 drawer = get_drawer(request.args)
                 drawer.MIN_SIZE = get('min_size', 6)
                 assert drawer.MIN_SIZE > 0, 'min_size must be > 0'
-                if drawer.__name__.startswith('DrawerCirc'):
-                    amin, amax = get('amin', -180), get('amax', +180)
-                    d = drawer(viewport, zoom, (amin * pi/180, amax * pi/180))
-                else:
-                    d = drawer(viewport, zoom)
-                return list(d.draw(load_tree(tree_id)))
+                aligned = 'aligned' in request.args
+                limits = (None if not drawer.__name__.startswith('DrawerCirc') else
+                    (0, 0, get('amin', -180) * pi/180, get('amax', 180) * pi/180))
+                t = load_tree(tree_id)
+                return list(drawer(viewport, zoom, aligned, limits).draw(t))
             except (ValueError, AssertionError) as e:
                 raise InvalidUsage(str(e))
         elif rule == '/trees/<int:tree_id>/size':

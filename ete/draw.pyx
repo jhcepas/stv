@@ -40,11 +40,22 @@ class Drawer:
 
     MIN_SIZE = 6  # anything that has less pixels will be outlined
 
-    def __init__(self, viewport=None, zoom=(1, 1)):
-        self.viewport = viewport
+    def __init__(self, viewport=None, zoom=(1, 1), aligned=False, limits=None):
         self.zoom = zoom
+        self.aligned = aligned
+
+        if not viewport or not aligned:
+            self.viewport = viewport
+        else:
+            x, y, dx, dy = viewport
+            self.viewport = Box(0, y, x+dx, dy)
+
+        if limits:
+            self.xmin, self.xmax, self.ymin, self.ymax = limits
+        else:
+            self.xmin = self.xmax = self.ymin = self.ymax = 0
+
         self.outline = None
-        self.xmin = self.xmax = self.ymin = self.ymax = 0
 
     def update_outline(self, box):
         "Update the current outline and yield a graphic box if appropriate"
@@ -91,7 +102,7 @@ class Drawer:
                     y += dy
                 pop(visiting_nodes, visited_children)
 
-        if self.outline:  # draw the last outline stacked
+        if self.outline and not self.aligned:  # draw the last outline stacked
             yield self.draw_outline(self.outline)
 
     def get_content(self, node, point):
@@ -103,7 +114,13 @@ class Drawer:
             return [], False
 
         if self.is_small(box_node):          # outline & skip
-            return list(self.update_outline(box_node)), False
+            if self.aligned:
+                return [], False
+            else:
+                return list(self.update_outline(box_node)), False
+
+        if self.aligned:
+            return list(self.draw_content_align(node, point)), True
 
         x, y = point
         dx, dy = self.content_size(node)
@@ -123,7 +140,6 @@ class Drawer:
             elems.append(self.draw_nodebox(box_node, node.name, node.properties))
 
         elems += self.draw_content_float(node, (x, y))
-        elems += self.draw_content_align(node, (x, y))
 
         return elems, True
 
@@ -193,10 +209,12 @@ class DrawerRect(Drawer):
 class DrawerCirc(Drawer):
     "Minimal functional drawer for a circular representation"
 
-    def __init__(self, viewport=None, zoom=(1, 1), limits=(-pi, pi)):
-        super().__init__(viewport, zoom)
+    def __init__(self, viewport=None, zoom=(1, 1), aligned=False, limits=None):
+        super().__init__(viewport, zoom, aligned, limits)
 
-        self.ymin, self.ymax = limits
+        if not limits:
+            self.ymin, self.ymax = -pi, pi
+
         self.y2a = 0  # will be computed on self.draw()
 
         self.circumasec_viewport = circumasec(self.viewport)
@@ -337,7 +355,7 @@ class DrawerAlign(DrawerFull):
         if node.is_leaf:
             x, y = point
             w, h = self.content_size(node)
-            yield align(draw_text((0, y+h/1.5), h/2, node.name, 'name'))
+            yield draw_text((0, y+h/1.5), h/2, node.name, 'name')
 
 
 
@@ -370,9 +388,6 @@ def draw_arc(p1, p2, large=False):
 def draw_text(point, fs, text, text_type=''):
     x, y = point
     return ['t', text_type, x, y, fs, text]
-
-def align(element):
-    return ['a'] + element
 
 
 # Box-related functions.

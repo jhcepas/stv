@@ -91,6 +91,8 @@ async function on_tree_change() {
 
 // What happens when the user selects a new drawer in the datgui menu.
 async function on_drawer_change() {
+  div_aligned.style.display = (view.drawer === "Align") ? "initial" : "none";
+
   const reset_draw = (view.is_circular !== view.drawer.startsWith("Circ"));
 
   view.is_circular = view.drawer.startsWith("Circ");
@@ -135,6 +137,7 @@ function set_query_string_values() {
   }
 
   view.is_circular = view.drawer.startsWith("Circ");
+  div_aligned.style.display = (view.drawer === "Align") ? "initial" : "none";
 
   if (unknown_params.length != 0)
     Swal.fire("Oops!",
@@ -446,6 +449,13 @@ async function update_tree() {
 
   draw(div_tree, items, view.tl, view.zoom);
 
+  if (view.drawer === "Align") {
+    const aitems = await api(`/trees/${trees[view.tree]}/draw?${qs}&aligned`);
+    draw(div_aligned, aitems, view.tl, view.zoom);
+    div_aligned.children[0].children[0].setAttribute("transform",
+      `translate(0 ${-view.zoom.y * view.tl.y})`);
+  }
+
   div_tree.style.cursor = "auto";
 }
 
@@ -477,24 +487,8 @@ function draw(element, items, tl, zoom) {
 }
 
 
-// Return svg to draw the element, taking into account if it is aligned.
-function item2svg(item, zoom) {
-  if (item[0] === 'a') {  // aligned
-    const dx = zoom.x * view.tl.x + div_tree.offsetWidth - 200;
-    const g = create_svg_element("g", { "transform": `translate(${dx} 0)`});
-    g.appendChild(item2svgelement(item.slice(1), zoom));
-    return g;
-    // TODO: put the content in a different panel instead, maybe creating it
-    //   with <iframe srcdoc=...>.
-  }
-  else {
-    return item2svgelement(item, zoom);
-  }
-}
-
-
 // Return the graphical (svg) element corresponding to a drawer item.
-function item2svgelement(item, zoom) {
+function item2svg(item, zoom) {
   // item looks like ['r', ...] for a rectangle, etc.
 
   const [zx, zy] = [zoom.x, zoom.y];  // shortcut
