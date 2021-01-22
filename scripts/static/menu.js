@@ -39,6 +39,7 @@ function create_datgui(view, trees, drawers) {
   dgui_ctl.add(view, "align_bar", 0, 100).name("align bar").onChange((value) =>
     div_aligned.style.width = `${100 - value}%`);
   const dgui_ctl_circ = dgui_ctl.addFolder("circular");
+  dgui_ctl_circ.add(view, "rmin").name("radius min").onChange(update);
   dgui_ctl_circ.add(view.angle, "min", -180, 180).name("angle min").onChange(update);
   dgui_ctl_circ.add(view.angle, "max", -180, 180).name("angle max").onChange(update);
   dgui_ctl.add(view, "min_size", 1, 100).name("collapse at").onChange(update);

@@ -19,6 +19,7 @@ const view = {
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: {x: 0, y: 0},  // initially chosen depending on the size of the tree
   align_bar: 80,
+  rmin: 0,
   angle: {min: -180, max: 180},
   min_size: 6,
   update_on_drag: false,
@@ -161,7 +162,7 @@ async function reset_zoom(reset_zx=true, reset_zy=true) {
     const size = await api(`/trees/${trees[view.tree]}/size`);
     if (view.is_circular) {
       const smaller_dim = Math.min(div_tree.offsetWidth, div_tree.offsetHeight);
-      view.zoom.x = view.zoom.y = smaller_dim / size.width / 2;
+      view.zoom.x = view.zoom.y = smaller_dim / (view.rmin + size.width) / 2;
     }
     else {
       if (reset_zx)
@@ -445,7 +446,7 @@ async function update_tree() {
   let qs = `drawer=${view.drawer}&min_size=${view.min_size}&` +
     `zx=${zx}&zy=${zy}&x=${x}&y=${y}&w=${w}&h=${h}`;
   if (view.is_circular)
-    qs += `&amin=${view.angle.min}&amax=${view.angle.max}`;
+    qs += `&rmin=${view.rmin}&amin=${view.angle.min}&amax=${view.angle.max}`;
   const items = await api(`/trees/${trees[view.tree]}/draw?${qs}`);
 
   draw(div_tree, items, view.tl, view.zoom);
@@ -610,7 +611,7 @@ async function draw_minimap() {
       div_minimap.style.width = `${div_minimap.offsetHeight - 2 * mbw}px`;
 
     view.minimap_zoom.x = view.minimap_zoom.y =
-      (div_minimap.offsetWidth - 2 * mbw) / size.width / 2;
+      (div_minimap.offsetWidth - 2 * mbw) / (view.rmin + size.width) / 2;
   }
   else {
     div_minimap.style.width = "10%";
@@ -619,8 +620,13 @@ async function draw_minimap() {
     view.minimap_zoom.y = (div_minimap.offsetHeight - 2 * mbw) / size.height;
   }
 
-  const qs = `drawer=${view.is_circular ? "CircSimple" : "Simple"}` +
-    `&zx=${view.minimap_zoom.x}&zy=${view.minimap_zoom.y}`;
+  let qs = `zx=${view.minimap_zoom.x}&zy=${view.minimap_zoom.y}`;
+  if (view.is_circular)
+    qs += `&drawer=CircSimple&rmin=${view.rmin}` +
+      `&amin=${view.angle.min}&amax=${view.angle.max}`;
+  else
+    qs += "&drawer=Simple";
+
   const items = await api(`/trees/${trees[view.tree]}/draw?${qs}`);
 
   const offset = -(div_minimap.offsetWidth - 2 * mbw) / view.minimap_zoom.x / 2;
