@@ -96,13 +96,13 @@ def get_branches_repr(are_last):
 
     Example (with more spaces for clarity):
       [True , False, True , True , True ] ->
-      '|             |      |      `-   '
+      '│             │      │      └─   '
     """
     if len(are_last) == 0:
         return ''
 
-    prefix = ''.join('   ' if is_last else '|  ' for is_last in are_last[:-1])
-    return prefix + ('`- ' if are_last[-1] else '|- ')
+    prefix = ''.join('  ' if is_last else '│ ' for is_last in are_last[:-1])
+    return prefix + ('└─' if are_last[-1] else '├─')
 
 
 def quote(name, escaped_chars=" \t\r\n()[]':;,"):
