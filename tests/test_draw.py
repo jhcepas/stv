@@ -1,9 +1,5 @@
-#!/usr/bin/env python3
-
 """
-Tests for drawing trees.
-
-To run with pytest, but you can run interactively too if you want.
+Tests for drawing trees. To run with pytest.
 """
 
 import sys
@@ -32,13 +28,9 @@ def test_draw_elements():
 def test_draw_content_inline():
     t = tree.Tree('A:10')
     drawer1 = draw.DrawerFull(zoom=(10, 10))
-    print('<-', t)
-    print('->', list(drawer1.draw_content_inline(t, (0, 0))))
     assert list(drawer1.draw_content_inline(t, (0, 0))) == [
         ['t', 'length', 0, 0.5, 5.0, '10']]
-    print('<-', t, 'zoom=(0.1, 0.1)')
     drawer2 = draw.DrawerFull(zoom=(0.1, 0.1))
-    print('->', list(drawer2.draw_content_inline(t, (0, 0))))
     assert list(drawer2.draw_content_inline(t, (0, 0))) == []
 
 
@@ -47,7 +39,6 @@ def test_draw_tree():
     t = tree.loads(tree_text)
     drawer = draw.DrawerFull(zoom=(10, 10))
     elements = list(drawer.draw(t))
-    print(elements)
     assert elements == [
         ['l', 0, 1.25, 1.0, 1.25],
         ['r', 'node', 0, 0, 751.0, 3.0, 'F', {}],
@@ -72,16 +63,15 @@ def test_draw_tree():
         ['r', 'node', 451.0, 2.0, 300.0, 1.0, 'D', {}],
         ['t', 'name', 751.2,2.769230769230769, 0.7142857142857143, 'D']]
 
-    print('<-', tree_text)
-    print(t)
-    print('->', list(drawer.draw(t)))
-
 
 def test_intersects():
+    # Simple intersection test.
     r1 = Box(0, 0, 10, 20)
     r2 = Box(-5, 0, 10, 20)
     assert draw.intersects(r1, r2)
 
+    # Create several rectangles that start at their visual position and
+    # have the size (width and height) as they appear in numbers.
     rects_text = """
   10,4
       5,2
@@ -97,13 +87,6 @@ def test_intersects():
                 rects.append(Box(x, y, w, h))
                 break
 
-    for i in range(len(rects) - 1):
-        r1 = rects[i]
-        print(f'{r1} intersects...')
-        for j in range(i + 1, len(rects)):
-            r2 = rects[j]
-            print(f'    {r2} -> ', draw.intersects(r1, r2))
-
     assert draw.intersects(rects[0], rects[1])
     assert not draw.intersects(rects[1], rects[2])
     assert draw.intersects(rects[2], rects[3])
@@ -112,30 +95,6 @@ def test_intersects():
 def test_size():
     t = tree.loads('(a:2,b:3,c:4)d;')
     drawer = draw.DrawerFull(zoom=(10, 10))
-    assert drawer.node_size(t) == (5, 3)
-    assert drawer.content_size(t) == (1, 3)
-    assert drawer.children_size(t) == (4, 3)
-
-
-
-def main():
-    tests = [f for name, f in globals().items() if name.startswith('test_')]
-    try:
-        for f in tests:
-            run(f)
-    except (KeyboardInterrupt, EOFError):
-        pass
-
-
-def run(f):
-    while True:
-        answer = input('Run %s ? [y/N] ' % f.__name__).lower()
-        if answer in ['y', 'n', '']:
-            break
-    if answer.startswith('y'):
-        f()
-
-
-
-if __name__ == '__main__':
-    main()
+    assert drawer.node_size(t) == Size(5, 3)
+    assert drawer.content_size(t) == Size(1, 3)
+    assert drawer.children_size(t) == Size(4, 3)

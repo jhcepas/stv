@@ -1,9 +1,5 @@
-#!/usr/bin/env python3
-
 """
-Tests for add_tree.py.
-
-To run with pytest, but you can run interactively too if you want.
+Tests for add_tree.py. To run with pytest.
 """
 
 import os
@@ -42,26 +38,3 @@ def add_all(db):
         with pytest.raises(AssertionError):
             exec(cmd + f'{PATH}/examples/{fname}')
             # the second time should fail because of repeated name
-
-
-def main():
-    tests = [f for name, f in globals().items() if name.startswith('test_')]
-    try:
-        for f in tests:
-            run(f)
-    except (KeyboardInterrupt, EOFError):
-        pass
-
-
-def run(f):
-    while True:
-        answer = input('Run %s ? [y/N] ' % f.__name__).lower()
-        if answer in ['y', 'n', '']:
-            break
-    if answer.startswith('y'):
-        f()
-
-
-
-if __name__ == '__main__':
-    main()

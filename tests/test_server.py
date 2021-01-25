@@ -1,11 +1,7 @@
-#!/usr/bin/env python3
-
 """
-Test the functionality of server.py.
+Test the functionality of server.py. To run with pytest.
 
 The backend server must be running for the tests to run properly.
-
-To run with pytest, but you can run interactively too if you want.
 """
 
 import sys
@@ -304,27 +300,3 @@ def test_get_known_tree():
 
 def test_get_drawers():
     assert type(get('/trees/drawers')) == list
-
-
-
-def main():
-    tests = [f for name, f in globals().items() if name.startswith('test_')]
-    try:
-        for f in tests:
-            run(f)
-    except (KeyboardInterrupt, EOFError):
-        pass
-
-
-def run(f):
-    while True:
-        answer = input('Run %s ? [y/N] ' % f.__name__).lower()
-        if answer in ['y', 'n', '']:
-            break
-    if answer.startswith('y'):
-        f()
-
-
-
-if __name__ == '__main__':
-    main()

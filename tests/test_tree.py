@@ -1,9 +1,5 @@
-#!/usr/bin/env python3
-
 """
-Tests for tree-related functions.
-
-To run with pytest, but you can run interactively too if you want.
+Tests for tree-related functions. To run with pytest.
 """
 
 import os
@@ -12,12 +8,12 @@ PATH = os.path.abspath(f'{os.path.dirname(__file__)}/..')
 import sys
 sys.path.insert(0, PATH)
 
-import random
 from tempfile import TemporaryFile
 
 import pytest
 
 from ete import tree
+
 
 good_trees = """\
 ;
@@ -118,8 +114,6 @@ def test_repr():
         assert t.content == tr.content
         assert len(t.children) == len(tr.children)
 
-    print(repr(node3))  # so we see it when running interactively
-
 
 def test_str():
     node1 = tree.Tree('node1:3.1416[&&NHX:k1=v1:k2=v2]')
@@ -127,20 +121,24 @@ def test_str():
     node3 = tree.Tree('node3', [node1, node2])
     assert str(node3) == """
 node3
-|- node1:3.1416[&&NHX:k1=v1:k2=v2]
-`- :22
+├─node1:3.1416[&&NHX:k1=v1:k2=v2]
+└─:22
 """.strip()
-    print(node3)  # so we see it when running interactively
 
 
 def test_iter():
     for tree_text in good_trees:
-        print('<-', tree_text)
         t = tree.loads(tree_text)
-        print('Nodes:')
+        visited_nodes = set()
+        visited_leaves = set()
         for node in t:
-            print(' ', node.content or '<empty>')
-        print()
+            assert type(node) == tree.Tree
+            assert node not in visited_nodes and node not in visited_leaves
+            visited_nodes.add(node)
+            if node.is_leaf:
+                visited_leaves.add(node)
+        assert len(visited_nodes) == sum(1 for node in t)
+        assert len(visited_leaves) == t.size[1]
 
 
 def test_loads():
@@ -171,9 +169,7 @@ def test_read_nodes():
         last_parenthesis = tree_text.rfind(')')
         if last_parenthesis != -1:
             nodes_text = tree_text[:last_parenthesis+1]
-            print('<-', nodes_text)
             nodes, _ = tree.read_nodes(nodes_text)
-            print('->', nodes, '\n')
 
     # Do more exhaustive tests on a single list of nodes.
     nodes, pos = tree.read_nodes('(b:2,c:3,(e:4[&&NHX:k1=v1:k2=v2],),)a;', 9)
@@ -185,9 +181,7 @@ def test_read_nodes():
 
 def test_read_content():
     tree_text = '(a:11[&&NHX:x=foo:y=bar],b:22,,()c,(d[&&NHX:z=foo]));'
-    print('<-', tree_text)
     t = tree.loads(tree_text)
-    print(t)
     assert (t.name == '' and t.length == -1 and t.properties == {} and
         t.content == '')
     t1 = t.children[0]
@@ -200,7 +194,6 @@ def test_read_content():
     td = t.children[-1].children[-1]
     assert (td.name == 'd' and td.length == -1 and
         td.properties == {'z': 'foo'} and td.content == 'd[&&NHX:z=foo]')
-    print('-> Contents look good.\n')
 
 
 def test_read_quoted_name():
@@ -215,33 +208,27 @@ def test_read_quoted_name():
 
 
 def test_is_valid():
+    # Good trees should be read without throwing any exception.
     for tree_text in good_trees:
-        print('<-', tree_text)
         tree.loads(tree_text)
-        print('-> is valid\n')
 
+    # Bad trees should all throw exceptions.
     for tree_text in bad_trees:
-        print('<-', tree_text)
         with pytest.raises(tree.NewickError):
             tree.loads(tree_text)
-        print('-> is not valid\n')
 
 
 def test_read_fields():
     for tree_text in good_contents:
-        print('<-', tree_text)
         fields = tree.read_fields(tree_text)
         assert len(fields) == 3
-        print('->', fields, '\n')
 
     for tree_text in good_trees:
         t = tree.loads(tree_text)
         for node in t:
             content = node.content
-            print('<-', content)
             fields = tree.read_fields(content)
             assert len(fields) == 3
-            print('->', fields, '\n')
 
 
 def test_quote():
@@ -260,10 +247,8 @@ def test_dumps():
     for tree_text in good_trees:
         if ' ' in tree_text:
             continue  # representation of whitespaces may change and it's ok
-        print('<-', tree_text)
         t = tree.loads(tree_text)
         t_text = tree.dumps(t)
-        print('->', t_text)
         assert t_text == tree_text
         assert tree.dumps(tree.Tree(tree_text)) == tree_text
         # NOTE: we could relax this, it is asking a bit too much really
@@ -280,54 +265,11 @@ def test_load_dump():
 
 
 def test_from_example_files():
+    # Read bigger trees in example files and see if we do not throw exceptions.
     for fname in ['aves.tree', 'bac120_r95.tree', 'HmuY.aln2.tree']:
-        t = tree.load(open(f'{PATH}/examples/{fname}'))
-        print(t)
+        tree.load(open(f'{PATH}/examples/{fname}'))
 
 
 def test_tree_size():
     assert tree.loads('(a:4)c:2;').size == (6, 1)
     assert tree.loads('(a:4,b:5)c:2;').size == (7, 2)
-
-
-
-def create_random_tree(depth_max=8, branch_factor_max=5):
-    r = lambda: random.random()  # shortcut
-
-    name = ''.join(random.choice('abcdef') for i in range(int(r() * 10)))
-    length = r() * 10
-    content = '%s:%g' % (name, length)
-
-    if depth_max < 1:
-        return tree.Tree(content)
-
-    children = []
-    for i in range(int(r() * branch_factor_max)):
-        depth_max_new = depth_max - int(r() * 3)
-        children.append(create_random_tree(depth_max_new, branch_factor_max))
-
-    return tree.Tree(content, children)
-
-
-
-def main():
-    tests = [f for name, f in globals().items() if name.startswith('test_')]
-    try:
-        for f in tests:
-            run(f)
-    except (KeyboardInterrupt, EOFError):
-        pass
-
-
-def run(f):
-    while True:
-        answer = input('Run %s ? [y/N] ' % f.__name__).lower()
-        if answer in ['y', 'n', '']:
-            break
-    if answer.startswith('y'):
-        f()
-
-
-
-if __name__ == '__main__':
-    main()
