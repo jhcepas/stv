@@ -570,7 +570,7 @@ function item2svg(item, zoom) {
       "d": `M ${zx*x1} ${zy*y1} A ${r} ${r} 0 ${large} 1 ${zx*x2} ${zy*y2}`,
       "stroke": view.line_color});
   }
-  else if (item[0].startsWith('t')) {  // text
+  else if (item[0] === 't') {  // text
     const [ , text_type, x, y, fs, txt] = item;
 
     const font_size = (text_type === "name" ? zy * fs :

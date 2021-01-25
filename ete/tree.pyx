@@ -99,7 +99,6 @@ def get_branches_repr(are_last):
     """Return a text line representing the open branches according to are_last
 
     are_last is a list of bools. It says at each level if we are the last node.
-    The line has ' ' or '|' for each level, and '`' or '|' at the end.
 
     Example (with more spaces for clarity):
       [True , False, True , True , True ] ->
