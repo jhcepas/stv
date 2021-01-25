@@ -273,3 +273,30 @@ def test_from_example_files():
 def test_tree_size():
     assert tree.loads('(a:4)c:2;').size == (6, 1)
     assert tree.loads('(a:4,b:5)c:2;').size == (7, 2)
+
+
+def test_copy():
+    for tree_text in good_trees:
+        t1 = tree.loads(tree_text)
+        t2 = tree.copy(t1)
+        assert sum(1 for n in t1) == sum(1 for n in t2)  # same number of nodes
+        for n1, n2 in zip(t1, t2):
+            assert n1 != n2  # they are not the same python object
+            assert n1.content == n2.content  # but they do look identical
+
+
+def test_length_format():
+    t = tree.loads('(a:0.000001,b:1.3e34)c:234.34;')
+
+    assert tree.dumps(t) == '(a:1e-06,b:1.3e+34)c:234.34;'
+
+    tree.LENGTH_FORMAT = '%f'
+    assert tree.dumps(t) == \
+        '(a:0.000001,b:12999999999999999868938755134980096.000000)c:234.340000;'
+
+    tree.LENGTH_FORMAT = '%.2f'
+    assert tree.dumps(t) == \
+        '(a:0.00,b:12999999999999999868938755134980096.00)c:234.34;'
+
+    tree.LENGTH_FORMAT = '%E'
+    assert tree.dumps(t) == '(a:1.000000E-06,b:1.300000E+34)c:2.343400E+02;'

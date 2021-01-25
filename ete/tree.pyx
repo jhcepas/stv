@@ -11,6 +11,9 @@ class NewickError(Exception):
     pass
 
 
+LENGTH_FORMAT = '%g'  # format used to represent the length as a string
+
+
 cdef class Tree:
     cdef public str name
     cdef public double length
@@ -49,7 +52,7 @@ cdef class Tree:
 
     @property
     def content(self):
-        length_str = ':%g' % self.length if self.length >= 0 else ''
+        length_str = f':{LENGTH_FORMAT}' % self.length if self.length >= 0 else ''
         pairs_str = ':'.join('%s=%s' % kv for kv in self.properties.items())
         props_str = f'[&&NHX:{pairs_str}]' if pairs_str else ''
         return quote(self.name) + length_str + props_str
