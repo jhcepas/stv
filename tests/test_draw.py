@@ -27,18 +27,18 @@ def test_draw_elements():
 
 def test_draw_content_inline():
     t = tree.Tree('A:10')
-    drawer1 = draw.DrawerFull(zoom=(10, 10))
+    drawer1 = draw.DrawerFull(t, zoom=(10, 10))
     assert list(drawer1.draw_content_inline(t, (0, 0))) == [
         ['t', 'length', 0, 0.5, 5.0, '10']]
-    drawer2 = draw.DrawerFull(zoom=(0.1, 0.1))
+    drawer2 = draw.DrawerFull(t, zoom=(0.1, 0.1))
     assert list(drawer2.draw_content_inline(t, (0, 0))) == []
 
 
 def test_draw_tree():
     tree_text = '((B:200,(C:250,D:300)E:350)A:100)F;'
     t = tree.loads(tree_text)
-    drawer = draw.DrawerFull(zoom=(10, 10))
-    elements = list(drawer.draw(t))
+    drawer = draw.DrawerFull(t, zoom=(10, 10))
+    elements = list(drawer.draw())
     assert elements == [
         ['l', 0, 1.25, 1.0, 1.25],
         ['r', 'node', 0, 0, 751.0, 3.0, 'F', {}],
@@ -94,7 +94,7 @@ def test_intersects():
 
 def test_size():
     t = tree.loads('(a:2,b:3,c:4)d;')
-    drawer = draw.DrawerFull(zoom=(10, 10))
+    drawer = draw.DrawerFull(t, zoom=(10, 10))
     assert drawer.node_size(t) == Size(5, 3)
     assert drawer.content_size(t) == Size(1, 3)
     assert drawer.children_size(t) == Size(4, 3)

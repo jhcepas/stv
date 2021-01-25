@@ -218,7 +218,7 @@ class Trees(Resource):
                     else (get('rmin', 0), 0,
                           get('amin', -180) * pi/180, get('amax', 180) * pi/180))
                 t = load_tree(tree_id)
-                return list(drawer(viewport, zoom, aligned, limits).draw(t))
+                return list(drawer(t, viewport, zoom, aligned, limits).draw())
             except (ValueError, AssertionError) as e:
                 raise InvalidUsage(str(e))
         elif rule == '/trees/<int:tree_id>/size':

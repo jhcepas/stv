@@ -40,7 +40,8 @@ class Drawer:
 
     MIN_SIZE = 6  # anything that has less pixels will be outlined
 
-    def __init__(self, viewport=None, zoom=(1, 1), aligned=False, limits=None):
+    def __init__(self, tree, viewport=None, zoom=(1, 1), aligned=False, limits=None):
+        self.tree = tree
         self.zoom = zoom
         self.aligned = aligned
 
@@ -69,14 +70,14 @@ class Drawer:
                 yield self.draw_outline(self.outline)
                 self.outline = box
 
-    def draw(self, tree):
+    def draw(self):
         "Yield graphic elements to draw the tree"
         x, y = self.xmin, self.ymin
 
         # We traverse the tree with a stack of nodes being visited and their
         # number of children already visited. At a given moment it could be:
-        visiting_nodes = [tree]  # [root, child2, child20, child201 (leaf)]
-        visited_children = [0]   # [   2,      0,       1,               0]
+        visiting_nodes = [self.tree]  # [root, child2, child20, child201 (leaf)]
+        visited_children = [0]        # [   2,      0,       1,               0]
 
         while visiting_nodes:
             node = visiting_nodes[-1]   # current node
@@ -209,13 +210,13 @@ class DrawerRect(Drawer):
 class DrawerCirc(Drawer):
     "Minimal functional drawer for a circular representation"
 
-    def __init__(self, viewport=None, zoom=(1, 1), aligned=False, limits=None):
-        super().__init__(viewport, zoom, aligned, limits)
+    def __init__(self, tree, viewport=None, zoom=(1, 1), aligned=False, limits=None):
+        super().__init__(tree, viewport, zoom, aligned, limits)
 
         if not limits:
             self.ymin, self.ymax = -pi, pi
 
-        self.y2a = 0  # will be computed on self.draw()
+        self.y2a = (self.ymax - self.ymin) / self.tree.size[1]
 
         self.circumasec_viewport = circumasec(self.viewport)
 
@@ -225,10 +226,6 @@ class DrawerCirc(Drawer):
 
     def draw_outline(self, box):
         return draw_asec(box, 'outline')
-
-    def draw(self, tree):
-        self.y2a = (self.ymax - self.ymin) / tree.size[1]
-        yield from super().draw(tree)
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
