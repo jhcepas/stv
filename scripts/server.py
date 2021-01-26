@@ -204,23 +204,17 @@ class Trees(Resource):
             if len(newicks) != 1:
                 raise InvalidUsage(f'unknown tree id {tree_id}', 404)
             return newicks[0]
-        elif rule == '/trees/<int:tree_id>/draw':
+        elif rule == '/trees/<int:tree_id>/search':
             try:
-                viewport = get_viewport(request.args)
-                get = lambda x, default: float(request.args.get(x, default))
-                zoom = (get('zx', 1), get('zy', 1))
-                assert zoom[0] > 0 and zoom[1] > 0, 'zoom must be > 0'
-                drawer = get_drawer(request.args)
-                drawer.MIN_SIZE = get('min_size', 6)
-                assert drawer.MIN_SIZE > 0, 'min_size must be > 0'
-                aligned = 'aligned' in request.args
-                limits = (None if not drawer.__name__.startswith('DrawerCirc')
-                    else (get('rmin', 0), 0,
-                          get('amin', -180) * pi/180, get('amax', 180) * pi/180))
-                t = load_tree(tree_id)
-                return list(drawer(t, viewport, zoom, aligned, limits).draw())
-            except (ValueError, AssertionError) as e:
-                raise InvalidUsage(str(e))
+                args = request.args.copy()
+                name = args.pop('name')
+                drawer = get_drawer(tree_id, args)
+                return drawer.get_node_box(name)
+            except KeyError as e:
+                raise InvalidUsage('missing name')
+        elif rule == '/trees/<int:tree_id>/draw':
+            drawer = get_drawer(tree_id, request.args)
+            return list(drawer.draw())
         elif rule == '/trees/<int:tree_id>/size':
             width, height = load_tree(tree_id).size
             return {'width': width, 'height': height}
@@ -349,26 +343,42 @@ def load_tree(tree_id):
     return t
 
 
-def get_viewport(args):
-    "Return the viewport (x, y, w, h) specified in the args"
-    try:
-        x, y, w, h = [float(args[v]) for v in ['x', 'y', 'w', 'h']]
-        assert w > 0 and h > 0, 'width and height should be > 0'
-        return (x, y, w, h)
-    except KeyError as e:
-        return None  # None is interpreted as an infinite rectangle
-    except (ValueError, AssertionError) as e:
-        raise InvalidUsage(f'not a valid viewport: {e}')
+def get_drawer(tree_id, args):
+    "Return the drawer initialized as specified in the args"
+    valid_keys = ['x', 'y', 'w', 'h', 'zx', 'zy', 'drawer', 'min_size',
+        'aligned', 'rmin', 'amin', 'amax']
 
-
-def get_drawer(args):
-    "Return the drawer specified in the args"
     try:
-        drawer_name = request.args.get('drawer', 'Full')
-        return next(d for d in draw.get_drawers()
+        assert all(k in valid_keys for k in args.keys()), 'invalid keys'
+
+        get = lambda x, default: float(args.get(x, default))  # shortcut
+
+        viewport = ([get(k, 0) for k in ['x', 'y', 'w', 'h']]
+            if all(k in args for k in ['x', 'y', 'w', 'h']) else None)
+        assert viewport is None or (viewport[2] > 0 and viewport[3] > 0), \
+            'invalid viewport'  # None=all plane, width and height must be > 0
+
+        zoom = (get('zx', 1), get('zy', 1))
+        assert zoom[0] > 0 and zoom[1] > 0, 'zoom must be > 0'
+
+        drawer_name = args.get('drawer', 'Full')
+        drawer_class = next(d for d in draw.get_drawers()
             if d.__name__[len('Drawer'):] == drawer_name)
+
+        drawer_class.MIN_SIZE = get('min_size', 6)
+        assert drawer_class.MIN_SIZE > 0, 'min_size must be > 0'
+
+        aligned = 'aligned' in args
+
+        limits = (None if not drawer_name.startswith('Circ') else
+            (get('rmin', 0), 0,
+             get('amin', -180) * pi/180, get('amax', 180) * pi/180))
+
+        return drawer_class(load_tree(tree_id), viewport, zoom, aligned, limits)
     except StopIteration:
         raise InvalidUsage(f'not a valid drawer: {drawer_name}')
+    except (ValueError, AssertionError) as e:
+        raise InvalidUsage(str(e))
 
 
 def dbexe(command, *args, conn=None):
@@ -569,7 +579,8 @@ def add_resources(api):
         '/trees/<int:tree_id>',
         '/trees/<int:tree_id>/newick',
         '/trees/<int:tree_id>/draw',
-        '/trees/<int:tree_id>/size')
+        '/trees/<int:tree_id>/size',
+        '/trees/<int:tree_id>/search')
     add(Info, '/info')
     add(Id, '/id/<path:path>')
 

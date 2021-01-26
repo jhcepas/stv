@@ -144,6 +144,35 @@ class Drawer:
 
         return elems, True
 
+    def get_node_box(self, name):
+        "Return the box that has the node with the given name"
+        x, y = self.xmin, self.ymin
+
+        visiting_nodes = [self.tree]
+        visited_children = [0]
+
+        while visiting_nodes:
+            node = visiting_nodes[-1]   # current node
+            nch = visited_children[-1]  # number of children visited on the node
+            dx, dy = self.content_size(node)
+
+            if node.name == name:
+                return Box(x, y, dx, dy)
+
+            if nch == 0:  # first time we visit this node
+                x += dx  # move our pointer forward
+
+            if len(node.children) > nch:  # add next child to the list to visit
+                visiting_nodes.append(node.children[nch])
+                visited_children.append(0)
+            else:                         # go back to parent node
+                x -= dx  # move our pointer back
+                if node.is_leaf:
+                    y += dy
+                pop(visiting_nodes, visited_children)
+
+        return None
+
     # These are the functions that the user would supply to decide how to
     # represent a node.
     def draw_content_inline(self, node, point):

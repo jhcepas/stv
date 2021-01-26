@@ -16,6 +16,7 @@ const view = {
   download_svg: () => download_svg(),
   download_image: () => download_image(),
   upload_tree: () => window.location.href = "upload_tree.html",
+  search: () => search(),
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: {x: 0, y: 0},  // initially chosen depending on the size of the tree
   align_bar: 80,
@@ -261,6 +262,24 @@ function download(fname, content) {
   document.body.removeChild(element);
 }
 
+
+function search() {
+  Swal.fire({
+    title: "Search node by name",
+    input: "text",
+    showCancelButton: true,
+    confirmButtonText: "Search",
+    preConfirm: name => {
+      return api(`/trees/${trees[view.tree]}/search?name=${name}`);
+    }
+  }).then(result => {
+    if (result.isConfirmed) {
+      Swal.fire({
+        title: `${result.value}`,
+      })
+    }
+  });
+}
 
 // Use the mouse wheel to zoom in/out (instead of scrolling).
 document.body.addEventListener("wheel", event => {
