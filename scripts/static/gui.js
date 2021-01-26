@@ -274,9 +274,22 @@ function search() {
     }
   }).then(result => {
     if (result.isConfirmed) {
-      Swal.fire({
-        title: `${result.value}`,
-      })
+      if (result.value) {
+        Swal.fire({
+          title: `Found node at ${result.value}`,
+        });
+        const [x, y, w, h] = result.value;
+        view.tl.x = x;
+        view.tl.y = y;
+        view.zoom.x = div_tree.offsetWidth / w;
+        view.zoom.y = div_tree.offsetHeight / h;
+        update();
+      }
+      else {
+        Swal.fire({
+          title: "Cannot find node",
+        });
+      }
     }
   });
 }
