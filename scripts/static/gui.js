@@ -278,12 +278,7 @@ function search() {
         Swal.fire({
           title: `Found node at ${result.value}`,
         });
-        const [x, y, w, h] = result.value;
-        view.tl.x = x;
-        view.tl.y = y;
-        view.zoom.x = div_tree.offsetWidth / w;
-        view.zoom.y = div_tree.offsetHeight / h;
-        update();
+        zoom_into_box(result.value);
       }
       else {
         Swal.fire({
@@ -293,6 +288,18 @@ function search() {
     }
   });
 }
+
+
+// Zoom the current view into the area defined by the given box.
+function zoom_into_box(box) {
+  const [x, y, w, h] = box;
+  view.tl.x = x;
+  view.tl.y = y;
+  view.zoom.x = div_tree.offsetWidth / w;
+  view.zoom.y = div_tree.offsetHeight / h;
+  update();
+}
+
 
 // Use the mouse wheel to zoom in/out (instead of scrolling).
 document.body.addEventListener("wheel", event => {
@@ -537,13 +544,8 @@ function item2svg(item, zoom) {
        "stroke": view.rect_color});
 
     r.addEventListener("click", event => {
-      if (event.detail === 2 || event.ctrlKey) {  // double-click or ctrl-click
-        view.tl.x = x;
-        view.tl.y = y;
-        view.zoom.x = div_tree.offsetWidth / w;
-        view.zoom.y = div_tree.offsetHeight / h;
-        update();
-      }
+      if (event.detail === 2 || event.ctrlKey)  // double-click or ctrl-click
+        zoom_into_box([x, y, w, h]);
     });
 
     if (name.length > 0 || Object.entries(properties).length > 0) {
