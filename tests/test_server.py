@@ -13,6 +13,8 @@ import urllib.request as req
 import urllib.error
 import json
 
+import pytest
+
 urlbase = 'http://localhost:5000/'
 
 
@@ -54,7 +56,7 @@ def add_test_user(fields=None):
     try:
         get('id/users/test_user')
         raise Exception('test_user already exists.')
-    except urllib.error.HTTPError as e:
+    except urllib.error.HTTPError:
         pass
 
     data = {
@@ -84,7 +86,7 @@ def add_test_tree(fields=None):
     try:
         get('id/trees/test_tree')
         raise Exception('tree "test_tree" already exists.')
-    except urllib.error.HTTPError as e:
+    except urllib.error.HTTPError:
         pass
 
     data = {
@@ -114,21 +116,17 @@ def test_tree(fields=None):
 # The tests.
 
 def test_not_found():
-    try:
+    with pytest.raises(urllib.error.HTTPError) as e:
         url = urlbase + 'nonexistent'
         req.urlopen(url)
-        raise Exception('We should not have found that url: %s' % url)
-    except urllib.error.HTTPError as e:
-        assert (e.getcode(), e.msg) == (404, 'NOT FOUND')
+    assert (e.value.getcode(), e.value.msg) == (404, 'NOT FOUND')
 
 
 def test_unauthorized():
-    try:
+    with pytest.raises(urllib.error.HTTPError) as e:
         url = urlbase + 'users/1'
         req.urlopen(req.Request(url, method='DELETE'))
-        raise Exception('We should not have access to that url: %s' % url)
-    except urllib.error.HTTPError as e:
-        assert (e.getcode(), e.msg) == (401, 'UNAUTHORIZED')
+    assert (e.value.getcode(), e.value.msg) == (401, 'UNAUTHORIZED')
 
 
 def test_auth_basic():
@@ -224,38 +222,35 @@ def test_get_info():
 
 def test_existing_user():
     with test_user():
-        try:
+        with pytest.raises(urllib.error.HTTPError) as e:
             data = jdumps({
                 'username': 'test_user', 'name': 'Random User',
                 'password': 'booo'})  # duplicated user
             post('users', data=data)
-        except urllib.error.HTTPError as e:
-            assert e.code == 400
-            res = json.loads(e.file.read())
-            assert res['message'].startswith('Error: database exception adding user')
+        assert e.value.code == 400
+        res = json.loads(e.value.file.read())
+        assert res['message'].startswith('Error: database exception adding user')
 
 
 def test_missing_username_in_new_user():
-    try:
+    with pytest.raises(urllib.error.HTTPError) as e:
         data = jdumps({
             'name': 'Random User', 'password': 'booo'})  # missing: username
         post('users', data=data)
-    except urllib.error.HTTPError as e:
-        assert e.code == 400
-        res = json.loads(e.file.read())
-        assert res['message'].startswith('Error: must have the fields')
+    assert e.value.code == 400
+    res = json.loads(e.value.file.read())
+    assert res['message'].startswith('Error: must have the fields')
 
 
 def test_adding_invalid_fields_in_new_user():
-    try:
+    with pytest.raises(urllib.error.HTTPError) as e:
         data = jdumps({'username': 'test_user',
             'name': 'Random User', 'password': 'booo',
             'invalid': 'should not go'})  # invalid
         post('users', data=data)
-    except urllib.error.HTTPError as e:
-        assert e.code == 400
-        res = json.loads(e.file.read())
-        assert res['message'].startswith('Error: can only have the fields')
+    assert e.value.code == 400
+    res = json.loads(e.value.file.read())
+    assert res['message'].startswith('Error: can only have the fields')
 
 
 def test_change_password():
@@ -281,22 +276,56 @@ def test_change_password():
 def test_get_unknown_tree():
     nonexistent_tree_id = 22342342
     for endpoint in ['', '/newick', '/draw', '/size']:
-        try:
+        with pytest.raises(urllib.error.HTTPError) as e:
             get(f'trees/{nonexistent_tree_id}{endpoint}')
-        except urllib.error.HTTPError as e:
-            assert e.code == 404
-            res = json.loads(e.file.read())
-            assert res['message'].startswith('Error: unknown tree id')
+        assert e.value.code == 404
+        res = json.loads(e.value.file.read())
+        assert res['message'].startswith('Error: unknown tree id')
 
 
 def test_get_known_tree():
-    assert get('trees/1/newick').endswith(';')
+    trees = [x['id'] for x in get('trees')]
+    for tid in trees:
+        newick = get('trees/1/newick')
+        assert newick.startswith('(') and newick.endswith(';')
 
-    elements = get('trees/1/draw')
-    assert all(x[0] in ['r', 'rn', 'ro', 'tl', 'tn', 'l', 'a'] for x in elements)
+        elements = get(f'trees/{tid}/draw')
+        assert all(x[0] in ['r', 'a', 'l', 'c', 't'] for x in elements)
+        assert all(x[1] in ['node', 'outline'] for x in elements
+            if x[0] in ['r', 'a'])
 
-    assert set(get('trees/1/size').keys()) == {'width', 'height'}
+        assert set(get(f'trees/{tid}/size').keys()) == {'width', 'height'}
 
 
 def test_get_drawers():
-    assert type(get('/trees/drawers')) == list
+    drawers = get('/trees/drawers')
+    assert type(drawers) == list
+    assert 'Full' in drawers and 'Simple' in drawers
+
+
+def test_drawer_arguments():
+    valid_requests = [
+        'x=1&y=-1&w=1&h=1',
+        'zx=3&zy=6',
+        'drawer=Simple',
+        'min_size=8',
+        'aligned',
+        'rmin=5&amin=-180&amax=180',
+        'x=1&y=-1&w=1&h=1&drawer=Simple&min_size=8&aligned&zx=3&zy=6']
+
+    invalid_requests_and_error = [
+        ('x=1&y=-1&w=1&h=-1', 'invalid viewport'),
+        ('zx=-3', 'zoom must be > 0'),
+        ('drawer=Nonexistent', 'not a valid drawer'),
+        ('min_size=-4', 'min_size must be > 0'),
+        ('nonexistentarg=4', 'invalid keys')]
+
+    for qs in valid_requests:
+        get(f'trees/1/draw?{qs}')  # does not raise an exception
+
+    for qs, error in invalid_requests_and_error:
+        with pytest.raises(urllib.error.HTTPError) as e:
+            get(f'trees/1/draw?{qs}')
+        assert e.value.code == 400
+        res = json.loads(e.value.file.read())
+        assert res['message'].startswith('Error: ' + error)
