@@ -49,7 +49,7 @@ class Drawer:
             self.viewport = viewport
         else:
             x, y, dx, dy = viewport
-            self.viewport = Box(0, y, x+dx, dy)
+            self.viewport = Box(0, y, self.tree.size[0], dy)
 
         if limits:
             self.xmin, self.xmax, self.ymin, self.ymax = limits
