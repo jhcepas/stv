@@ -65,14 +65,17 @@ cdef class Tree:
     def is_leaf(self):
         return not self.children
 
+    def walk(self):
+        return walk(self)
+
     def __iter__(self):
-        "Yield all the nodes of the tree with root at the current node"
+        "Yield all the nodes of the tree in preorder"
         yield self
         for node in self.children:
             yield from node
 
     def __getitem__(self, name):
-        "Return the first (in pre-order) node with the given name, or None"
+        "Return the first (in preorder) node with the given name, or None"
         return next((node for node in self if node.name == name), None)
 
     def __repr__(self):
@@ -129,6 +132,25 @@ cdef (double, double) get_size(nodes):
         sumlengths = max(sumlengths, node.size[0])
         nleaves += node.size[1]
     return sumlengths, nleaves
+
+
+def walk(tree):
+    "Yield nodes and descendants as they appear when traversing the tree"
+    # Inspired on os.walk(). You can remove from descendants on the fly.
+    visiting_nodes = [[tree]]  # [[tree], [ch1,ch2], [ch11,ch12,ch13]]
+    while True:
+        node = visiting_nodes[-1][-1]
+        descendants = node.children[::-1]
+        if descendants:
+            visiting_nodes.append(descendants)
+        else:
+            visiting_nodes[-1].pop()  # so we visit leaves only once
+        yield node, descendants  # first visit to node
+        while not visiting_nodes[-1]:  # [..., []]
+            visiting_nodes.pop()
+            if not visiting_nodes:
+                return
+            yield visiting_nodes[-1].pop(), []  # last visit to node
 
 
 # Read and write.
