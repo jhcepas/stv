@@ -125,20 +125,19 @@ class Drawer:
 
         return gs, True
 
-    def get_node_box(self, func):
-        "Return the box that has the first node with func(node) == True"
+    def get_node_boxes(self, func):
+        "Yield the boxes of the nodes with func(node) == True"
         x, y = self.xmin, self.ymin
         for node, descendants in self.tree.walk():
             dx, dy = self.content_size(node)
-            if func(node):
-                return Box(x, y, dx, dy)
+            if (descendants or node.is_leaf) and func(node):
+                yield Box(x, y, dx, dy)
             if node.is_leaf:
                 y += dy
             if descendants:  # first time we visit this node
                 x += dx
             elif not node.is_leaf:  # last time we will visit this node
                 x -= dx
-        return None
 
     # These are the functions that the user would supply to decide how to
     # represent a node.

@@ -270,19 +270,37 @@ function search() {
     showCancelButton: true,
     confirmButtonText: "Search",
     preConfirm: name => {
+      if (!name)
+        return false;  // prevent popup from closing
       return api(`/trees/${trees[view.tree]}/search?name=${name}`);
     }
   }).then(result => {
     if (result.isConfirmed) {
-      if (result.value) {
+      if (result.value.length > 0) {
+        const n = result.value.length;
+        const link = box => `<a href="#" title="Zoom into node"` +
+          `onclick="zoom_into_box([${box}]); false;">${box[0]}, ${box[1]}</a>`;
         Swal.fire({
-          title: `Found node at ${result.value}`,
+          title: `Found ${n} node${n > 1 ? 's' : ''}`,
+          html: result.value.map(box => link(box)).join('<br>'),
         });
-        zoom_into_box(result.value);
+        const g = div_tree.children[0].children[0];
+        result.value.forEach(box => {
+          const [x, y, w, h] = box;
+          const r = create_svg_element("rect",
+            {"class": "box select",
+            "x": view.zoom.x * x, "y": view.zoom.y * y,
+            "width": view.zoom.x * w, "height": view.zoom.y * h,
+            "stroke": view.rect_color});
+
+          r.addEventListener("click", event => zoom_into_box([x, y, w, h]));
+
+          g.appendChild(r);
+        })
       }
       else {
         Swal.fire({
-          title: "Cannot find node",
+          title: "No nodes found",
         });
       }
     }
@@ -300,6 +318,8 @@ function zoom_into_box(box) {
   view.zoom.y = div_tree.offsetHeight / h;
   update();
 }
+
+window.zoom_into_box = zoom_into_box;  // exposed so it can be called in onclick
 
 
 // Use the mouse wheel to zoom in/out (instead of scrolling).

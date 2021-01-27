@@ -45,6 +45,12 @@
     fill-opacity: 1;
 }
 
+.select {
+    opacity: 0.3;
+    fill: yellow;
+    cursor: crosshair;
+}
+
 .tree {
     position: absolute;
     left: 0px;
