@@ -73,35 +73,19 @@ class Drawer:
     def draw(self):
         "Yield graphic elements to draw the tree"
         x, y = self.xmin, self.ymin
-
-        # We traverse the tree with a stack of nodes being visited and their
-        # number of children already visited. At a given moment it could be:
-        visiting_nodes = [self.tree]  # [root, child2, child20, child201 (leaf)]
-        visited_children = [0]        # [   2,      0,       1,               0]
-
-        while visiting_nodes:
-            node = visiting_nodes[-1]   # current node
-            nch = visited_children[-1]  # number of children visited on the node
+        for node, descendants in self.tree.walk():
             dx, dy = self.content_size(node)
-
-            if nch == 0:  # first time we visit this node
+            if descendants or node.is_leaf:  # first time we visit this node
                 elements, draw_children = self.get_content(node, (x, y))
                 yield from elements
-                if draw_children:
-                    x += dx  # move our pointer forward
-                else:
+                if not draw_children:
+                    descendants[:] = []
+                if not descendants:
                     y += dy
-                    pop(visiting_nodes, visited_children)
-                    continue
-
-            if len(node.children) > nch:  # add next child to the list to visit
-                visiting_nodes.append(node.children[nch])
-                visited_children.append(0)
-            else:                         # go back to parent node
-                x -= dx  # move our pointer back
-                if node.is_leaf:
-                    y += dy
-                pop(visiting_nodes, visited_children)
+                if not node.is_leaf:
+                    x += dx
+            elif not descendants:  # last time we visit this node
+                x -= dx
 
         if self.outline and not self.aligned:  # draw the last outline stacked
             yield self.draw_outline(self.outline)
@@ -144,33 +128,19 @@ class Drawer:
 
         return elems, True
 
-    def get_node_box(self, name):
-        "Return the box that has the node with the given name"
+    def get_node_box(self, func):
+        "Return the box that has the first node with func(node) == True"
         x, y = self.xmin, self.ymin
-
-        visiting_nodes = [self.tree]
-        visited_children = [0]
-
-        while visiting_nodes:
-            node = visiting_nodes[-1]   # current node
-            nch = visited_children[-1]  # number of children visited on the node
+        for node, descendants in self.tree.walk():
             dx, dy = self.content_size(node)
-
-            if node.name == name:
+            if func(node):
                 return Box(x, y, dx, dy)
-
-            if nch == 0:  # first time we visit this node
-                x += dx  # move our pointer forward
-
-            if len(node.children) > nch:  # add next child to the list to visit
-                visiting_nodes.append(node.children[nch])
-                visited_children.append(0)
-            else:                         # go back to parent node
-                x -= dx  # move our pointer back
-                if node.is_leaf:
-                    y += dy
-                pop(visiting_nodes, visited_children)
-
+            if node.is_leaf:
+                y += dy
+            if descendants:  # first time we visit this node
+                x += dx
+            elif not node.is_leaf:  # last time we will visit this node
+                x -= dx
         return None
 
     # These are the functions that the user would supply to decide how to
@@ -186,13 +156,6 @@ class Drawer:
     def draw_content_align(self, node, point):
         "Yield graphic elements to draw the aligned contents of the node"
         yield from []
-
-
-def pop(visiting_nodes, visited_children):
-    visiting_nodes.pop()
-    visited_children.pop()
-    if visited_children:
-        visited_children[-1] += 1
 
 
 class DrawerRect(Drawer):

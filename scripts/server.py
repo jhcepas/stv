@@ -209,7 +209,7 @@ class Trees(Resource):
                 args = request.args.copy()
                 name = args.pop('name')
                 drawer = get_drawer(tree_id, args)
-                return drawer.get_node_box(name)
+                return drawer.get_node_box(lambda node: node.name == name)
             except KeyError as e:
                 raise InvalidUsage('missing name')
         elif rule == '/trees/<int:tree_id>/draw':
