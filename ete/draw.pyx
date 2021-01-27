@@ -51,10 +51,7 @@ class Drawer:
             x, y, dx, dy = viewport
             self.viewport = Box(0, y, self.tree.size[0], dy)
 
-        if limits:
-            self.xmin, self.xmax, self.ymin, self.ymax = limits
-        else:
-            self.xmin = self.xmax = self.ymin = self.ymax = 0
+        self.xmin, self.xmax, self.ymin, self.ymax = limits or (0, 0, 0, 0)
 
         self.outline = None
 
@@ -76,8 +73,8 @@ class Drawer:
         for node, descendants in self.tree.walk():
             dx, dy = self.content_size(node)
             if descendants or node.is_leaf:  # first time we visit this node
-                elements, draw_children = self.get_content(node, (x, y))
-                yield from elements
+                gs, draw_children = self.get_content(node, (x, y))
+                yield from gs
                 if not draw_children:
                     descendants[:] = []
                 if not descendants:
@@ -110,23 +107,23 @@ class Drawer:
         x, y = point
         dx, dy = self.content_size(node)
 
-        elems = []  # graphic elements to return
+        gs = []  # graphic elements to return
         if self.in_viewport(Box(x, y, dx, dy)):
             bh = self.bh(node)  # node's branching height (in the right units)
-            elems.append(self.draw_lengthline((x, y + bh), (x + dx, y + bh)))
+            gs.append(self.draw_lengthline((x, y + bh), (x + dx, y + bh)))
 
             if len(node.children) > 1:
                 c0, c1 = node.children[0], node.children[-1]
                 bh0, bh1 = self.bh(c0), dy - self.node_size(c1).dy + self.bh(c1)
-                elems.append(self.draw_childrenline((x + dx, y + bh0),
-                                                    (x + dx, y + bh1)))
+                gs.append(self.draw_childrenline((x + dx, y + bh0),
+                                                 (x + dx, y + bh1)))
 
-            elems += self.draw_content_inline(node, (x, y))
-            elems.append(self.draw_nodebox(box_node, node.name, node.properties))
+            gs += self.draw_content_inline(node, (x, y))
+            gs.append(self.draw_nodebox(box_node, node.name, node.properties))
 
-        elems += self.draw_content_float(node, (x, y))
+        gs += self.draw_content_float(node, (x, y))
 
-        return elems, True
+        return gs, True
 
     def get_node_box(self, func):
         "Return the box that has the first node with func(node) == True"
