@@ -293,6 +293,7 @@ function search() {
 // Zoom the current view into the area defined by the given box.
 function zoom_into_box(box) {
   const [x, y, w, h] = box;
+  // TODO: work well for the case view.is_circular.
   view.tl.x = x;
   view.tl.y = y;
   view.zoom.x = div_tree.offsetWidth / w;
