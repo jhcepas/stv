@@ -345,7 +345,7 @@ class DrawerAlign(DrawerFull):
 
 
 def get_drawers():
-    return [DrawerSimple, DrawerLengths, DrawerLeafNames, DrawerFull,
+    return [DrawerSimple, DrawerLeafNames, DrawerLengths, DrawerFull,
         DrawerCircSimple, DrawerCircLeafNames, DrawerCircLengths, DrawerCircFull,
         DrawerAlign]
 
@@ -399,7 +399,7 @@ def intersects(b1, b2):
 
 
 def stack(b1, b2):
-    "Return the box containing boxes b1 and b2 stacked"
+    "Return the box containing boxes b1 and b2 stacked, or None if unstackable"
     if b1.x == b2.x and b1.y + b1.dy == b2.y:
         return Box(b1.x, b1.y, max(b1.dx, b2.dx), b1.dy + b2.dy)
     else:
