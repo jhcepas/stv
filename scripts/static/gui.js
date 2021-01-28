@@ -362,19 +362,18 @@ function zoom_into_box(box) {
     const points = [[r, a], [r, a+da], [r+dr, a], [r+dr, a+da]];
     const xs = points.map(([r, a]) => r * Math.cos(a)),
           ys = points.map(([r, a]) => r * Math.sin(a));
-    const xmin = Math.min(...xs),
-          ymin = Math.min(...ys);
-    const w = Math.max(...xs) - xmin,
-          h = Math.max(...ys) - ymin;
-    if (div_tree.offsetWidth / w < div_tree.offsetHeight / h) {
-      view.tl.x = xmin;
-      view.zoom.x = view.zoom.y = div_tree.offsetWidth / w;
-      view.tl.y = ymin - div_tree.offsetHeight / view.zoom.y / 2;
+    const [x, y] = [Math.min(...xs), Math.min(...ys)];
+    const [w, h] = [Math.max(...xs) - x, Math.max(...ys) - y];
+    const [zx, zy] = [div_tree.offsetWidth / w, div_tree.offsetHeight / h];
+    if (zx < zy) {
+      view.tl.x = x;
+      view.zoom.x = view.zoom.y = zx;
+      view.tl.y = y - (div_tree.offsetHeight / zx - h) / 2;
     }
     else {
-      view.tl.y = ymin;
-      view.zoom.x = view.zoom.y = div_tree.offsetHeight / h;
-      view.tl.x = xmin - div_tree.offsetWidth / view.zoom.x / 2;
+      view.tl.y = y;
+      view.zoom.x = view.zoom.y = zy;
+      view.tl.x = x - (div_tree.offsetWidth / zy - w) / 2;
     }
   }
   update();
