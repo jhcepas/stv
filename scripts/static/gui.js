@@ -664,12 +664,12 @@ function item2svg(item, zoom) {
     });
 
     if (name.length > 0 || Object.entries(properties).length > 0) {
-        const title = create_svg_element("title", {});
-        const text = name + "\n" +
-          Object.entries(properties).map(x => x[0] + ": " + x[1]).join("\n");
-        title.appendChild(document.createTextNode(text));
-        s.appendChild(title);
-      }
+      const title = create_svg_element("title", {});
+      const text = name + "\n" +
+        Object.entries(properties).map(x => x[0] + ": " + x[1]).join("\n");
+      title.appendChild(document.createTextNode(text));
+      s.appendChild(title);
+    }
 
     return s;
   }
