@@ -11,6 +11,7 @@ sys.path.insert(0, f'{abspath(dirname(__file__))}/..')
 from contextlib import contextmanager
 import urllib.request as req
 import urllib.error
+import urllib.parse
 import json
 
 import pytest
@@ -326,6 +327,28 @@ def test_drawer_arguments():
     for qs, error in invalid_requests_and_error:
         with pytest.raises(urllib.error.HTTPError) as e:
             get(f'trees/1/draw?{qs}')
+        assert e.value.code == 400
+        res = json.loads(e.value.file.read())
+        assert res['message'].startswith('Error: ' + error)
+
+
+def test_search():
+    valid_requests = [
+        'text=A',
+        'text=B&x=1&y=-1&w=1&h=1&drawer=Simple&min_size=8&aligned&zx=3&zy=6',
+        'text=%s' % urllib.parse.quote('/r (A|B)')]
+
+    invalid_requests_and_error = [
+        ('', 'missing search text'),
+        ('text=/', 'invalid command'),
+        ('text=%s' % urllib.parse.quote('/e open("/etc/passwd")'), 'invalid')]
+
+    for qs in valid_requests:
+        get(f'trees/1/search?{qs}')  # does not raise an exception
+
+    for qs, error in invalid_requests_and_error:
+        with pytest.raises(urllib.error.HTTPError) as e:
+            get(f'trees/1/search?{qs}')
         assert e.value.code == 400
         res = json.loads(e.value.file.read())
         assert res['message'].startswith('Error: ' + error)
