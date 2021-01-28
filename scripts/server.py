@@ -389,6 +389,8 @@ def search_nodes(tree_id, args, nmax):
 
     try:
         return [box for i,box in enumerate(drawer.get_node_boxes(f)) if i < nmax]
+    except InvalidUsage:
+        raise
     except Exception as e:
         raise InvalidUsage(f'evaluating expression: {e}')
 
