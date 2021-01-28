@@ -211,7 +211,7 @@ class Trees(Resource):
                 f = get_search_function(args.pop('text').strip())
                 drawer = get_drawer(tree_id, args)
                 MAX_BOXES = 200
-                boxes = [box for i,box in enumerate(drawer.get_node_boxes(f))
+                boxes = [box for i, box in enumerate(drawer.get_node_boxes(f))
                     if i < MAX_BOXES]
                 return {'message': 'ok', 'max': MAX_BOXES, 'boxes': boxes}
             except KeyError as e:
@@ -392,35 +392,45 @@ def get_drawer(tree_id, args):
 def get_search_function(text):
     "Return a function of a node that returns True for the searched nodes"
     if text.startswith('/'):
-        parts = text.split(None, 1)
-        if parts[0] not in ['/r', '/e']:
-            raise InvalidUsage('invalid command %r' % parts[0])
-        if len(parts) != 2:
-            raise InvalidUsage('missing argument to command %r' % parts[0])
+        return get_command_search(text)  # command-based search
+    elif text == text.lower():
+        return lambda node: text in node.name.lower()  # case-insensitive search
+    else:
+        return lambda node: text in node.name  # case-sensitive search
 
-        command, rest = parts
-        if command == '/r':  # regex search
-            return lambda node: re.search(rest, node.name)
-        elif command == '/e':  # eval expression
-            try:
-                code = compile(rest, '<string>', 'eval')
-            except SyntaxError as e:
-                raise InvalidUsage(f'compiling expression: {e}')
 
-            return lambda node: safer_eval(code, {
-                'name': node.name, 'is_leaf': node.is_leaf,
-                'length': node.length, 'dist': node.length, 'd': node.length,
-                'properties': node.properties,'p': node.properties,
-                'children': node.children, 'ch': node.children,
-                'size': node.size, 'dx': node.size[0], 'dy': node.size[1],
-                'regex': re.search,
-                'len': len, 'sum': sum, 'float': float, 'pi': pi})
-        else:
-            raise InvalidUsage('invalid command %r' % command)
-    elif text == text.lower():  # case-insensitive search
-        return lambda node: text in node.name.lower()
-    else:  # case-sensitive search
-        return lambda node: text in node.name
+def get_command_search(text):
+    "Return the appropriate node search function according to the command"
+    parts = text.split(None, 1)
+    if parts[0] not in ['/r', '/e']:
+        raise InvalidUsage('invalid command %r' % parts[0])
+    if len(parts) != 2:
+        raise InvalidUsage('missing argument to command %r' % parts[0])
+
+    command, arg = parts
+    if command == '/r':  # regex search
+        return lambda node: re.search(arg, node.name)
+    elif command == '/e':  # eval expression
+        return get_eval_search(arg)
+    else:
+        raise InvalidUsage('invalid command %r' % command)
+
+
+def get_eval_search(expression):
+    "Return a function of a node that evaluates the given expression"
+    try:
+        code = compile(expression, '<string>', 'eval')
+    except SyntaxError as e:
+        raise InvalidUsage(f'compiling expression: {e}')
+
+    return lambda node: safer_eval(code, {
+        'name': node.name, 'is_leaf': node.is_leaf,
+        'length': node.length, 'dist': node.length, 'd': node.length,
+        'properties': node.properties,'p': node.properties,
+        'children': node.children, 'ch': node.children,
+        'size': node.size, 'dx': node.size[0], 'dy': node.size[1],
+        'regex': re.search,
+        'len': len, 'sum': sum, 'float': float, 'pi': pi})
 
 
 def safer_eval(code, context):
