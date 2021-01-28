@@ -16,6 +16,7 @@ function create_datgui(view, trees, drawers) {
 
   dgui.add(view.pos, "x").step(0.001).listen();
   dgui.add(view.pos, "y").step(0.001).listen();
+  dgui.add(view, "search");
 
   const dgui_tree = dgui.addFolder("tree");
 
@@ -31,7 +32,6 @@ function create_datgui(view, trees, drawers) {
   const dgui_ctl = dgui.addFolder("control");
 
   dgui_ctl.add(view, "reset_view").name("reset view");
-  dgui_ctl.add(view, "search");
   const dgui_ctl_tl = dgui_ctl.addFolder("top-left");
   dgui_ctl_tl.add(view.tl, "x").onChange(update);
   dgui_ctl_tl.add(view.tl, "y").onChange(update);

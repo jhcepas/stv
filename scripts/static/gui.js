@@ -7,6 +7,7 @@ export { update, on_tree_change, on_drawer_change, show_minimap, draw_minimap };
 // Most will be shown on the top-right gui (using dat.gui).
 const view = {
   pos: {x: 0, y: 0},  // in-tree current pointer position
+  search: () => search(),
   tree: "",
   drawer: "Full",
   is_circular: false,
@@ -16,7 +17,6 @@ const view = {
   download_svg: () => download_svg(),
   download_image: () => download_image(),
   upload_tree: () => window.location.href = "upload_tree.html",
-  search: () => search(),
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: {x: 0, y: 0},  // initially chosen depending on the size of the tree
   align_bar: 80,
@@ -265,46 +265,53 @@ function download(fname, content) {
 
 function search() {
   Swal.fire({
-    title: "Search node by name",
+    title: "Search nodes",
     input: "text",
     showCancelButton: true,
     confirmButtonText: "Search",
-    preConfirm: name => {
-      if (!name)
+    preConfirm: text => {
+      if (!text)
         return false;  // prevent popup from closing
-      return api(`/trees/${trees[view.tree]}/search?name=${name}`);
+      const search_text = encodeURIComponent(text);
+      return api(`/trees/${trees[view.tree]}/search?text=${search_text}`);
     }
   }).then(result => {
     if (result.isConfirmed) {
-      if (result.value.length > 0) {
-        const n = result.value.length;
-        const link = box => `<a href="#" title="Zoom into node"` +
-          `onclick="zoom_into_box([${box}]); false;">${box[0]}, ${box[1]}</a>`;
-        Swal.fire({
-          title: `Found ${n} node${n > 1 ? 's' : ''}`,
-          html: result.value.map(box => link(box)).join('<br>'),
-        });
-        const g = div_tree.children[0].children[0];
-        result.value.forEach(box => {
-          const [x, y, w, h] = box;
-          const r = create_svg_element("rect",
-            {"class": "box select",
-            "x": view.zoom.x * x, "y": view.zoom.y * y,
-            "width": view.zoom.x * w, "height": view.zoom.y * h,
-            "stroke": view.rect_color});
-
-          r.addEventListener("click", event => zoom_into_box([x, y, w, h]));
-
-          g.appendChild(r);
-        })
+      if (result.value.message !== 'ok') {
+        Swal.fire("Error", result.value.message);
+      }
+      else if (result.value.boxes.length === 0) {
+        Swal.fire("No nodes found");
       }
       else {
-        Swal.fire({
-          title: "No nodes found",
+        const n = result.value.boxes.length;
+        const info = n < result.value.max ? "" : "Only showing the first " +
+          `${result.value.max} matches. There can be more.<br><br>`;
+        const link = box => `<a href="#" title="Zoom into node"` +
+          `onclick="zoom_into_box([${box}]); false;">${box[0]}, ${box[1]}</a>`;
+
+          Swal.fire({
+          title: `Found ${n} node${n > 1 ? 's' : ''}`,
+          html: info + result.value.boxes.map(box => link(box)).join('<br>'),
         });
+
+        const g = div_tree.children[0].children[0];
+        result.value.boxes.forEach(b => g.appendChild(create_select_box(b)));
       }
     }
   });
+}
+
+
+function create_select_box(box) {
+  const [x, y, w, h] = box;
+  const r = create_svg_element("rect", {
+    "class": "box select",
+    "x": view.zoom.x * x, "y": view.zoom.y * y,
+    "width": view.zoom.x * w, "height": view.zoom.y * h,
+    "stroke": view.rect_color});
+  r.addEventListener("click", event => zoom_into_box([x, y, w, h]));
+  return r;
 }
 
 

@@ -36,6 +36,7 @@ os.chdir(os.path.abspath(os.path.dirname(__file__)))
 import sys
 sys.path.insert(0, '..')
 
+import re
 from math import pi
 from functools import partial
 from contextlib import contextmanager
@@ -207,12 +208,18 @@ class Trees(Resource):
         elif rule == '/trees/<int:tree_id>/search':
             try:
                 args = request.args.copy()
-                name = args.pop('name')
+                f = get_search_function(args.pop('text').strip())
                 drawer = get_drawer(tree_id, args)
-                f = lambda node: node.name == name
-                return list(drawer.get_node_boxes(f))
+                MAX_BOXES = 200
+                boxes = [box for i,box in enumerate(drawer.get_node_boxes(f))
+                    if i < MAX_BOXES]
+                return {'message': 'ok', 'max': MAX_BOXES, 'boxes': boxes}
             except KeyError as e:
                 raise InvalidUsage('missing name')
+            except InvalidUsage:
+                raise
+            except Exception as e:
+                raise InvalidUsage(f'evaluating expression: {e}')
         elif rule == '/trees/<int:tree_id>/draw':
             drawer = get_drawer(tree_id, request.args)
             return list(drawer.draw())
@@ -380,6 +387,47 @@ def get_drawer(tree_id, args):
         raise InvalidUsage(f'not a valid drawer: {drawer_name}')
     except (ValueError, AssertionError) as e:
         raise InvalidUsage(str(e))
+
+
+def get_search_function(text):
+    "Return a function of a node that returns True for the searched nodes"
+    if text.startswith('/'):
+        parts = text.split(None, 1)
+        if parts[0] not in ['/r', '/e']:
+            raise InvalidUsage('invalid command %r' % parts[0])
+        if len(parts) != 2:
+            raise InvalidUsage('missing argument to command %r' % parts[0])
+
+        command, rest = parts
+        if command == '/r':  # regex search
+            return lambda node: re.search(rest, node.name)
+        elif command == '/e':  # eval expression
+            try:
+                code = compile(rest, '<string>', 'eval')
+            except SyntaxError as e:
+                raise InvalidUsage(f'compiling expression: {e}')
+
+            return lambda node: safer_eval(code, {
+                'name': node.name, 'n': node.name,
+                'length': node.length, 'dist': node.length, 'd': node.length,
+                'properties': node.properties,'p': node.properties,
+                'size': node.size, 's': node.size,
+                'regex': re.search, 'r': re.search,
+                'len': len, 'sum': sum, 'float': float, 'pi': pi})
+        else:
+            raise InvalidUsage('invalid command %r' % command)
+    elif text == text.lower():  # case-insensitive search
+        return lambda node: text in node.name.lower()
+    else:  # case-sensitive search
+        return lambda node: text in node.name
+
+
+def safer_eval(code, context):
+    "Return a safer version of eval(code, context)"
+    for name in code.co_names:
+        if name not in context:
+            raise InvalidUsage('invalid use of %r during evaluation' % name)
+    return eval(code, {'__builtins__': {}}, context)
 
 
 def dbexe(command, *args, conn=None):
