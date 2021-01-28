@@ -272,8 +272,12 @@ function search() {
     preConfirm: text => {
       if (!text)
         return false;  // prevent popup from closing
-      const search_text = encodeURIComponent(text);
-      return api(`/trees/${trees[view.tree]}/search?text=${search_text}`);
+
+      let qs = `text=${encodeURIComponent(text)}&drawer=${view.drawer}`;
+      if (view.is_circular)
+        qs += `&rmin=${view.rmin}&amin=${view.angle.min}&amax=${view.angle.max}`;
+
+      return api(`/trees/${trees[view.tree]}/search?${qs}`);
     }
   }).then(result => {
     if (result.isConfirmed) {
@@ -286,7 +290,7 @@ function search() {
       else {
         const n = result.value.boxes.length;
         const info = n < result.value.max ? "" : "Only showing the first " +
-          `${result.value.max} matches. There can be more.<br><br>`;
+          `${result.value.max} matches. There may be more.<br><br>`;
         const link = box => `<a href="#" title="Zoom into node"` +
           `onclick="zoom_into_box([${box}]); false;">${box[0]}, ${box[1]}</a>`;
 
@@ -296,33 +300,83 @@ function search() {
         });
 
         const g = div_tree.children[0].children[0];
-        result.value.boxes.forEach(b => g.appendChild(create_select_box(b)));
+        result.value.boxes.forEach(
+          box => g.appendChild(create_selection_box(box)));
       }
     }
   });
 }
 
 
-function create_select_box(box) {
-  const [x, y, w, h] = box;
-  const r = create_svg_element("rect", {
-    "class": "box select",
-    "x": view.zoom.x * x, "y": view.zoom.y * y,
-    "width": view.zoom.x * w, "height": view.zoom.y * h,
-    "stroke": view.rect_color});
-  r.addEventListener("click", event => zoom_into_box([x, y, w, h]));
-  return r;
+// Return a box (a rectangle or annulus sector) to mark a selected area.
+function create_selection_box(box) {
+  if (!view.is_circular) {
+    const [x, y, w, h] = box;
+
+    const r = create_svg_element("rect", {
+      "class": "box selection",
+      "x": view.zoom.x * x, "y": view.zoom.y * y,
+      "width": view.zoom.x * w, "height": view.zoom.y * h,
+      "stroke": view.rect_color});
+
+    r.addEventListener("click", event => zoom_into_box([x, y, w, h]));
+
+    return r;
+  }
+  else {
+    const [r, a, dr, da] = box;
+    const z = view.zoom.x;
+    const large = da > Math.PI ? 1 : 0;
+    const p00 = cartesian(z * r, a),
+          p01 = cartesian(z * r, a + da),
+          p10 = cartesian(z * (r + dr), a),
+          p11 = cartesian(z * (r + dr), a + da);
+
+    const s = create_svg_element("path", {
+      "class": "box selection",
+      "d": `M ${p00.x} ${p00.y}
+            L ${p10.x} ${p10.y}
+            A ${z * (r + dr)} ${z * (r + dr)} 0 ${large} 1 ${p11.x} ${p11.y}
+            L ${p01.x} ${p01.y}
+            A ${z * r} ${z * r} 0 ${large} 0 ${p00.x} ${p00.y}`,
+      "fill": view.box_color});
+
+    s.addEventListener("click", event => zoom_into_box([r, a, dr, da]));
+
+    return s;
+  }
 }
 
 
 // Zoom the current view into the area defined by the given box.
 function zoom_into_box(box) {
-  const [x, y, w, h] = box;
-  // TODO: work well for the case view.is_circular.
-  view.tl.x = x;
-  view.tl.y = y;
-  view.zoom.x = div_tree.offsetWidth / w;
-  view.zoom.y = div_tree.offsetHeight / h;
+  if (!view.is_circular) {
+    const [x, y, w, h] = box;
+    view.tl.x = x;
+    view.tl.y = y;
+    view.zoom.x = div_tree.offsetWidth / w;
+    view.zoom.y = div_tree.offsetHeight / h;
+  }
+  else {
+    const [r, a, dr, da] = box;
+    const points = [[r, a], [r, a+da], [r+dr, a], [r+dr, a+da]];
+    const xs = points.map(([r, a]) => r * Math.cos(a)),
+          ys = points.map(([r, a]) => r * Math.sin(a));
+    const xmin = Math.min(...xs),
+          ymin = Math.min(...ys);
+    const w = Math.max(...xs) - xmin,
+          h = Math.max(...ys) - ymin;
+    if (div_tree.offsetWidth / w < div_tree.offsetHeight / h) {
+      view.tl.x = xmin;
+      view.zoom.x = view.zoom.y = div_tree.offsetWidth / w;
+      view.tl.y = ymin - div_tree.offsetHeight / view.zoom.y / 2;
+    }
+    else {
+      view.tl.y = ymin;
+      view.zoom.x = view.zoom.y = div_tree.offsetHeight / h;
+      view.tl.x = xmin - div_tree.offsetWidth / view.zoom.x / 2;
+    }
+  }
   update();
 }
 
@@ -603,6 +657,11 @@ function item2svg(item, zoom) {
             L ${p01.x} ${p01.y}
             A ${z * r} ${z * r} 0 ${large} 0 ${p00.x} ${p00.y}`,
       "fill": view.box_color});
+
+    s.addEventListener("click", event => {
+      if (event.detail === 2 || event.ctrlKey)  // double-click or ctrl-click
+        zoom_into_box([r, a, dr, da]);
+    });
 
     if (name.length > 0 || Object.entries(properties).length > 0) {
         const title = create_svg_element("title", {});

@@ -45,7 +45,7 @@
     fill-opacity: 1;
 }
 
-.select {
+.selection {
     opacity: 0.3;
     fill: yellow;
     cursor: crosshair;
