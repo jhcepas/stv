@@ -291,7 +291,7 @@ function search() {
         const n = result.value.boxes.length;
         const info = n < result.value.max ? "" : "Only showing the first " +
           `${result.value.max} matches. There may be more.<br><br>`;
-        const link = box => `<a href="#" title="Zoom into node"` +
+        const link = box => `<a href="" title="Zoom into node"` +
           `onclick="zoom_into_box([${box}]); false;">${box[0]}, ${box[1]}</a>`;
 
           Swal.fire({
