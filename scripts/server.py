@@ -430,7 +430,7 @@ def get_eval_search(expression):
         'children': node.children, 'ch': node.children,
         'size': node.size, 'dx': node.size[0], 'dy': node.size[1],
         'regex': re.search,
-        'len': len, 'sum': sum, 'float': float, 'pi': pi})
+        'len': len, 'sum': sum, 'abs': abs, 'float': float, 'pi': pi})
 
 
 def safer_eval(code, context):
