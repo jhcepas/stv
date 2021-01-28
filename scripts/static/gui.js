@@ -190,8 +190,8 @@ function reset_position() {
 // Return an url with the view of the given rectangle of the tree.
 function get_url_view(x, y, w, h) {
   const qs = new URLSearchParams({x: x, y: y, w: w, h: h,
-    tree: view.tree, drawer: view.drawer});
-  return window.location.href.split('?')[0] + "?" + qs.toString();
+    tree: view.tree, drawer: view.drawer}).toString();
+  return window.location.origin + window.location.pathname + "?" + qs;
 }
 
 
@@ -291,12 +291,12 @@ function search() {
         const n = result.value.boxes.length;
         const info = n < result.value.max ? "" : "Only showing the first " +
           `${result.value.max} matches. There may be more.<br><br>`;
-        const link = box => `<a href="" title="Zoom into node"` +
-          `onclick="zoom_into_box([${box}]); false;">${box[0]}, ${box[1]}</a>`;
-
-          Swal.fire({
+        const link = box => `<a href="#" title="Zoom into node" ` +
+          `onclick="zoom_into_box([${box}]); return false;">` +
+          `${box[0]} ${box[1]}</a>`;
+        Swal.fire({
           title: `Found ${n} node${n > 1 ? 's' : ''}`,
-          html: info + result.value.boxes.map(box => link(box)).join('<br>'),
+          html: info + result.value.boxes.map(link).join('<br>'),
         });
 
         const g = div_tree.children[0].children[0];

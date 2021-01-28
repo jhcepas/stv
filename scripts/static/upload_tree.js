@@ -17,13 +17,13 @@ function update() {
     div_info.innerHTML =
       `Logged in as ${login.username} (${login.name})<br>` +
       `<a href="/users/${login.id}">info</a> | ` +
-      `<a href="#" onclick="window.localStorage.clear(); update(); false;">` +
+      `<a href="#" onclick="window.localStorage.clear(); update(); return false;">` +
       `log out</a>`;
   }
   else {
     div_upload.style.display = "none";
     div_login.style.display = "initial";
-    div_info.innerHTML = `<a href="#" onclick="guest_login(); false;">` +
+    div_info.innerHTML = `<a href="#" onclick="guest_login(); return false;">` +
       "log in as guest</a><br>&nbsp;";
   }
 }
@@ -97,7 +97,7 @@ button_upload.addEventListener("click", async () => {
 
   if (response.status === 401) {
     div_info.innerHTML = "Upload failed - Unauthorized<br>" +
-      '<a href="#" onclick="window.localStorage.clear(); update(); false;">' +
+      '<a href="#" onclick="window.localStorage.clear(); update(); return false;">' +
       'You need to login again</a>';
     return;
   }

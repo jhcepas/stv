@@ -206,22 +206,11 @@ class Trees(Resource):
                 raise InvalidUsage(f'unknown tree id {tree_id}', 404)
             return newicks[0]
         elif rule == '/trees/<int:tree_id>/search':
-            try:
-                args = request.args.copy()
-                f = get_search_function(args.pop('text').strip())
-                drawer = get_drawer(tree_id, args)
-                MAX_BOXES = 200
-                boxes = [box for i, box in enumerate(drawer.get_node_boxes(f))
-                    if i < MAX_BOXES]
-                return {'message': 'ok', 'max': MAX_BOXES, 'boxes': boxes}
-            except KeyError as e:
-                raise InvalidUsage('missing name')
-            except InvalidUsage:
-                raise
-            except Exception as e:
-                raise InvalidUsage(f'evaluating expression: {e}')
+            MAX_BOXES = 200
+            boxes = search_nodes(tree_id, request.args.copy(), MAX_BOXES)
+            return {'message': 'ok', 'max': MAX_BOXES, 'boxes': boxes}
         elif rule == '/trees/<int:tree_id>/draw':
-            drawer = get_drawer(tree_id, request.args)
+            drawer = get_drawer(tree_id, request.args.copy())
             return list(drawer.draw())
         elif rule == '/trees/<int:tree_id>/size':
             width, height = load_tree(tree_id).size
@@ -387,6 +376,21 @@ def get_drawer(tree_id, args):
         raise InvalidUsage(f'not a valid drawer: {drawer_name}')
     except (ValueError, AssertionError) as e:
         raise InvalidUsage(str(e))
+
+
+def search_nodes(tree_id, args, nmax):
+    "Return a list of boxes for the tree nodes that match the search in args"
+    if 'text' not in args:
+        raise InvalidUsage('missing search text')
+
+    f = get_search_function(args.pop('text').strip())
+
+    drawer = get_drawer(tree_id, args)
+
+    try:
+        return [box for i,box in enumerate(drawer.get_node_boxes(f)) if i < nmax]
+    except Exception as e:
+        raise InvalidUsage(f'evaluating expression: {e}')
 
 
 def get_search_function(text):
