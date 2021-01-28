@@ -408,11 +408,12 @@ def get_search_function(text):
                 raise InvalidUsage(f'compiling expression: {e}')
 
             return lambda node: safer_eval(code, {
-                'name': node.name, 'n': node.name,
+                'name': node.name, 'is_leaf': node.is_leaf,
                 'length': node.length, 'dist': node.length, 'd': node.length,
                 'properties': node.properties,'p': node.properties,
-                'size': node.size, 's': node.size,
-                'regex': re.search, 'r': re.search,
+                'children': node.children, 'ch': node.children,
+                'size': node.size, 'dx': node.size[0], 'dy': node.size[1],
+                'regex': re.search,
                 'len': len, 'sum': sum, 'float': float, 'pi': pi})
         else:
             raise InvalidUsage('invalid command %r' % command)
