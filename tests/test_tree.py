@@ -300,3 +300,56 @@ def test_length_format():
 
     tree.LENGTH_FORMAT = '%E'
     assert tree.dumps(t) == '(a:1.000000E-06,b:1.300000E+34)c:2.343400E+02;'
+
+
+def test_getter():
+    t = tree.loads('((d,e)b,(f,g)c)a;')
+    assert t['a'] == t
+    assert t['f'] == t.children[1].children[0]
+    assert t['z'] is None
+
+
+def test_walk():
+    t = tree.loads('((d,e)b,(f,g)c)a;')
+    # For reference, this is what t looks like (using print(t)):
+    # a
+    # ├─b
+    # │ ├─d
+    # │ └─e
+    # └─c
+    #   ├─f
+    #   └─g
+
+    # Normal walk (pre-post order).
+    # When nodes are visited first, they either have descendants or are leaves.
+    # When nodes are visited last (coming back), their descendants are empty.
+    steps = []
+    for node, descendants in t.walk():
+         steps.append((node.name, [x.name for x in descendants]))
+    assert steps == [
+        ('a', ['c', 'b']),
+        ('b', ['e', 'd']),  # first time visiting internal node b -> descendants
+        ('d', []),  # first (and only) time visiting leaf node d
+        ('e', []),
+        ('b', []),  # last time visiting b -> no descendants
+        ('c', ['g', 'f']),
+        ('f', []),
+        ('g', []),
+        ('c', []),
+        ('a', [])]
+
+    # Prunning the tree while we walk.
+    steps = []
+    for node, descendants in t.walk():
+        steps.append((node.name, [x.name for x in descendants]))
+        if node.name == 'b':
+            descendants[:] = []  # do not follow the descendants of b
+    assert steps == [
+        ('a', ['c', 'b']),
+        ('b', ['e', 'd']),  # descendants will be emptied in the loop
+        ('b', []),  # so we visit b again, this (last) time with no descendants
+        ('c', ['g', 'f']),
+        ('f', []),
+        ('g', []),
+        ('c', []),
+        ('a', [])]

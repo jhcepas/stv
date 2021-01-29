@@ -6,6 +6,8 @@ import sys
 from os.path import abspath, dirname
 sys.path.insert(0, f'{abspath(dirname(__file__))}/..')
 
+from math import pi
+
 from ete import tree, draw
 Size, Box = draw.Size, draw.Box
 
@@ -37,6 +39,7 @@ def test_draw_content_inline():
 def test_draw_tree():
     tree_text = '((B:200,(C:250,D:300)E:350)A:100)F;'
     t = tree.loads(tree_text)
+
     drawer = draw.DrawerFull(t, zoom=(10, 10))
     elements = list(drawer.draw())
     assert elements == [
@@ -62,6 +65,32 @@ def test_draw_tree():
         ['t', 'length', 451.0, 2.5, 5.0, '3e+02'],
         ['r', 'node', 451.0, 2.0, 300.0, 1.0, 'D', {}],
         ['t', 'name', 751.2,2.769230769230769, 0.7142857142857143, 'D']]
+
+    drawer_circ = draw.DrawerCircFull(t, zoom=(10, 10))
+    elements_circ = list(drawer_circ.draw())
+    assert elements_circ == [
+        ['l', 0.0, -0.0, 0.8660254037844385, -0.5000000000000002],
+        ['s', 'node', 0, -3.141592653589793, 751.0, 6.283185307179586, 'F', {}],
+        ['l', 0.8660254037844385, -0.5000000000000002, 87.46856578222828, -50.50000000000002],
+        ['c', -50.50000000000002, -87.46856578222828, 50.49999999999995, 87.46856578222834, 1],
+        ['t', 'length', 0.8660254037844385, -0.5000000000000002, 26.17993877991494, '1e+02'],
+        ['s', 'node', 1.0, -3.141592653589793, 750.0, 6.283185307179586, 'A', {}],
+        ['l', -50.50000000000002, -87.46856578222828, -150.50000000000006, -260.67364653911596],
+        ['t', 'length', -50.50000000000002, -87.46856578222828, 10.471975511965976, '2e+02'],
+        ['s', 'node', 101.0, -3.141592653589793, 200.0, 2.0943951023931953, 'B', {}],
+        ['t', 'name', 12.128101160955802, -300.9557262492768, 450.29494701453706, 'B'],
+        ['l', 50.500000000000036, 87.46856578222828, 225.50000000000014, 390.57745710678176],
+        ['c', 451.0, -1.0014211682118912e-13, -225.4999999999999, 390.5774571067819, 0],
+        ['t', 'length', 50.500000000000036, 87.46856578222828, 20.94395102393195, '3.5e+02'],
+        ['s', 'node', 101.0, -1.0471975511965979, 650.0, 4.1887902047863905, 'E', {}],
+        ['l', 451.0, -1.0014211682118912e-13, 701.0, -1.5565326805244695e-13],
+        ['t', 'length', 451.0, -1.0014211682118912e-13, 10.471975511965976, '2.5e+02'],
+        ['s', 'node', 451.0, -1.0471975511965979, 250.0, 2.0943951023931953, 'C', {}],
+        ['t', 'name', 592.6472879833091, 374.76743728081397, 1048.6935476983072, 'C'],
+        ['l', -225.49999999999972, 390.57745710678194, -375.49999999999955, 650.3850782421137],
+        ['t', 'length', -225.49999999999972, 390.57745710678194, 10.471975511965976, '3e+02'],
+        ['s', 'node', 451.0, 1.0471975511965974, 300.0, 2.0943951023931953, 'D', {}],
+        ['t', 'name', -665.1545664706911, 349.10004683927934, 1123.4933727837783, 'D']]
 
 
 def test_intersects():
@@ -98,3 +127,35 @@ def test_size():
     assert drawer.node_size(t) == Size(5, 3)
     assert drawer.content_size(t) == Size(1, 3)
     assert drawer.children_size(t) == Size(4, 3)
+
+
+def test_stack():
+    b1 = Box(x=0, y= 0, dx=10, dy=5)
+    b2 = Box(x=0, y= 5, dx=20, dy=10)
+    b3 = Box(x=0, y=15, dx= 5, dy=3)
+    b4 = Box(x=5, y=15, dx= 5, dy=3)
+
+    assert draw.stack(b1, b2) == Box(0, 0, 20, 15)
+    assert draw.stack(b2, b3) == Box(0, 5, 20, 13)
+    assert draw.stack(b2, b4) is None
+    assert draw.stack(b1, b3) is None
+    assert draw.stack(b1, draw.stack(b2, b3)) == Box(0, 0, 20, 18)
+    assert draw.stack(draw.stack(b1, b2), b3) == Box(0, 0, 20, 18)
+    assert draw.stack(b3, draw.stack(b1, b2)) is None
+
+
+def test_circumshapes():
+    assert draw.circumrect(None) is None
+    assert draw.circumasec(None) is None
+
+    assert draw.circumrect(Box(0, 0, 1, pi/2)) == Box(0, 0, 1, 1)
+    assert draw.circumrect(Box(0, 0, 2, -pi/2)) == Box(0, -2, 2, 2)
+    # TODO: more tests
+
+
+def test_in_viewport():
+    pass  # TODO
+
+
+def test_get_node_boxes():
+    pass  # TODO

@@ -11,7 +11,7 @@ sys.path.insert(0, f'{abspath(dirname(__file__))}/..')
 from contextlib import contextmanager
 import urllib.request as req
 import urllib.error
-import urllib.parse
+from urllib.parse import quote
 import json
 
 import pytest
@@ -336,12 +336,15 @@ def test_search():
     valid_requests = [
         'text=A',
         'text=B&x=1&y=-1&w=1&h=1&drawer=Simple&min_size=8&aligned&zx=3&zy=6',
-        'text=%s' % urllib.parse.quote('/r (A|B)')]
+        'text=%s' % quote('/r (A|B)'),
+        'text=%s' % quote('/e is_leaf or d > 1')]
 
     invalid_requests_and_error = [
         ('', 'missing search text'),
         ('text=/', 'invalid command'),
-        ('text=%s' % urllib.parse.quote('/e open("/etc/passwd")'), 'invalid')]
+        ('text=%s' % quote('/e open("/etc/passwd")'), 'invalid use of'),
+        ('text=%s' % quote('/e __import__("os").execv("/bin/echo", ["0wN3d"])'),
+         'invalid use of')]
 
     for qs in valid_requests:
         get(f'trees/1/search?{qs}')  # does not raise an exception
