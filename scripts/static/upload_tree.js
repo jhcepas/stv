@@ -17,7 +17,8 @@ function update() {
     div_info.innerHTML =
       `Logged in as ${login.username} (${login.name})<br>` +
       `<a href="/users/${login.id}">info</a> | ` +
-      `<a href="#" onclick="window.localStorage.clear(); update(); return false;">` +
+      `<a href="#" ` +
+      `   onclick="window.localStorage.clear(); update(); return false;">` +
       `log out</a>`;
   }
   else {
@@ -36,7 +37,7 @@ function guest_login() {
 
 
 div_login.addEventListener("keyup", event => {
-  if (event.keyCode === 13)  // we pressed ENTER
+  if (event.key === "Enter")
     button_login.click();
 });
 
@@ -97,7 +98,8 @@ button_upload.addEventListener("click", async () => {
 
   if (response.status === 401) {
     div_info.innerHTML = "Upload failed - Unauthorized<br>" +
-      '<a href="#" onclick="window.localStorage.clear(); update(); return false;">' +
+      '<a href="#" ' +
+      '   onclick="window.localStorage.clear(); update(); return false;">' +
       'You need to login again</a>';
     return;
   }
