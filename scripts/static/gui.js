@@ -220,7 +220,7 @@ async function show_tree_info() {
   const url = get_url_view(view.tl.x, view.tl.y,
     div_tree.offsetWidth / view.zoom.x, div_tree.offsetHeight / view.zoom.y);
 
-  Swal.fire({
+  const result = await Swal.fire({
     title: "Tree Information",
     icon: "info",
     html: `${info.name} (<a href="/trees/${info.id}">${info.id}</a>)<br><br>` +
@@ -228,10 +228,10 @@ async function show_tree_info() {
     `(<a href="${url}">current view</a>)`,
     confirmButtonText: "Copy view to clipboard",
     showCancelButton: true,
-  }).then(result => {
-    if (result.isConfirmed)
-      navigator.clipboard.writeText(url);
   });
+
+  if (result.isConfirmed)
+    navigator.clipboard.writeText(url);
 }
 
 
@@ -282,10 +282,19 @@ function download(fname, content) {
 }
 
 
-function search() {
-  Swal.fire({
+// Search nodes and mark them as selected on the tree.
+async function search() {
+  const help_regex = "Regular expressions like '^[A-Z]gene'";
+  const help_eval = "Expressions like 'is_leaf and d > 1'";
+
+  const result = await Swal.fire({
     title: "Search nodes",
     input: "text",
+    inputLabel: "Find all nodes with a matching name",
+    inputPlaceholder: "Enter search text",
+    footer: "<p>Advanced search:<br>" +
+      `&emsp;<tt title="${help_regex}">/r &lt;regex&gt;</tt><br>` +
+      `&emsp;<tt title="${help_eval}">/e &lt;expression&gt;</tt></p>`,
     showCancelButton: true,
     confirmButtonText: "Search",
     preConfirm: text => {
@@ -297,33 +306,35 @@ function search() {
         qs += `&rmin=${view.rmin}&amin=${view.angle.min}&amax=${view.angle.max}`;
 
       return api(`/trees/${trees[view.tree]}/search?${qs}`);
-    }
-  }).then(result => {
-    if (result.isConfirmed) {
-      if (result.value.message !== 'ok') {
-        Swal.fire("Error", result.value.message);
-      }
-      else if (result.value.boxes.length === 0) {
-        Swal.fire("No nodes found");
-      }
-      else {
-        const n = result.value.boxes.length;
-        const info = n < result.value.max ? "" : "Only showing the first " +
-          `${result.value.max} matches. There may be more.<br><br>`;
-        const link = box => `<a href="#" title="Zoom into node" ` +
-          `onclick="zoom_into_box([${box}]); return false;">` +
-          `${box[0]} ${box[1]}</a>`;
-        Swal.fire({
-          title: `Found ${n} node${n > 1 ? 's' : ''}`,
-          html: info + result.value.boxes.map(link).join('<br>'),
-        });
+    }});
 
-        const g = div_tree.children[0].children[0];
-        result.value.boxes.forEach(
-          box => g.appendChild(create_selection_box(box)));
-      }
-    }
-  });
+  if (result.isConfirmed) {
+    if (result.value.message === 'ok')
+      show_selection_results(result.value.boxes, result.value.max);
+    else
+      Swal.fire("Error", result.value.message);
+  }
+}
+
+
+// Show a dialog with the selection results, and mark the boxes on the tree.
+function show_selection_results(boxes, max) {
+  const n = boxes.length;
+  const info = n < max ? "" : `Only showing the first ${max} matches. ` +
+    "There may be more.<br><br>";
+  const link = box => `<a href="#" title="Zoom into node" ` +
+    `onclick="zoom_into_box([${box}]); return false;">` +
+    `${box[0].toPrecision(4)} : ${box[1].toPrecision(4)}</a>`;
+
+  if (n > 0)
+    Swal.fire({
+      title: `Found ${n} node${n > 1 ? 's' : ''}`,
+      html: info + boxes.map(link).join('<br>')});
+  else
+    Swal.fire("No nodes found");
+
+  const g = div_tree.children[0].children[0];
+  boxes.forEach(box => g.appendChild(create_selection_box(box)));
 }
 
 
