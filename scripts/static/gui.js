@@ -751,7 +751,7 @@ function item2svg(item, zoom) {
     if (view.is_circular) {
       const angle = Math.atan2(y, x) * 180 / Math.PI;
 
-      let flip = '';
+      let flip = "";
       if (angle < -90 || angle > 90) {
         const width = (font_size / 1.55) * txt.length;
         const d1 = cartesian(width / 2, angle * Math.PI / 180);
