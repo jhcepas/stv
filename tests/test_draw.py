@@ -145,13 +145,18 @@ def test_stack():
 
 
 def test_circumshapes():
+    # Make sure that the rectangles or annular sectors that represent the full
+    # plane stay representing the full plane.
     assert draw.circumrect(None) is None
     assert draw.circumasec(None) is None
 
+    # Rectangles surrounding annular sectors.
     assert draw.circumrect(Box(0, 0, 1, pi/2)) == Box(0, 0, 1, 1)
     assert draw.circumrect(Box(0, 0, 2, -pi/2)) == Box(0, -2, 2, 2)
     assert draw.circumrect(Box(0, 0, 1, pi/4)) == Box(0, 0, 1, 1/sqrt(2))
-    # TODO: more tests
+
+    # Annular sectors surrounding rectangles.
+    assert draw.circumasec(Box(0, -2, 1, 1)) == Box(1, -pi/2, sqrt(5) - 1, pi/4)
 
 
 def test_in_viewport():
@@ -160,8 +165,13 @@ def test_in_viewport():
     drawer = draw.DrawerFull(t, viewport, zoom=(10, 10))
     assert drawer.in_viewport(Box(0, 0, 1, 1))
     assert not drawer.in_viewport(Box(30, 20, 5, 5))
-    pass  # TODO: more tests
 
 
 def test_get_node_boxes():
-    pass  # TODO
+    tree_text = '((B:200,(C:250,D:300)E:350)A:100)F;'
+    t = tree.loads(tree_text)
+
+    drawer = draw.DrawerFull(t, zoom=(10, 10))
+    drawer.get_node_boxes(lambda node: node.name in ['A', 'C']) == [
+        Box(x=1.0, y=0, dx=100.0, dy=3.0),
+        Box(x=451.0, y=1.0, dx=250.0, dy=1.0)]

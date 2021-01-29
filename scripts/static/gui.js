@@ -338,7 +338,7 @@ function show_selection_results(boxes, max) {
 }
 
 
-// Return a box (a rectangle or annulus sector) to mark a selected area.
+// Return a box (a rectangle or annular sector) to mark a selected area.
 function create_selection_box(box) {
   if (!view.is_circular) {
     const [x, y, w, h] = box;
@@ -669,7 +669,7 @@ function item2svg(item, zoom) {
 
     return r;
   }
-  else if (item[0] === 's') {  // annulus sector
+  else if (item[0] === 's') {  // annular sector
     const [ , asec_type, r, a, dr, da, name, properties] = item;
     const z = zx;
     const large = da > Math.PI ? 1 : 0;

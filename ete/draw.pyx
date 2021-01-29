@@ -28,7 +28,7 @@ Box = namedtuple('Box', 'x y dx dy')  # corner and size of a 2D shape
 #                  |     | h        and (x+w,y+h) its (right,bottom) one
 #                  +-----+
 #
-# * Annulus sector   r,a .----.
+# * Annular sector   r,a .----.
 #                       .  dr .     so (r,a) is its (inner,smaller-angle) corner
 #                       \   .       and (r+dr,a+da) its (outer,bigger-angle) one
 #                        \. da
@@ -407,7 +407,7 @@ def stack(b1, b2):
 
 
 def circumrect(asec):
-    "Return the rectangle that circumscribes the given annulus sector"
+    "Return the rectangle that circumscribes the given annular sector"
     cdef double r, a, dr, da
     if asec is None:
         return None
@@ -420,7 +420,7 @@ def circumrect(asec):
 
 
 def circumasec(rect):
-    "Return the annulus sector that circumscribes the given rectangle"
+    "Return the annular sector that circumscribes the given rectangle"
     cdef double x, y, w, h
     if rect is None:
         return None
