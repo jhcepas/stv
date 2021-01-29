@@ -6,7 +6,7 @@ import sys
 from os.path import abspath, dirname
 sys.path.insert(0, f'{abspath(dirname(__file__))}/..')
 
-from math import pi
+from math import pi, sqrt
 
 from ete import tree, draw
 Size, Box = draw.Size, draw.Box
@@ -150,11 +150,17 @@ def test_circumshapes():
 
     assert draw.circumrect(Box(0, 0, 1, pi/2)) == Box(0, 0, 1, 1)
     assert draw.circumrect(Box(0, 0, 2, -pi/2)) == Box(0, -2, 2, 2)
+    assert draw.circumrect(Box(0, 0, 1, pi/4)) == Box(0, 0, 1, 1/sqrt(2))
     # TODO: more tests
 
 
 def test_in_viewport():
-    pass  # TODO
+    t = tree.loads('(a:2,b:3,c:4)d;')
+    viewport = Box(-1, -2, 10, 20)
+    drawer = draw.DrawerFull(t, viewport, zoom=(10, 10))
+    assert drawer.in_viewport(Box(0, 0, 1, 1))
+    assert not drawer.in_viewport(Box(30, 20, 5, 5))
+    pass  # TODO: more tests
 
 
 def test_get_node_boxes():
