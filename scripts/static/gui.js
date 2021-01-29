@@ -82,6 +82,25 @@ document.addEventListener("DOMContentLoaded", async () => {
 window.addEventListener("resize", update);  // we could also draw_minimap()
 
 
+// Hotkeys.
+div_tree.addEventListener("keydown", event => {
+  if (event.key === "/" || event.key === "F1") {
+    event.preventDefault();
+    search();
+  }
+  else if (event.key === "r") {
+    event.preventDefault();
+    reset_view();
+  }
+  else if (event.key === "m") {
+    event.preventDefault();
+    view.minimap_show = !view.minimap_show;
+    show_minimap(view.minimap_show);
+    datgui.updateDisplay();  // update the info box on the top-right
+  }
+});
+
+
 // What happens when the user selects a new tree in the datgui menu.
 async function on_tree_change() {
   div_tree.style.cursor = "wait";
