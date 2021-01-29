@@ -98,6 +98,16 @@ div_tree.addEventListener("keydown", event => {
     show_minimap(view.minimap_show);
     datgui.updateDisplay();  // update the info box on the top-right
   }
+  else if (event.key === "+") {
+    event.preventDefault();
+    const center = [div_tree.offsetWidth / 2, div_tree.offsetHeight / 2];
+    zoom_around(center, 1.25);
+  }
+  else if (event.key === "-") {
+    event.preventDefault();
+    const center = [div_tree.offsetWidth / 2, div_tree.offsetHeight / 2];
+    zoom_around(center, 0.8);
+  }
 });
 
 
@@ -416,28 +426,35 @@ window.zoom_into_box = zoom_into_box;  // exposed so it can be called in onclick
 document.body.addEventListener("wheel", event => {
   event.preventDefault();
   const qz = (event.deltaY < 0 ? 1.25 : 0.8);  // zoom change (quotient)
-
   let [do_zoom_x, do_zoom_y] = [!event.altKey, !event.ctrlKey];
+  zoom_around([event.pageX, event.pageY], qz, do_zoom_x, do_zoom_y);
+}, {passive: false});  // chrome now uses passive=true otherwise
+
+
+// Zoom by a factor qz maintaining the given point on the screen.
+function zoom_around(point, qz, do_zoom_x=true, do_zoom_y=true) {
+  const [x, y] = point;
+
   if (view.is_circular)
     do_zoom_x = do_zoom_y = (do_zoom_x || do_zoom_y);  // all together
 
   if (do_zoom_x) {
     const zoom_new = qz * view.zoom.x;
-    view.tl.x += (1 / view.zoom.x - 1 / zoom_new) * event.pageX;
+    view.tl.x += (1 / view.zoom.x - 1 / zoom_new) * x;
     view.zoom.x = zoom_new;
     zooming.qz.x *= qz;
   }
 
   if (do_zoom_y) {
     const zoom_new = qz * view.zoom.y;
-    view.tl.y += (1 / view.zoom.y - 1 / zoom_new) * event.pageY;
+    view.tl.y += (1 / view.zoom.y - 1 / zoom_new) * y;
     view.zoom.y = zoom_new;
     zooming.qz.y *= qz;
   }
 
   if (do_zoom_x || do_zoom_y)
     smooth_zoom();
-}, {passive: false});  // chrome now uses passive=true otherwise
+}
 
 
 // Perform zoom by scaling the svg, and really update it only after a timeout.
