@@ -733,7 +733,16 @@ function item2svg(item, zoom) {
 
     if (view.is_circular) {
       const angle = Math.atan2(y, x) * 180 / Math.PI;
-      attrs["transform"] = `rotate(${angle}, ${zx*x}, ${zy*y})`;
+
+      let flip = '';
+      if (angle < -90 || angle > 90) {
+        const width = (font_size / 1.55) * txt.length;
+        const d1 = cartesian(width / 2, angle * Math.PI / 180);
+        const d2 = cartesian(font_size / 2, angle * Math.PI / 180);
+        flip = `rotate(180, ${zx * x + d1.x + d2.y}, ${zy * y + d1.y - d2.x}) `;
+      }
+
+      attrs["transform"] = flip + `rotate(${angle}, ${zx * x}, ${zy * y})`;
     }
 
     const t = create_svg_element("text", attrs);
