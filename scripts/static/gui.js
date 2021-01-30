@@ -83,7 +83,7 @@ window.addEventListener("resize", update);  // we could also draw_minimap()
 
 
 // Hotkeys.
-div_tree.addEventListener("keydown", event => {
+document.addEventListener("keydown", event => {
   if (event.key === "/" || event.key === "F1") {
     event.preventDefault();
     search();
@@ -423,7 +423,7 @@ window.zoom_into_box = zoom_into_box;  // exposed so it can be called in onclick
 
 
 // Use the mouse wheel to zoom in/out (instead of scrolling).
-document.body.addEventListener("wheel", event => {
+document.addEventListener("wheel", event => {
   event.preventDefault();
   const qz = (event.deltaY < 0 ? 1.25 : 0.8);  // zoom change (quotient)
   let [do_zoom_x, do_zoom_y] = [!event.altKey, !event.ctrlKey];
