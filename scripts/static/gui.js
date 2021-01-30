@@ -236,11 +236,11 @@ async function show_tree_info() {
     html: `${info.name} (<a href="/trees/${info.id}">${info.id}</a>)<br><br>` +
     (info.description ? `${info.description}<br><br>` : "") +
     `(<a href="${url}">current view</a>)`,
-    confirmButtonText: "Copy view to clipboard",
+    confirmButtonText: navigator.clipboard ? "Copy view to clipboard" : "Ok",
     showCancelButton: true,
   });
 
-  if (result.isConfirmed)
+  if (result.isConfirmed && navigator.clipboard)
     navigator.clipboard.writeText(url);
 }
 
