@@ -432,7 +432,7 @@ def get_eval_search(expression):
     return lambda node: safer_eval(code, {
         'name': node.name, 'is_leaf': node.is_leaf,
         'length': node.length, 'dist': node.length, 'd': node.length,
-        'properties': node.properties,'p': node.properties,
+        'properties': node.properties, 'p': node.properties,
         'children': node.children, 'ch': node.children,
         'size': node.size, 'dx': node.size[0], 'dy': node.size[1],
         'regex': re.search,
