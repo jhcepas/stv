@@ -198,25 +198,29 @@ class Trees(Resource):
             return [get_tree(pid) for pid in dbget0('id', 'trees')]
         elif rule == '/trees/drawers':
             return [d.__name__[len('Drawer'):] for d in draw.get_drawers()]
-        elif rule == '/trees/<int:tree_id>':
+        elif rule == '/trees/<string:tree_id>':
             return get_tree(tree_id)
-        elif rule == '/trees/<int:tree_id>/newick':
-            newicks = dbget0('newick', 'trees where id=?', tree_id)
-            if len(newicks) != 1:
+        elif rule == '/trees/<string:tree_id>/newick':
+            try:
+                tid, subtree = get_tid(tree_id)
+                newicks = dbget0('newick', 'trees where id=?', tid)
+                assert len(newicks) == 1
+                return (newicks[0] if not subtree else
+                    tree.dumps(tree.loads(newicks[0])[subtree]))
+            except (AssertionError, IndexError):
                 raise InvalidUsage(f'unknown tree id {tree_id}', 404)
-            return newicks[0]
-        elif rule == '/trees/<int:tree_id>/search':
+        elif rule == '/trees/<string:tree_id>/search':
             MAX_BOXES = 200
             boxes = search_nodes(tree_id, request.args.copy(), MAX_BOXES)
             return {'message': 'ok', 'max': MAX_BOXES, 'boxes': boxes}
-        elif rule == '/trees/<int:tree_id>/draw':
+        elif rule == '/trees/<string:tree_id>/draw':
             drawer = get_drawer(tree_id, request.args.copy())
             return list(drawer.draw())
-        elif rule == '/trees/<int:tree_id>/size':
+        elif rule == '/trees/<string:tree_id>/size':
             width, height = load_tree(tree_id).size
             return {'width': width, 'height': height}
         else:
-            raise InvalidUsage('unknown tree GET request')
+            raise InvalidUsage('unknown tree in GET request')
 
     @auth.login_required
     def post(self):
@@ -239,7 +243,7 @@ class Trees(Resource):
         except tree.NewickError as e:
             raise InvalidUsage(f'malformed tree - {e}')
 
-        tree_id = None  # will be filled later if it all works
+        tid = None  # will be filled later if it all works
         with shared_connection([dbget0, dbexe]) as [get0, exe]:
             cols, vals = zip(*data.items())
             try:
@@ -249,53 +253,58 @@ class Trees(Resource):
             except sqlalchemy.exc.IntegrityError as e:
                 raise InvalidUsage(f'database exception adding tree: {e}')
 
-            tree_id = get0('id', 'trees where name=?', data['name'])[0]
+            tid = get0('id', 'trees where name=?', data['name'])[0]
 
             exe('insert into user_owns_trees values (%d, %d)' %
-                (owner, tree_id))
+                (owner, tid))
 
-        return {'message': 'ok', 'id': tree_id}, 201
+        return {'message': 'ok', 'id': tid}, 201
 
     @auth.login_required
     def put(self, tree_id):
         "Modify tree"
-        if dbcount('trees where id=?', tree_id) != 1:
-            raise InvalidUsage(f'unknown tree id {tree_id}')
+        try:
+            tid = int(tree_id)
 
-        admin_id = 1
-        if g.user_id not in [get_owner(tree_id), admin_id]:
-            raise InvalidUsage('no permission to modify tree')
+            assert dbcount('trees where id=?', tid) == 1, 'invalid id'
 
-        data = get_fields(valid_extra=[
-            'addReaders','delReaders',
-            'name', 'description', 'newick'])
+            admin_id = 1
+            assert g.user_id in [get_owner(tid), admin_id], 'no permission'
 
-        add_readers(tree_id, data.pop('addReaders', None))
-        del_readers(tree_id, data.pop('delReaders', None))
-        if not data:
+            data = get_fields(valid_extra=[
+                'addReaders','delReaders',
+                'name', 'description', 'newick'])
+
+            add_readers(tid, data.pop('addReaders', None))
+            del_readers(tid, data.pop('delReaders', None))
+            if not data:
+                return {'message': 'ok'}
+
+            cols, vals = zip(*data.items())
+            qs = ','.join('%s=?' % x for x in cols)
+            res = dbexe('update trees set %s where id=%d' % (qs, tid), vals)
+
+            assert res.rowcount == 1, f'unknown tree'
+
             return {'message': 'ok'}
-
-        cols, vals = zip(*data.items())
-        qs = ','.join('%s=?' % x for x in cols)
-        res = dbexe('update trees set %s where id=%d' % (qs, tree_id), vals)
-
-        if res.rowcount != 1:
-            raise InvalidUsage(f'unknown tree id {tree_id}', 409)
-
-        return {'message': 'ok'}
+        except (ValueError, AssertionError) as e:
+            raise InvalidUsage(f'for tree id {tree_id}: {e}')
 
     @auth.login_required
     def delete(self, tree_id):
         "Delete tree and all references to it"
-        if dbcount('trees where id=?', tree_id) != 1:
-            raise InvalidUsage(f'unknown tree id {tree_id}', 404)
+        try:
+            tid = int(tree_id)
 
-        admin_id = 1
-        if g.user_id not in [get_owner(tree_id), admin_id]:
-            raise InvalidUsage('no permission to delete tree', 403)
+            assert dbcount('trees where id=?', tid) == 1, 'unknown tree'
 
-        del_tree(tree_id)
-        return {'message': 'ok'}
+            admin_id = 1
+            assert g.user_id in [get_owner(tid), admin_id], 'no permission'
+
+            del_tree(tid)
+            return {'message': 'ok'}
+        except (ValueError, AssertionError) as e:
+            raise InvalidUsage(f'for tree id {tree_id}: {e}')
 
 
 class Info(Resource):
@@ -328,16 +337,23 @@ class Id(Resource):
 
 def load_tree(tree_id):
     "Add tree to app.trees and initialize it if not there, and return it"
-    if tree_id in app.trees:
-        return app.trees[tree_id]
+    try:
+        if tree_id in app.trees:
+            return app.trees[tree_id]
 
-    newicks = dbget0('newick', 'trees where id=?', tree_id)
-    if len(newicks) != 1:
+        tid, subtree = get_tid(tree_id)
+
+        if tid in app.trees:
+            return app.trees[tid][subtree]
+
+        newicks = dbget0('newick', 'trees where id=?', tid)
+        assert len(newicks) == 1
+
+        t = tree.loads(newicks[0])[subtree]
+        app.trees[tree_id] = t
+        return t
+    except (AssertionError, IndexError):
         raise InvalidUsage(f'unknown tree id {tree_id}', 404)
-
-    t = tree.loads(newicks[0])
-    app.trees[tree_id] = t
-    return t
 
 
 def get_drawer(tree_id, args):
@@ -496,8 +512,22 @@ def get_user(uid):
     return strip(user)
 
 
-def get_tree(tid):
+def get_tid(tree_id):
+    "Return the tree id and the subtree id, with the appropriate types"
+    try:
+        if type(tree_id) == int:
+            return tree_id, []
+        else:
+            tid, *subtree = tree_id.split(',')
+            return int(tid), [int(n) for n in subtree]
+    except ValueError:
+        raise InvalidUsage(f'invalid tree id {tree_id}')
+
+
+def get_tree(tree_id):
     "Return all the fields of a given tree"
+    tid, subtree = get_tid(tree_id)
+
     with shared_connection([dbget, dbget0]) as [get, get0]:
         trees = get('id,name,description', 'trees where id=?', tid)
         if len(trees) == 0:
@@ -507,13 +537,14 @@ def get_tree(tid):
 
         tree['owner'] = get0('id_user', 'user_owns_trees where id_tree=?', tid)[0]
         tree['readers'] = get0('id_user', 'user_reads_trees where id_tree=?', tid)
+        tree['subtree'] = subtree
 
     return strip(tree)
 
 
-def get_owner(tree_id):
+def get_owner(tid):
     "Return owner id of the given tree"
-    return dbget0('id_user', 'user_owns_trees where id_tree=?', tree_id)
+    return dbget0('id_user', 'user_owns_trees where id_tree=?', tid)
 
 
 def del_tree(tid):
@@ -641,12 +672,14 @@ def add_resources(api):
     add = api.add_resource  # shortcut
     add(Login, '/login')
     add(Users, '/users', '/users/<int:user_id>')
-    add(Trees, '/trees', '/trees/drawers',
-        '/trees/<int:tree_id>',
-        '/trees/<int:tree_id>/newick',
-        '/trees/<int:tree_id>/draw',
-        '/trees/<int:tree_id>/size',
-        '/trees/<int:tree_id>/search')
+    add(Trees,
+        '/trees',
+        '/trees/drawers',
+        '/trees/<string:tree_id>',
+        '/trees/<string:tree_id>/newick',
+        '/trees/<string:tree_id>/draw',
+        '/trees/<string:tree_id>/size',
+        '/trees/<string:tree_id>/search')
     add(Info, '/info')
     add(Id, '/id/<path:path>')
 

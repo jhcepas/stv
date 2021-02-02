@@ -9,6 +9,7 @@ const view = {
   pos: {x: 0, y: 0},  // in-tree current pointer position
   search: () => search(),
   tree: "",
+  subtree: "",
   drawer: "Full",
   is_circular: false,
   show_tree_info: () => show_tree_info(),
@@ -186,10 +187,15 @@ function show_minimap(show) {
 }
 
 
+function get_tid() {
+  return trees[view.tree] + (view.subtree ? "," + view.subtree : "");
+}
+
+
 // Set the zoom so the full tree fits comfortably on the screen.
 async function reset_zoom(reset_zx=true, reset_zy=true) {
   if (reset_zx || reset_zy) {
-    const size = await api(`/trees/${trees[view.tree]}/size`);
+    const size = await api(`/trees/${get_tid()}/size`);
     if (view.is_circular) {
       const smaller_dim = Math.min(div_tree.offsetWidth, div_tree.offsetHeight);
       view.zoom.x = view.zoom.y = smaller_dim / (view.rmin + size.width) / 2;
@@ -226,7 +232,7 @@ function get_url_view(x, y, w, h) {
 
 // Show an alert with information about the current tree and view.
 async function show_tree_info() {
-  const info = await api(`/trees/${trees[view.tree]}`);
+  const info = await api(`/trees/${get_tid()}`);
   const url = get_url_view(view.tl.x, view.tl.y,
     div_tree.offsetWidth / view.zoom.x, div_tree.offsetHeight / view.zoom.y);
 
@@ -247,7 +253,7 @@ async function show_tree_info() {
 
 // Download a file with the newick representation of the tree.
 async function download_newick() {
-  const newick = await api(`/trees/${trees[view.tree]}/newick`);
+  const newick = await api(`/trees/${get_tid()}/newick`);
   download(view.tree + ".tree", "data:text/plain;charset=utf-8," + newick);
 }
 
@@ -315,7 +321,7 @@ async function search() {
       if (view.is_circular)
         qs += `&rmin=${view.rmin}&amin=${view.angle.min}&amax=${view.angle.max}`;
 
-      return api(`/trees/${trees[view.tree]}/search?${qs}`);
+      return api(`/trees/${get_tid()}/search?${qs}`);
     }});
 
   if (result.isConfirmed) {
@@ -614,12 +620,12 @@ async function update_tree() {
     `zx=${zx}&zy=${zy}&x=${x}&y=${y}&w=${w}&h=${h}`;
   if (view.is_circular)
     qs += `&rmin=${view.rmin}&amin=${view.angle.min}&amax=${view.angle.max}`;
-  const items = await api(`/trees/${trees[view.tree]}/draw?${qs}`);
+  const items = await api(`/trees/${get_tid()}/draw?${qs}`);
 
   draw(div_tree, items, view.tl, view.zoom);
 
   if (view.drawer === "Align") {
-    const aitems = await api(`/trees/${trees[view.tree]}/draw?${qs}&aligned`);
+    const aitems = await api(`/trees/${get_tid()}/draw?${qs}&aligned`);
     draw(div_aligned, aitems, view.tl, view.zoom);
     div_aligned.children[0].children[0].setAttribute("transform",
       `translate(0 ${-view.zoom.y * view.tl.y})`);
@@ -777,7 +783,7 @@ function cartesian(r, a) {
 
 // Draw the full tree on a small div on the bottom-right ("minimap").
 async function draw_minimap() {
-  const size = await api(`/trees/${trees[view.tree]}/size`);
+  const size = await api(`/trees/${get_tid()}/size`);
   const mbw = 3;  // border-width from .minimap css
   if (view.is_circular) {
     if (div_minimap.offsetWidth < div_minimap.offsetHeight)
@@ -802,7 +808,7 @@ async function draw_minimap() {
   else
     qs += "&drawer=Simple";
 
-  const items = await api(`/trees/${trees[view.tree]}/draw?${qs}`);
+  const items = await api(`/trees/${get_tid()}/draw?${qs}`);
 
   const offset = -(div_minimap.offsetWidth - 2 * mbw) / view.minimap_zoom.x / 2;
   const tl = view.is_circular ? {x: offset, y: offset} : {x: 0, y: 0};

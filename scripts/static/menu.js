@@ -20,7 +20,11 @@ function create_datgui(view, trees, drawers) {
 
   const dgui_tree = dgui.addFolder("tree");
 
-  dgui_tree.add(view, "tree", trees).onChange(on_tree_change);
+  dgui_tree.add(view, "tree", trees).onChange(() => {
+    view.subtree = "";
+    on_tree_change();
+  });
+  dgui_tree.add(view, "subtree").onChange(on_tree_change);
   dgui_tree.add(view, "drawer", drawers).onChange(on_drawer_change);
   dgui_tree.add(view, "show_tree_info").name("info");
   dgui_tree.add(view, "upload_tree").name("upload");
