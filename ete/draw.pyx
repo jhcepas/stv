@@ -139,6 +139,24 @@ class Drawer:
             elif not node.is_leaf:  # last time we will visit this node
                 x -= dx
 
+    def get_node_at(self, point):
+        "Return the node whose content area contains the given point"
+        x, y = self.xmin, self.ymin
+        for node, descendants in self.tree.walk():
+            dx, dy = self.content_size(node)
+            if descendants or node.is_leaf:  # first time we visit this node
+                if not is_inside(point, make_box((x, y), self.node_size(node))):
+                    descendants[:] = []
+                elif node.is_leaf or is_inside(point, Box(x, y, dx, dy)):
+                    return node
+                if not descendants:
+                    y += dy
+                if not node.is_leaf:
+                    x += dx
+            elif not descendants:  # last time we visit this node
+                x -= dx
+        return None
+
     # These are the functions that the user would supply to decide how to
     # represent a node.
     def draw_content_inline(self, node, point):
@@ -394,8 +412,18 @@ def intersects(b1, b2):
     x1max, y1max = x1min + dx1, y1min + dy1
     x2min, y2min, dx2, dy2 = b2
     x2max, y2max = x2min + dx2, y2min + dy2
-    return ((x1min < x2max and x2min < x1max) and
-            (y1min < y2max and y2min < y1max))
+    return ((x1min <= x2max and x2min <= x1max) and
+            (y1min <= y2max and y2min <= y1max))
+
+
+def is_inside(point, box):
+    "Return True if point is inside the box"
+    cdef double px, py, x, y, dx, dy
+    if box is None:
+        return True
+    px, py = point
+    x, y, dx, dy = box
+    return (x <= px < x + dx) and (y <= py < y + dy)
 
 
 def stack(b1, b2):
