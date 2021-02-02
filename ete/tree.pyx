@@ -74,9 +74,15 @@ cdef class Tree:
         for node in self.children:
             yield from node
 
-    def __getitem__(self, name):
+    def __getitem__(self, name_or_list):
         "Return the first (in preorder) node with the given name, or None"
-        return next((node for node in self if node.name == name), None)
+        if type(name_or_list) == str:
+            return next((n for n in self if n.name == name_or_list), None)
+        else:
+            node = self
+            for i in name_or_list:
+                node = node.children[i]
+            return node
 
     def __repr__(self):
         children_reprs = ', '.join(repr(c) for c in self.children)
