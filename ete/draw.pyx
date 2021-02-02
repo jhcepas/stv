@@ -314,7 +314,7 @@ class DrawerCircLengths(DrawerCirc):
             dr, da = self.content_size(node)
             zx, zy = self.zoom
             text = '%.2g' % node.length
-            fs = min(zy * self.bh(node), zx * 1.5 * dr / len(text))
+            fs = min(zy * (r + dr) * self.bh(node), zx * 1.5 * dr / len(text))
             g_text = draw_text(cartesian(r, a + self.bh(node)), fs, text, 'length')
 
             if zy * da > 1:  # NOTE: we may want to change this, but it's tricky
