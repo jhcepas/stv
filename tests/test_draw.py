@@ -211,3 +211,29 @@ def test_get_node_boxes():
     drawer.get_node_boxes(lambda node: node.name in ['A', 'C']) == [
         Box(x=1.0, y=0, dx=100.0, dy=3.0),
         Box(x=451.0, y=1.0, dx=250.0, dy=1.0)]
+
+
+def test_get_node_at():
+    tree_text = '((d:5,e:2)b:3,(f:4,g:3)c:1)a:2;'
+    t = tree.loads(tree_text)
+    # a:2
+    # ├─b:3
+    # │ ├─d:5
+    # │ └─e:2
+    # └─c:1
+    #   ├─f:4
+    #   └─g:3
+
+    drawer = draw.DrawerFull(t)
+    for point, node1, node2 in [
+        ((-1, -1), None, None),
+        ((0, 0), t, t['a']),
+        ((2, 0), t[0], t['b']),
+        ((6, 0), t[0,0], t['d']),
+        ((1, 2), t, t['a']),
+        ((2, 2), t[1], t['c']),
+        ((6, 1), t[0,1], t['e']),
+        ((6, 2), t[1,0], t['f']),
+        ((6, 3), None, None),
+        ((3, 3), t[1,1], t['g'])]:
+        assert drawer.get_node_at(point) == node1 == node2
