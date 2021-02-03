@@ -303,10 +303,14 @@ def test_length_format():
 
 
 def test_getter():
-    t = tree.loads('((d,e)b,(f,g)c)a;')
+    t = tree.loads('((d:8,e:7)b:6,(f:5,g:4)c:3)a:2;')
     assert t['a'] == t
     assert t['f'] == t.children[1].children[0]
     assert t['z'] is None
+
+    assert t['b'] == t[0] == t[0,]
+    assert t['d'] == t[0,0] == t[0][0] == t[lambda n: n.length == 8]
+    assert t['g'] == t[1,1] == t[lambda n: n.is_leaf and n.length < 5]
 
 
 def test_walk():
