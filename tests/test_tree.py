@@ -302,7 +302,7 @@ def test_length_format():
     assert tree.dumps(t) == '(a:1.000000E-06,b:1.300000E+34)c:2.343400E+02;'
 
 
-def test_getter():
+def test_getitem():
     t = tree.loads('((d:8,e:7)b:6,(f:5,g:4)c:3)a:2;')
     assert t['a'] == t
     assert t['f'] == t.children[1].children[0]
