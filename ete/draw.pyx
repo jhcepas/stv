@@ -146,19 +146,16 @@ class Drawer:
     def get_node_at(self, point):
         "Return the node whose content area contains the given point"
         x, y = self.xmin, self.ymin
-        for node, descendants in self.tree.walk():
-            dx, dy = self.content_size(node)
-            if descendants or node.is_leaf:  # first time we visit this node
-                if not is_inside(point, make_box((x, y), self.node_size(node))):
-                    descendants[:] = []
-                elif node.is_leaf or is_inside(point, Box(x, y, dx, dy)):
-                    return node
-                if not descendants:
-                    y += dy
-                if not node.is_leaf:
-                    x += dx
-            elif not descendants:  # last time we visit this node
-                x -= dx
+        for node, node_id, _ in self.tree.walk():
+            ndx, ndy = self.node_size(node)
+            cdx, cdy = self.content_size(node)
+            if not is_inside(point, Box(x, y, ndx, ndy)):
+                node_id[:] = []  # skip walking over the node's children
+                y += ndy
+            elif node.is_leaf or is_inside(point, Box(x, y, cdx, cdy)):
+                return node
+            else:
+                x += cdx
         return None
 
     # These are the functions that the user would supply to decide how to
