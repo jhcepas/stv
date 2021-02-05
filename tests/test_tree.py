@@ -336,32 +336,31 @@ def test_walk():
     # When nodes are visited first, they either have descendants or are leaves.
     # When nodes are visited last (coming back), their descendants are empty.
     steps = []
-    for node, descendants in t.walk():
-         steps.append((node.name, [x.name for x in descendants]))
+    for node, node_id, first in t.walk():
+         steps.append((node.name, node_id, first))
     assert steps == [
-        ('a', ['c', 'b']),
-        ('b', ['e', 'd']),  # first time visiting internal node b -> descendants
-        ('d', []),  # first (and only) time visiting leaf node d
-        ('e', []),
-        ('b', []),  # last time visiting b -> no descendants
-        ('c', ['g', 'f']),
-        ('f', []),
-        ('g', []),
-        ('c', []),
-        ('a', [])]
+        ('a', [], True),
+        ('b', [0], True),  # first time visiting internal node b
+        ('d', [0,0], True),  # first (and only) time visiting leaf node d
+        ('e', [0,1], True),
+        ('b', [0], False),  # last time visiting b
+        ('c', [1], True),
+        ('f', [1,0], True),
+        ('g', [1,1], True),
+        ('c', [1], False),
+        ('a', [], False)]
 
     # Prunning the tree while we walk.
     steps = []
-    for node, descendants in t.walk():
-        steps.append((node.name, [x.name for x in descendants]))
+    for node, node_id, first in t.walk():
+        steps.append((node.name, node_id, first))
         if node.name == 'b':
-            descendants[:] = []  # do not follow the descendants of b
+            node_id[:] = []  # do not follow the descendants of b
     assert steps == [
-        ('a', ['c', 'b']),
-        ('b', ['e', 'd']),  # descendants will be emptied in the loop
-        ('b', []),  # so we visit b again, this (last) time with no descendants
-        ('c', ['g', 'f']),
-        ('f', []),
-        ('g', []),
-        ('c', []),
-        ('a', [])]
+        ('a', [], True),
+        ('b', [], True),  # node_id has been emptied in the loop
+        ('c', [1], True),  # so we skip all the descendants of b
+        ('f', [1,0], True),
+        ('g', [1,1], True),
+        ('c', [1], False),
+        ('a', [], False)]
