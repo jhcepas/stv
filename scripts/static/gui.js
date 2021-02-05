@@ -679,7 +679,7 @@ function create_arc(p1, p2, large, z=1) {
 }
 
 
-function create_text(point, zx, zy, fs, text, type) {
+function create_text(text, fs, point, zx, zy, type) {
   const [x, y] = point;
 
   const t = create_svg_element("text", {
@@ -754,7 +754,7 @@ function append_item(g, item, zoom) {
     const font_size = (type === "name" ? zy * fs :
       Math.min(view.font_size_max, fs));
 
-    const t = create_text(point, zx, zy, font_size, text, type);
+    const t = create_text(text, font_size, point, zx, zy, type);
 
     g.appendChild(t);
 
