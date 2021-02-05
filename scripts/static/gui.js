@@ -306,19 +306,11 @@ function download(fname, content) {
 
 // Search nodes and mark them as selected on the tree.
 async function search() {
-  const help_regex = "Regular expressions like '^[A-Z]gene'";
-  const help_eval = "Expressions like 'is_leaf and d > 1'";
-
   const result = await Swal.fire({
-    title: "Search nodes",
     input: "text",
-    inputLabel: "Find all nodes with a matching name",
-    inputPlaceholder: "Enter search text",
-    footer: "<p>Advanced search:<br>" +
-      `&emsp;<tt title="${help_regex}">/r &lt;regex&gt;</tt><br>` +
-      `&emsp;<tt title="${help_eval}">/e &lt;expression&gt;</tt></p>`,
-    showCancelButton: true,
-    confirmButtonText: "Search",
+    position: "bottom-start",
+    inputPlaceholder: "Enter name or /r <regex> or /e <exp>",
+    showConfirmButton: false,
     preConfirm: text => {
       if (!text)
         return false;  // prevent popup from closing
@@ -334,7 +326,11 @@ async function search() {
     if (result.value.message === 'ok')
       show_selection_results(result.value.boxes, result.value.max);
     else
-      Swal.fire("Error", result.value.message);
+      Swal.fire({
+        position: "bottom-start",
+        showConfirmButton: false,
+        text: result.value.message,
+        icon: "error"});
   }
 }
 
@@ -342,18 +338,23 @@ async function search() {
 // Show a dialog with the selection results, and mark the boxes on the tree.
 function show_selection_results(boxes, max) {
   const n = boxes.length;
-  const info = n < max ? "" : `Only showing the first ${max} matches. ` +
-    "There may be more.<br><br>";
+  const info = `Found ${n} node${n > 1 ? 's' : ''}<br><br>` +
+    (n < max ? "" : `Only showing the first ${max} matches. ` +
+    "There may be more.<br><br>");
   const link = box => `<a href="#" title="Zoom into node" ` +
     `onclick="zoom_into_box([${box}]); return false;">` +
     `${box[0].toPrecision(4)} : ${box[1].toPrecision(4)}</a>`;
 
   if (n > 0)
     Swal.fire({
-      title: `Found ${n} node${n > 1 ? 's' : ''}`,
+      position: "bottom-start",
+      toast: true,
       html: info + boxes.map(link).join('<br>')});
   else
-    Swal.fire("No nodes found");
+    Swal.fire({
+      position: "bottom-start",
+      text: "No nodes found",
+      icon: "warning"});
 
   const g = div_tree.children[0].children[0];
   boxes.forEach(box => g.appendChild(create_selection_box(box)));
