@@ -287,13 +287,13 @@ def test_get_unknown_tree():
 def test_get_known_tree():
     trees = [x['id'] for x in get('trees')]
     for tid in trees:
-        newick = get('trees/1/newick')
+        newick = get(f'trees/{tid}/newick')
         assert newick.startswith('(') and newick.endswith(';')
 
         elements = get(f'trees/{tid}/draw')
-        assert all(x[0] in ['r', 'a', 'l', 'c', 't'] for x in elements)
-        assert all(x[1] in ['node', 'outline'] for x in elements
-            if x[0] in ['r', 'a'])
+        assert all(x[0] in ['r', 's', 'l', 'c', 't'] for x in elements)
+        assert all(x[2] in ['node', 'outline'] for x in elements
+            if x[0] in ['r', 's'])
 
         assert set(get(f'trees/{tid}/size').keys()) == {'width', 'height'}
 

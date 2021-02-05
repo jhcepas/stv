@@ -644,6 +644,10 @@ function create_asec(box, z=1, type="") {
     "fill": view.box_color});
 }
 
+function cartesian(r, a) {
+  return {x: r * Math.cos(a), y: r * Math.sin(a)};
+}
+
 
 function create_line(p1, p2, zx=1, zy=1) {
   const [x1, y1] = p1,
@@ -666,6 +670,27 @@ function create_arc(p1, p2, large, z=1) {
     "class": "line",
     "d": `M ${z*x1} ${z*y1} A ${r} ${r} 0 ${large} 1 ${z*x2} ${z*y2}`,
     "stroke": view.line_color});
+}
+
+
+function create_text(point, zx, zy, fs, text, type) {
+  const [x, y] = point;
+
+  const t = create_svg_element("text", {
+    "class": "text " + type,
+    "x": zx * x, "y": zy * y,
+    "font-size": `${fs}px`});
+
+  t.appendChild(document.createTextNode(text));
+
+  return t;
+}
+
+
+// Return svg transformation to flip the given text.
+function flip(text) {
+  const bbox = text.getBBox();  // NOTE: text must be already in the DOM
+  return ` rotate(180, ${bbox.x + bbox.width/2}, ${bbox.y + bbox.height/2})`;
 }
 
 
@@ -695,11 +720,12 @@ function append_item(g, item, zoom) {
   const [zx, zy] = [zoom.x, zoom.y];  // shortcut
 
   if (item[0] === 'r' || item[0] === 's') {  // rectangle or annular sector
-    const [shape, type, box, name, properties, node_id] = item;
+    const [shape, box, type, name, properties, node_id] = item;
 
     const b = shape === 'r' ?
       create_rect(box, zx, zy, type) :
       create_asec(box, zx, type);
+
     g.appendChild(b);
 
     b.addEventListener("click", event => on_box_click(event, box, node_id));
@@ -709,44 +735,31 @@ function append_item(g, item, zoom) {
   }
   else if (item[0] === 'l') {  // line
     const [ , p1, p2] = item;
+
     g.appendChild(create_line(p1, p2, zx, zy));
   }
   else if (item[0] === 'c') {  // arc (part of a circle)
     const [ , p1, p2, large] = item;
+
     g.appendChild(create_arc(p1, p2, large, zx));
   }
   else if (item[0] === 't') {  // text
-    const [ , text_type, point, fs, txt] = item;
-    const [x, y] = point;
-
-    const font_size = (text_type === "name" ? zy * fs :
+    const [ , text, point, fs, type] = item;
+    const font_size = (type === "name" ? zy * fs :
       Math.min(view.font_size_max, fs));
 
-    const t = create_svg_element("text", {
-      "class": "text " + text_type,
-      "x": zx * x, "y": zy * y,
-      "font-size": `${font_size}px`});
-    t.appendChild(document.createTextNode(txt));
+    const t = create_text(point, zx, zy, font_size, text, type);
+
     g.appendChild(t);
 
     if (view.is_circular) {
+      const [x, y] = point;
       const angle = Math.atan2(y, x) * 180 / Math.PI;
+
       t.setAttributeNS(null, "transform", `rotate(${angle}, ${zx*x}, ${zy*y})` +
         ((angle < -90 || angle > 90) ? flip(t) : ""));
     }
   }
-}
-
-
-// Return svg transformation to flip the given text.
-function flip(text) {
-  const bbox = text.getBBox();
-  return ` rotate(180, ${bbox.x + bbox.width / 2}, ${bbox.y + bbox.height/2})`;
-}
-
-
-function cartesian(r, a) {
-  return {x: r * Math.cos(a), y: r * Math.sin(a)};
 }
 
 

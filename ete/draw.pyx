@@ -180,7 +180,7 @@ class DrawerRect(Drawer):
         return intersects(self.viewport, box)
 
     def draw_outline(self, box):
-        return draw_box('r', 'outline', box)
+        return draw_box('r', box, 'outline')
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
@@ -210,7 +210,7 @@ class DrawerRect(Drawer):
         return draw_line(p1, p2)
 
     def draw_nodebox(self, node, node_id, box):
-        return draw_box('r', 'node', box, node.name, node.properties, node_id)
+        return draw_box('r', box, 'node', node.name, node.properties, node_id)
 
 
 
@@ -232,7 +232,7 @@ class DrawerCirc(Drawer):
                 intersects(self.viewport, circumrect(box)))
 
     def draw_outline(self, box):
-        return draw_box('s', 'outline', box)
+        return draw_box('s', box, 'outline')
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
@@ -263,7 +263,7 @@ class DrawerCirc(Drawer):
         return draw_arc(cartesian(*p1), cartesian(*p2), a2 - a1 > pi)
 
     def draw_nodebox(self, node, node_id, box):
-        return draw_box('s', 'node', box, node.name, node.properties, node_id)
+        return draw_box('s', box, 'node', node.name, node.properties, node_id)
 
 
 def cartesian(double r, double a):
@@ -290,7 +290,7 @@ class DrawerLeafNames(DrawerRect):
             zx, zy = self.zoom
             p_after_content = (x + w + 2 / zx, y + h / 1.3)
             fs = h / 1.4
-            yield draw_text(p_after_content, fs, node.name, 'name')
+            yield draw_text(node.name, p_after_content, fs, 'name')
 
 
 class DrawerCircLeafNames(DrawerCirc):
@@ -303,7 +303,7 @@ class DrawerCircLeafNames(DrawerCirc):
             zx, zy = self.zoom
             p_after_content = cartesian(r + dr + 2 / zx, a + da / 1.3)
             fs = (r + dr) * da / 1.4
-            yield draw_text(p_after_content, fs, node.name, 'name')
+            yield draw_text(node.name, p_after_content, fs, 'name')
 
 
 class DrawerLengths(DrawerRect):
@@ -316,7 +316,7 @@ class DrawerLengths(DrawerRect):
             zx, zy = self.zoom
             text = '%.2g' % node.length
             fs = min(zy * node.bh, zx * 1.5 * w / len(text))
-            g_text = draw_text((x, y + node.bh), fs, text, 'length')
+            g_text = draw_text(text, (x, y + node.bh), fs, 'length')
 
             if zy * h > 1:  # NOTE: we may want to change this, but it's tricky
                 yield g_text
@@ -334,7 +334,7 @@ class DrawerCircLengths(DrawerCirc):
             zx, zy = self.zoom
             text = '%.2g' % node.length
             fs = min(zy * (r + dr) * self.bh(node), zx * 1.5 * dr / len(text))
-            g_text = draw_text(cartesian(r, a + self.bh(node)), fs, text, 'length')
+            g_text = draw_text(text, cartesian(r, a + self.bh(node)), fs, 'length')
 
             if zy * da > 1:  # NOTE: we may want to change this, but it's tricky
                 yield g_text
@@ -359,7 +359,7 @@ class DrawerAlign(DrawerFull):
         if node.is_leaf:
             x, y = point
             w, h = self.content_size(node)
-            yield draw_text((0, y+h/1.5), h/2, node.name, 'name')
+            yield draw_text(node.name, (0, y+h/1.5), h/2, 'name')
 
 
 
@@ -371,8 +371,8 @@ def get_drawers():
 
 # Basic drawing elements.
 
-def draw_box(shape, box_type, box, name='', properties=None, node_id=None):
-    return [shape, box_type, box, name, properties or {}, node_id or []]
+def draw_box(shape, box, box_type='', name='', properties=None, node_id=None):
+    return [shape, box, box_type, name, properties or {}, node_id or []]
 
 def draw_line(p1, p2):
     return ['l', p1, p2]
@@ -380,8 +380,8 @@ def draw_line(p1, p2):
 def draw_arc(p1, p2, large=False):
     return ['c', p1, p2, int(large)]
 
-def draw_text(point, fs, text, text_type=''):
-    return ['t', text_type, point, fs, text]
+def draw_text(text, point, fs, text_type=''):
+    return ['t', text, point, fs, text_type]
 
 
 # Box-related functions.
