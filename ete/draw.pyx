@@ -132,8 +132,10 @@ class Drawer:
         x, y = self.xmin, self.ymin
         for node, _, first in self.tree.walk():
             dx, dy = self.content_size(node)
+
             if first and func(node):
                 yield Box(x, y, dx, dy)
+
             if node.is_leaf:
                 y += dy
             elif first:  # first time we visit this node
