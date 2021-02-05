@@ -669,7 +669,7 @@ function item2svg(item, zoom) {
   const [zx, zy] = [zoom.x, zoom.y];  // shortcut
 
   if (item[0] === 'r') {  // rectangle
-    const [ , rect_type, x, y, w, h, name, properties] = item;
+    const [ , rect_type, x, y, w, h, name, properties, node_id] = item;
 
     const r = create_svg_element("rect",
       {"class": "box " + rect_type,
@@ -678,8 +678,13 @@ function item2svg(item, zoom) {
        "stroke": view.rect_color});
 
     r.addEventListener("click", event => {
-      if (event.detail === 2 || event.ctrlKey)  // double-click or ctrl-click
+      if (event.detail === 2 || event.ctrlKey) {  // double-click or ctrl-click
         zoom_into_box([x, y, w, h]);
+      }
+      else if (event.shiftKey) {  // shift-click
+        view.subtree += (view.subtree ? "," : "") + node_id;
+        on_tree_change();
+      }
     });
 
     if (name.length > 0 || Object.entries(properties).length > 0) {
@@ -693,7 +698,7 @@ function item2svg(item, zoom) {
     return r;
   }
   else if (item[0] === 's') {  // annular sector
-    const [ , asec_type, r, a, dr, da, name, properties] = item;
+    const [ , asec_type, r, a, dr, da, name, properties, node_id] = item;
     const z = zx;
     const large = da > Math.PI ? 1 : 0;
     const p00 = cartesian(z * r, a),
@@ -711,8 +716,13 @@ function item2svg(item, zoom) {
       "fill": view.box_color});
 
     s.addEventListener("click", event => {
-      if (event.detail === 2 || event.ctrlKey)  // double-click or ctrl-click
+      if (event.detail === 2 || event.ctrlKey) {  // double-click or ctrl-click
         zoom_into_box([r, a, dr, da]);
+      }
+      else if (event.shiftKey) {  // shift-click
+        view.subtree += (view.subtree ? "," : "") + node_id;
+        on_tree_change();
+      }
     });
 
     if (name.length > 0 || Object.entries(properties).length > 0) {

@@ -70,24 +70,26 @@ class Drawer:
     def draw(self):
         "Yield graphic elements to draw the tree"
         x, y = self.xmin, self.ymin
-        for node, descendants in self.tree.walk():
+        for node, node_id, first in self.tree.walk():
             dx, dy = self.content_size(node)
-            if descendants or node.is_leaf:  # first time we visit this node
-                gs, draw_children = self.get_content(node, (x, y))
+            if first:  # first time we visit this node
+                gs, draw_children = self.get_content(node, node_id, (x, y))
                 yield from gs
+
                 if not draw_children:
-                    descendants[:] = []
-                if not descendants:
+                    node_id[:] = []  # modify on the fly the walking of the tree
+
+                if node.is_leaf or not draw_children:
                     y += dy
-                if not node.is_leaf:
+                else:
                     x += dx
-            elif not descendants:  # last time we visit this node
+            else:  # last time we visit this node
                 x -= dx
 
         if self.outline and not self.aligned:  # draw the last outline stacked
             yield self.draw_outline(self.outline)
 
-    def get_content(self, node, point):
+    def get_content(self, node, node_id, point):
         "Return list of content's graphic elements, and if children need drawing"
         # Both the node's box and its content's box start at the given point.
         box_node = make_box(point, self.node_size(node))
@@ -119,7 +121,7 @@ class Drawer:
                                                  (x + dx, y + bh1)))
 
             gs += self.draw_content_inline(node, (x, y))
-            gs.append(self.draw_nodebox(box_node, node.name, node.properties))
+            gs.append(self.draw_nodebox(node, node_id, box_node))
 
         gs += self.draw_content_float(node, (x, y))
 
@@ -128,15 +130,15 @@ class Drawer:
     def get_node_boxes(self, func):
         "Yield the boxes of the nodes with func(node) == True"
         x, y = self.xmin, self.ymin
-        for node, descendants in self.tree.walk():
+        for node, _, first in self.tree.walk():
             dx, dy = self.content_size(node)
-            if (descendants or node.is_leaf) and func(node):
+            if first and func(node):
                 yield Box(x, y, dx, dy)
             if node.is_leaf:
                 y += dy
-            if descendants:  # first time we visit this node
+            elif first:  # first time we visit this node
                 x += dx
-            elif not node.is_leaf:  # last time we will visit this node
+            else:  # last time we will visit this node
                 x -= dx
 
     def get_node_at(self, point):
@@ -208,8 +210,8 @@ class DrawerRect(Drawer):
         "Return a line spanning children that starts at p1 and ends at p2"
         return draw_line(p1, p2)
 
-    def draw_nodebox(self, box, name, properties):
-        return draw_rect(box, 'node', name, properties)
+    def draw_nodebox(self, node, node_id, box):
+        return draw_rect(box, 'node', node.name, node.properties, node_id)
 
 
 
@@ -261,8 +263,8 @@ class DrawerCirc(Drawer):
         a1, a2 = p1[1], p2[1]  # angles
         return draw_arc(cartesian(*p1), cartesian(*p2), a2 - a1 > pi)
 
-    def draw_nodebox(self, box, name, properties):
-        return draw_asec(box, 'node', name, properties)
+    def draw_nodebox(self, node, node_id, box):
+        return draw_asec(box, 'node', node.name, node.properties, node_id)
 
 
 def cartesian(double r, double a):
@@ -370,13 +372,13 @@ def get_drawers():
 
 # Basic drawing elements.
 
-def draw_rect(box, box_type='', name='', properties=None):
+def draw_rect(box, box_type='', name='', properties=None, node_id=None):
     x, y, w, h = box
-    return ['r', box_type, x, y, w, h, name, properties or {}]
+    return ['r', box_type, x, y, w, h, name, properties or {}, node_id or []]
 
-def draw_asec(box, box_type='', name='', properties=None):
+def draw_asec(box, box_type='', name='', properties=None, node_id=None):
     r, a, dr, da = box
-    return ['s', box_type, r, a, dr, da, name, properties or {}]
+    return ['s', box_type, r, a, dr, da, name, properties or {}, node_id or []]
 
 def draw_line(p1, p2):
     x1, y1 = p1

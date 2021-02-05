@@ -145,22 +145,29 @@ cdef (double, double) get_size(nodes):
 
 
 def walk(tree):
-    "Yield nodes and descendants as they appear when traversing the tree"
+    "Yield (node, node_id, first) as they appear when traversing the tree"
     # Inspired on os.walk(). You can remove from descendants on the fly.
-    visiting_nodes = [[tree]]  # [[tree], [ch1,ch2], [ch11,ch12,ch13]]
-    while True:
-        node = visiting_nodes[-1][-1]
-        descendants = node.children[::-1]
-        if descendants:
-            visiting_nodes.append(descendants)
-        else:
-            visiting_nodes[-1].pop()  # so we visit leaves only once
-        yield node, descendants  # first visit to node
-        while not visiting_nodes[-1]:  # [..., []]
-            visiting_nodes.pop()
-            if not visiting_nodes:
-                return
-            yield visiting_nodes[-1].pop(), []  # last visit to node
+    visiting = [(tree, 0)]  # [(tree, 2), (child2, 0), (child20, 0)]
+
+    def pop():
+        visiting.pop()  # remove last node in the stack
+        if visiting:    # and increase the parent's number of visited children
+            node, nch = visiting[-1]
+            visiting[-1] = (node, nch + 1)
+
+    while visiting:
+        node, nch = visiting[-1]  # current node, number of visited children
+        if nch == 0:  # first time we visit this node
+            node_id = [i for _,i in visiting[:-1]]
+            yield node, node_id, True  # if node_id is emptied we prune the tree
+            if not node.children or (len(visiting) > 1 and not node_id):
+                pop()
+                continue
+        if nch < len(node.children):  # add next child to the list to visit
+            visiting.append((node.children[nch], 0))
+        else:                         # go back to parent node
+            yield node, [i for _,i in visiting[:-1]], False
+            pop()
 
 
 # Read and write.
