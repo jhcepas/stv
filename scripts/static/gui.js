@@ -155,6 +155,8 @@ function set_query_string_values() {
   for (const [param, value] of params) {
     if (param === "tree")
       view.tree = value;
+    else if (param === "subtree")
+      view.subtree = value;
     else if (param === "x")
       view.tl.x = Number(value);
     else if (param === "y")
@@ -225,7 +227,7 @@ function reset_position() {
 // Return an url with the view of the given rectangle of the tree.
 function get_url_view(x, y, w, h) {
   const qs = new URLSearchParams({x: x, y: y, w: w, h: h,
-    tree: view.tree, drawer: view.drawer}).toString();
+    tree: view.tree, subtree: view.subtree, drawer: view.drawer}).toString();
   return window.location.origin + window.location.pathname + "?" + qs;
 }
 
