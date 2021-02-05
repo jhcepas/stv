@@ -172,6 +172,10 @@ function set_query_string_values() {
   }
 
   view.is_circular = view.drawer.startsWith("Circ");
+
+  if (view.is_circular)
+    view.zoom.x = view.zoom.y = Math.min(view.zoom.x, view.zoom.y);
+
   div_aligned.style.display = (view.drawer === "Align") ? "initial" : "none";
 
   if (unknown_params.length != 0)
