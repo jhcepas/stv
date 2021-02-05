@@ -375,18 +375,13 @@ def draw_box(shape, box_type, box, name='', properties=None, node_id=None):
     return [shape, box_type, box, name, properties or {}, node_id or []]
 
 def draw_line(p1, p2):
-    x1, y1 = p1
-    x2, y2 = p2
-    return ['l', x1, y1, x2, y2]
+    return ['l', p1, p2]
 
 def draw_arc(p1, p2, large=False):
-    x1, y1 = p1
-    x2, y2 = p2
-    return ['c', x1, y1, x2, y2, int(large)]
+    return ['c', p1, p2, int(large)]
 
 def draw_text(point, fs, text, text_type=''):
-    x, y = point
-    return ['t', text_type, x, y, fs, text]
+    return ['t', text_type, point, fs, text]
 
 
 # Box-related functions.

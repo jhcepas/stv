@@ -356,41 +356,11 @@ function show_selection_results(boxes, max) {
 
 // Return a box (a rectangle or annular sector) to mark a selected area.
 function create_selection_box(box) {
-  if (!view.is_circular) {
-    const [x, y, w, h] = box;
-
-    const r = create_svg_element("rect", {
-      "class": "box selection",
-      "x": view.zoom.x * x, "y": view.zoom.y * y,
-      "width": view.zoom.x * w, "height": view.zoom.y * h,
-      "stroke": view.rect_color});
-
-    r.addEventListener("click", event => zoom_into_box([x, y, w, h]));
-
-    return r;
-  }
-  else {
-    const [r, a, dr, da] = box;
-    const z = view.zoom.x;
-    const large = da > Math.PI ? 1 : 0;
-    const p00 = cartesian(z * r, a),
-          p01 = cartesian(z * r, a + da),
-          p10 = cartesian(z * (r + dr), a),
-          p11 = cartesian(z * (r + dr), a + da);
-
-    const s = create_svg_element("path", {
-      "class": "box selection",
-      "d": `M ${p00.x} ${p00.y}
-            L ${p10.x} ${p10.y}
-            A ${z * (r + dr)} ${z * (r + dr)} 0 ${large} 1 ${p11.x} ${p11.y}
-            L ${p01.x} ${p01.y}
-            A ${z * r} ${z * r} 0 ${large} 0 ${p00.x} ${p00.y}`,
-      "fill": view.box_color});
-
-    s.addEventListener("click", event => zoom_into_box([r, a, dr, da]));
-
-    return s;
-  }
+  const b = view.is_circular ?
+    create_asec(box, view.zoom.x, "selection") :
+    create_rect(box, view.zoom.x, view.zoom.y, "selection");
+  b.addEventListener("click", event => zoom_into_box(box));
+  return b;
 }
 
 
@@ -635,11 +605,67 @@ async function update_tree() {
 }
 
 
+// Drawing.
+
 function create_svg_element(name, attrs) {
   const element = document.createElementNS("http://www.w3.org/2000/svg", name);
   for (const [attr, value] of Object.entries(attrs))
     element.setAttributeNS(null, attr, value);
   return element;
+}
+
+
+function create_rect(box, zx=1, zy=1, type="") {
+  const [x, y, w, h] = box;
+
+  return create_svg_element("rect", {
+    "class": "box " + type,
+    "x": zx * x, "y": zy * y,
+    "width": zx * w, "height": zy * h,
+    "stroke": view.rect_color});
+}
+
+
+function create_asec(box, z=1, type="") {
+  const [r, a, dr, da] = box;
+  const large = da > Math.PI ? 1 : 0;
+  const p00 = cartesian(z * r, a),
+        p01 = cartesian(z * r, a + da),
+        p10 = cartesian(z * (r + dr), a),
+        p11 = cartesian(z * (r + dr), a + da);
+
+  return create_svg_element("path", {
+    "class": "box " + type,
+    "d": `M ${p00.x} ${p00.y}
+          L ${p10.x} ${p10.y}
+          A ${z * (r + dr)} ${z * (r + dr)} 0 ${large} 1 ${p11.x} ${p11.y}
+          L ${p01.x} ${p01.y}
+          A ${z * r} ${z * r} 0 ${large} 0 ${p00.x} ${p00.y}`,
+    "fill": view.box_color});
+}
+
+
+function create_line(p1, p2, zx=1, zy=1) {
+  const [x1, y1] = p1,
+        [x2, y2] = p2;
+
+  return create_svg_element("line", {
+    "class": "line",
+    "x1": zx * x1, "y1": zy * y1,
+    "x2": zx * x2, "y2": zy * y2,
+    "stroke": view.line_color});
+}
+
+
+function create_arc(p1, p2, large, z=1) {
+  const [x1, y1] = p1,
+        [x2, y2] = p2;
+  const r = Math.sqrt(z*x1 * z*x1 + z*y1 * z*y1);
+
+  return create_svg_element("path", {
+    "class": "line",
+    "d": `M ${z*x1} ${z*y1} A ${r} ${r} 0 ${large} 1 ${z*x2} ${z*y2}`,
+    "stroke": view.line_color});
 }
 
 
@@ -668,94 +694,30 @@ function append_item(g, item, zoom) {
 
   const [zx, zy] = [zoom.x, zoom.y];  // shortcut
 
-  if (item[0] === 'r') {  // rectangle
-    const [ , rect_type, box, name, properties, node_id] = item;
-    const [x, y, w, h] = box;
+  if (item[0] === 'r' || item[0] === 's') {  // rectangle or annular sector
+    const [shape, type, box, name, properties, node_id] = item;
 
-    const r = create_svg_element("rect",
-      {"class": "box " + rect_type,
-       "x": zx * x, "y": zy * y,
-       "width": zx * w, "height": zy * h,
-       "stroke": view.rect_color});
-    g.appendChild(r);
+    const b = shape === 'r' ?
+      create_rect(box, zx, zy, type) :
+      create_asec(box, zx, type);
+    g.appendChild(b);
 
-    r.addEventListener("click", event => {
-      if (event.detail === 2 || event.ctrlKey) {  // double-click or ctrl-click
-        zoom_into_box([x, y, w, h]);
-      }
-      else if (event.shiftKey) {  // shift-click
-        view.subtree += (view.subtree ? "," : "") + node_id;
-        on_tree_change();
-      }
-    });
+    b.addEventListener("click", event => on_box_click(event, box, node_id));
 
-    if (name.length > 0 || Object.entries(properties).length > 0) {
-      const title = create_svg_element("title", {});
-      const text = name + "\n" +
-        Object.entries(properties).map(x => x[0] + ": " + x[1]).join("\n");
-      title.appendChild(document.createTextNode(text));
-      r.appendChild(title);
-    }
-  }
-  else if (item[0] === 's') {  // annular sector
-    const [ , asec_type, box, name, properties, node_id] = item;
-    const [r, a, dr, da] = box;
-
-    const z = zx;
-    const large = da > Math.PI ? 1 : 0;
-    const p00 = cartesian(z * r, a),
-          p01 = cartesian(z * r, a + da),
-          p10 = cartesian(z * (r + dr), a),
-          p11 = cartesian(z * (r + dr), a + da);
-
-    const s = create_svg_element("path", {
-      "class": "box " + asec_type,
-      "d": `M ${p00.x} ${p00.y}
-            L ${p10.x} ${p10.y}
-            A ${z * (r + dr)} ${z * (r + dr)} 0 ${large} 1 ${p11.x} ${p11.y}
-            L ${p01.x} ${p01.y}
-            A ${z * r} ${z * r} 0 ${large} 0 ${p00.x} ${p00.y}`,
-      "fill": view.box_color});
-    g.appendChild(s);
-
-    s.addEventListener("click", event => {
-      if (event.detail === 2 || event.ctrlKey) {  // double-click or ctrl-click
-        zoom_into_box([r, a, dr, da]);
-      }
-      else if (event.shiftKey) {  // shift-click
-        view.subtree += (view.subtree ? "," : "") + node_id;
-        on_tree_change();
-      }
-    });
-
-    if (name.length > 0 || Object.entries(properties).length > 0) {
-      const title = create_svg_element("title", {});
-      const text = name + "\n" +
-        Object.entries(properties).map(x => x[0] + ": " + x[1]).join("\n");
-      title.appendChild(document.createTextNode(text));
-      s.appendChild(title);
-    }
+    if (name.length > 0 || Object.entries(properties).length > 0)
+      b.appendChild(create_tooltip(name, properties));
   }
   else if (item[0] === 'l') {  // line
-    const [ , x1, y1, x2, y2] = item;
-
-    g.appendChild(create_svg_element("line", {
-      "class": "line",
-      "x1": zx * x1, "y1": zy * y1,
-      "x2": zx * x2, "y2": zy * y2,
-      "stroke": view.line_color}));
+    const [ , p1, p2] = item;
+    g.appendChild(create_line(p1, p2, zx, zy));
   }
   else if (item[0] === 'c') {  // arc (part of a circle)
-    const [ , x1, y1, x2, y2, large] = item;
-    const r = Math.sqrt(zx*x1 * zx*x1 + zy*y1 * zy*y1);
-
-    g.appendChild(create_svg_element("path", {
-      "class": "line",
-      "d": `M ${zx*x1} ${zy*y1} A ${r} ${r} 0 ${large} 1 ${zx*x2} ${zy*y2}`,
-      "stroke": view.line_color}));
+    const [ , p1, p2, large] = item;
+    g.appendChild(create_arc(p1, p2, large, zx));
   }
   else if (item[0] === 't') {  // text
-    const [ , text_type, x, y, fs, txt] = item;
+    const [ , text_type, point, fs, txt] = item;
+    const [x, y] = point;
 
     const font_size = (text_type === "name" ? zy * fs :
       Math.min(view.font_size_max, fs));
@@ -787,6 +749,28 @@ function cartesian(r, a) {
   return {x: r * Math.cos(a), y: r * Math.sin(a)};
 }
 
+
+function on_box_click(event, box, node_id) {
+  if (event.detail === 2 || event.ctrlKey) {  // double-click or ctrl-click
+    zoom_into_box(box);
+  }
+  else if (event.shiftKey) {  // shift-click
+    view.subtree += (view.subtree ? "," : "") + node_id;
+    on_tree_change();
+  }
+}
+
+
+function create_tooltip(name, properties) {
+  const title = create_svg_element("title", {});
+  const text = name + "\n" +
+    Object.entries(properties).map(x => x[0] + ": " + x[1]).join("\n");
+  title.appendChild(document.createTextNode(text));
+  return title;
+}
+
+
+// Minimap.
 
 // Draw the full tree on a small div on the bottom-right ("minimap").
 async function draw_minimap() {
