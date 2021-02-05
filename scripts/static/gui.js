@@ -29,7 +29,7 @@ const view = {
   node_opacity: 0,
   node_color: "#222",
   line_color: "#000",
-  line_width: 1.5,
+  line_width: 1,
   outline_opacity: 0,
   outline_color: "#DDF",
   names_color: "#00A",
@@ -658,12 +658,12 @@ function draw(element, items, tl, zoom) {
 
   svg.appendChild(g);
 
-  items.forEach(item => g.appendChild(item2svg(item, zoom)));
+  items.forEach(item => append_item(g, item, zoom));
 }
 
 
-// Return the graphical (svg) element corresponding to a drawer item.
-function item2svg(item, zoom) {
+// Append to g the graphical (svg) element corresponding to a drawer item.
+function append_item(g, item, zoom) {
   // item looks like ['r', ...] for a rectangle, etc.
 
   const [zx, zy] = [zoom.x, zoom.y];  // shortcut
@@ -676,6 +676,7 @@ function item2svg(item, zoom) {
        "x": zx * x, "y": zy * y,
        "width": zx * w, "height": zy * h,
        "stroke": view.rect_color});
+    g.appendChild(r);
 
     r.addEventListener("click", event => {
       if (event.detail === 2 || event.ctrlKey) {  // double-click or ctrl-click
@@ -694,8 +695,6 @@ function item2svg(item, zoom) {
       title.appendChild(document.createTextNode(text));
       r.appendChild(title);
     }
-
-    return r;
   }
   else if (item[0] === 's') {  // annular sector
     const [ , asec_type, r, a, dr, da, name, properties, node_id] = item;
@@ -714,6 +713,7 @@ function item2svg(item, zoom) {
             L ${p01.x} ${p01.y}
             A ${z * r} ${z * r} 0 ${large} 0 ${p00.x} ${p00.y}`,
       "fill": view.box_color});
+    g.appendChild(s);
 
     s.addEventListener("click", event => {
       if (event.detail === 2 || event.ctrlKey) {  // double-click or ctrl-click
@@ -732,26 +732,24 @@ function item2svg(item, zoom) {
       title.appendChild(document.createTextNode(text));
       s.appendChild(title);
     }
-
-    return s;
   }
   else if (item[0] === 'l') {  // line
     const [ , x1, y1, x2, y2] = item;
 
-    return create_svg_element("line", {
+    g.appendChild(create_svg_element("line", {
       "class": "line",
       "x1": zx * x1, "y1": zy * y1,
       "x2": zx * x2, "y2": zy * y2,
-      "stroke": view.line_color});
+      "stroke": view.line_color}));
   }
   else if (item[0] === 'c') {  // arc (part of a circle)
     const [ , x1, y1, x2, y2, large] = item;
     const r = Math.sqrt(zx*x1 * zx*x1 + zy*y1 * zy*y1);
 
-    return create_svg_element("path", {
+    g.appendChild(create_svg_element("path", {
       "class": "line",
       "d": `M ${zx*x1} ${zy*y1} A ${r} ${r} 0 ${large} 1 ${zx*x2} ${zy*y2}`,
-      "stroke": view.line_color});
+      "stroke": view.line_color}));
   }
   else if (item[0] === 't') {  // text
     const [ , text_type, x, y, fs, txt] = item;
@@ -759,30 +757,26 @@ function item2svg(item, zoom) {
     const font_size = (text_type === "name" ? zy * fs :
       Math.min(view.font_size_max, fs));
 
-    const attrs = {
+    const t = create_svg_element("text", {
       "class": "text " + text_type,
       "x": zx * x, "y": zy * y,
-      "font-size": `${font_size}px`};
+      "font-size": `${font_size}px`});
+    t.appendChild(document.createTextNode(txt));
+    g.appendChild(t);
 
     if (view.is_circular) {
       const angle = Math.atan2(y, x) * 180 / Math.PI;
-
-      let flip = "";
-      if (angle < -90 || angle > 90) {
-        const width = (font_size / 1.5) * txt.length;
-        attrs["textLength"] = `${width}px`;
-        const d1 = cartesian(width / 2, angle * Math.PI / 180);
-        const d2 = cartesian(font_size / 2.3, angle * Math.PI / 180);
-        flip = `rotate(180, ${zx * x + d1.x + d2.y}, ${zy * y + d1.y - d2.x}) `;
-      }
-
-      attrs["transform"] = flip + `rotate(${angle}, ${zx * x}, ${zy * y})`;
+      t.setAttributeNS(null, "transform", `rotate(${angle}, ${zx*x}, ${zy*y})` +
+        ((angle < -90 || angle > 90) ? flip(t) : ""));
     }
-
-    const t = create_svg_element("text", attrs);
-    t.appendChild(document.createTextNode(txt));
-    return t;
   }
+}
+
+
+// Return svg transformation to flip the given text.
+function flip(text) {
+  const bbox = text.getBBox();
+  return ` rotate(180, ${bbox.x + bbox.width / 2}, ${bbox.y + bbox.height/2})`;
 }
 
 
