@@ -669,7 +669,8 @@ function append_item(g, item, zoom) {
   const [zx, zy] = [zoom.x, zoom.y];  // shortcut
 
   if (item[0] === 'r') {  // rectangle
-    const [ , rect_type, x, y, w, h, name, properties, node_id] = item;
+    const [ , rect_type, box, name, properties, node_id] = item;
+    const [x, y, w, h] = box;
 
     const r = create_svg_element("rect",
       {"class": "box " + rect_type,
@@ -697,7 +698,9 @@ function append_item(g, item, zoom) {
     }
   }
   else if (item[0] === 's') {  // annular sector
-    const [ , asec_type, r, a, dr, da, name, properties, node_id] = item;
+    const [ , asec_type, box, name, properties, node_id] = item;
+    const [r, a, dr, da] = box;
+
     const z = zx;
     const large = da > Math.PI ? 1 : 0;
     const p00 = cartesian(z * r, a),

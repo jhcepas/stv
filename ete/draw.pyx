@@ -180,7 +180,7 @@ class DrawerRect(Drawer):
         return intersects(self.viewport, box)
 
     def draw_outline(self, box):
-        return draw_rect(box, 'outline')
+        return draw_box('r', 'outline', box)
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
@@ -210,7 +210,7 @@ class DrawerRect(Drawer):
         return draw_line(p1, p2)
 
     def draw_nodebox(self, node, node_id, box):
-        return draw_rect(box, 'node', node.name, node.properties, node_id)
+        return draw_box('r', 'node', box, node.name, node.properties, node_id)
 
 
 
@@ -232,7 +232,7 @@ class DrawerCirc(Drawer):
                 intersects(self.viewport, circumrect(box)))
 
     def draw_outline(self, box):
-        return draw_asec(box, 'outline')
+        return draw_box('s', 'outline', box)
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
@@ -263,7 +263,7 @@ class DrawerCirc(Drawer):
         return draw_arc(cartesian(*p1), cartesian(*p2), a2 - a1 > pi)
 
     def draw_nodebox(self, node, node_id, box):
-        return draw_asec(box, 'node', node.name, node.properties, node_id)
+        return draw_box('s', 'node', box, node.name, node.properties, node_id)
 
 
 def cartesian(double r, double a):
@@ -371,13 +371,8 @@ def get_drawers():
 
 # Basic drawing elements.
 
-def draw_rect(box, box_type='', name='', properties=None, node_id=None):
-    x, y, w, h = box
-    return ['r', box_type, x, y, w, h, name, properties or {}, node_id or []]
-
-def draw_asec(box, box_type='', name='', properties=None, node_id=None):
-    r, a, dr, da = box
-    return ['s', box_type, r, a, dr, da, name, properties or {}, node_id or []]
+def draw_box(shape, box_type, box, name='', properties=None, node_id=None):
+    return [shape, box_type, box, name, properties or {}, node_id or []]
 
 def draw_line(p1, p2):
     x1, y1 = p1
