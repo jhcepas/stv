@@ -94,14 +94,11 @@ class Drawer:
         # Both the node's box and its content's box start at the given point.
         box_node = make_box(point, self.node_size(node))
 
-        if not self.in_viewport(box_node):   # skip
+        if not self.in_viewport(box_node):  # don't draw & skip children
             return [], False
 
-        if self.is_small(box_node):          # outline & skip
-            if self.aligned:
-                return [], False
-            else:
-                return list(self.update_outline(box_node)), False
+        if self.is_small(box_node):         # draw as collapsed & skip children
+            return list(self.draw_collapsed(node, node_id, point)), False
 
         if self.aligned:
             return list(self.draw_content_align(node, point)), True
@@ -171,6 +168,14 @@ class Drawer:
     def draw_content_align(self, node, point):
         "Yield graphic elements to draw the aligned contents of the node"
         yield from []
+
+    def draw_collapsed(self, node, node_id, point):
+        "Yield graphic elements to draw a collapsed node"
+        if self.aligned:
+            yield from []
+        else:
+            yield from self.update_outline(make_box(point, self.node_size(node)))
+
 
 
 class DrawerRect(Drawer):
@@ -342,12 +347,47 @@ class DrawerCircLengths(DrawerCirc):
                 pass  # TODO: something like  yield draw_box(get_box(g_text))
 
 
-class DrawerFull(DrawerLeafNames, DrawerLengths):
+class DrawerCollapsed(DrawerLeafNames):
+    "With text on collapsed nodes"
+
+    def draw_collapsed(self, node, node_id, point):
+        if not node.name:
+            return
+
+        x, y = point
+        w, h = self.content_size(node)
+        if self.aligned:
+            yield draw_text(node.name, (0, y+h/1.5), h/2, 'name')
+        else:
+            yield from self.update_outline(make_box(point, self.node_size(node)))
+            zx, zy = self.zoom
+            p_before_content = (x + 2 / zx, y + h / 1.3)
+            fs = h / 1.4
+            yield draw_text(node.name, p_before_content, fs, 'name')
+
+
+class DrawerCircCollapsed(DrawerCircLeafNames):
+    "With text on collapsed nodes"
+
+    def draw_collapsed(self, node, node_id, point):
+        if not node.name:
+            return
+
+        r, a = point
+        dr, da = self.content_size(node)
+        yield from self.update_outline(make_box(point, self.node_size(node)))
+        zx, zy = self.zoom
+        p_before_content = cartesian(r + 2 / zx, a + da / 1.3)
+        fs = r * da / 1.4
+        yield draw_text(node.name, p_before_content, fs, 'name')
+
+
+class DrawerFull(DrawerCollapsed, DrawerLengths):
     "With names on leaf nodes and labels on the lengths"
     pass
 
 
-class DrawerCircFull(DrawerCircLeafNames, DrawerCircLengths):
+class DrawerCircFull(DrawerCircCollapsed, DrawerCircLengths):
     "With names on leaf nodes and labels on the lengths"
     pass
 

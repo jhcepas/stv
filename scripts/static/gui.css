@@ -42,7 +42,7 @@
 }
 
 .outline:hover {
-    fill-opacity: 1;
+    fill-opacity: 0.8;
 }
 
 .selection {
