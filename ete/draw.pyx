@@ -357,7 +357,7 @@ class DrawerCollapsed(DrawerLeafNames):
         x, y = point
         w, h = self.content_size(node)
         if self.aligned:
-            yield draw_text(node.name, (0, y+h/1.5), h/2, 'name')
+            yield draw_text(node.name, (0, y + h / 1.5), h / 2, 'name')
         else:
             yield from self.update_outline(make_box(point, self.node_size(node)))
             zx, zy = self.zoom
