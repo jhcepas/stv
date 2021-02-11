@@ -371,14 +371,15 @@ function create_selection_box(box) {
 }
 
 
-// Zoom the current view into the area defined by the given box.
-function zoom_into_box(box) {
+// Zoom the current view into the area defined by the given box, with a border
+// marking the fraction of zoom-out (to see a bit the surroundings).
+function zoom_into_box(box, border=0.10) {
   if (!view.is_circular) {
     const [x, y, w, h] = box;
-    view.tl.x = x;
-    view.tl.y = y;
-    view.zoom.x = div_tree.offsetWidth / w;
-    view.zoom.y = div_tree.offsetHeight / h;
+    view.tl.x = x - border * w;
+    view.tl.y = y - border * h;
+    view.zoom.x = div_tree.offsetWidth / (w * (1 + 2 * border));
+    view.zoom.y = div_tree.offsetHeight / (h * (1 + 2 * border));
   }
   else {
     const [r, a, dr, da] = box;
@@ -389,14 +390,14 @@ function zoom_into_box(box) {
     const [w, h] = [Math.max(...xs) - x, Math.max(...ys) - y];
     const [zx, zy] = [div_tree.offsetWidth / w, div_tree.offsetHeight / h];
     if (zx < zy) {
-      view.tl.x = x;
-      view.zoom.x = view.zoom.y = zx;
-      view.tl.y = y - (div_tree.offsetHeight / zx - h) / 2;
+      view.tl.x = x - border * w;
+      view.zoom.x = view.zoom.y = zx / (1 + 2 * border);
+      view.tl.y = y - (div_tree.offsetHeight / zx - h) / 2 - border * h;
     }
     else {
-      view.tl.y = y;
-      view.zoom.x = view.zoom.y = zy;
-      view.tl.x = x - (div_tree.offsetWidth / zy - w) / 2;
+      view.tl.y = y - border * h;
+      view.zoom.x = view.zoom.y = zy / (1 + 2 * border);
+      view.tl.x = x - (div_tree.offsetWidth / zy - w) / 2 - border * w;
     }
   }
   update();

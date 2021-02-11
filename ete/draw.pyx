@@ -131,7 +131,7 @@ class Drawer:
             dx, dy = self.content_size(node)
 
             if first and func(node):
-                yield Box(x, y, dx, dy)
+                yield make_box((x, y), self.node_size(node))
 
             if node.is_leaf:
                 y += dy
