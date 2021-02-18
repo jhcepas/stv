@@ -65,6 +65,9 @@ cdef class Tree:
     def is_leaf(self):
         return not self.children
 
+    def sort(self, key=None, reverse=False):
+        sort(self, key, reverse)
+
     def walk(self):
         return walk(self)
 
@@ -168,6 +171,14 @@ def walk(tree):
         else:                         # go back to parent node
             yield node, [i for _,i in visiting[:-1]], False
             pop()
+
+
+def sort(tree, key=None, reverse=False):
+    "Sort the tree in-place"
+    key = key or (lambda node: (node.size[1], node.size[0], node.name))
+    tree.children.sort(key=key, reverse=reverse)
+    for node in tree.children:
+        sort(node, key, reverse)
 
 
 # Read and write.
