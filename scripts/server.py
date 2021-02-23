@@ -40,10 +40,12 @@ import re
 from math import pi
 from functools import partial
 from contextlib import contextmanager
+
 from flask import Flask, request, jsonify, g, redirect, url_for
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth, MultiAuth
 from flask_restful import Resource, Api
 from flask_cors import CORS
+from flask_compress import Compress
 import sqlalchemy
 from itsdangerous import TimedJSONWebSignatureSerializer as JSONSigSerializer
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -657,6 +659,8 @@ def configure(app):
     app.root_path = os.path.abspath('.')  # in case we launched from another dir
 
     CORS(app)  # allows cross-origin resource sharing (requests from other domains)
+
+    Compress(app)  # sends results using gzip
 
     app.config.from_mapping(
         SEND_FILE_MAX_AGE_DEFAULT=0,  # do not cache static files
