@@ -148,7 +148,7 @@ class Drawer:
             cdx, cdy = self.content_size(node)
             if not is_inside(point, Box(x, y, ndx, ndy)):
                 node_id[:] = []  # skip walking over the node's children
-                y += ndy
+                y += cdy
             elif node.is_leaf or is_inside(point, Box(x, y, cdx, cdy)):
                 return node
             else:
