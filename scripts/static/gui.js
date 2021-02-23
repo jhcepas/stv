@@ -43,8 +43,9 @@ const view = {
   minimap_zoom: {x: 1, y: 1},
 };
 
-const dragging = {x0: 0, y0: 0, element: undefined};  // used when dragging
-const zooming = {qz: {x: 1, y: 1}, timeout: undefined};  // used when zooming
+// Used when dragging and zooming.
+const dragging = {x0: 0, y0: 0, element: undefined, moved: false};
+const zooming = {qz: {x: 1, y: 1}, timeout: undefined};
 
 const trees = {};  // will contain trees[tree_name] = tree_id
 let datgui = undefined;
@@ -484,7 +485,9 @@ document.addEventListener("mousedown", event => {
 document.addEventListener("mouseup", event => {
   if (dragging.element) {
     drag_stop(event);
-    update_tree();
+    if (dragging.moved)
+      update_tree();
+    dragging.moved = false;
   }
 
   dragging.element = undefined;
@@ -532,6 +535,7 @@ function drag_stop(event) {
     const [scale_x, scale_y] = get_drag_scale();
     view.tl.x += scale_x * dx;
     view.tl.y += scale_y * dy;
+    dragging.moved = true;
   }
 }
 
