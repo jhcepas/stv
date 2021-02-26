@@ -101,8 +101,9 @@ class Drawer:
         if self.outline and not self.aligned:  # draw the last outline stacked
             yield self.draw_outline(self.outline)
 
-        for node, node_id, box in nodeboxes[::-1]:
-            yield self.draw_nodebox(node, node_id, box)
+        if not self.aligned:
+            for node, node_id, box in nodeboxes[::-1]:
+                yield self.draw_nodebox(node, node_id, box)
 
     def get_content(self, node, point):
         "Return list of content's graphic elements, and if children need drawing"
