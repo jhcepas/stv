@@ -806,6 +806,17 @@ function append_item(g, item, zoom) {
         ((angle < -90 || angle > 90) ? flip(t) : ""));
     }
   }
+  else if (item[0] === 'a') {  // array
+    const [ , box, a] = item;
+    const [x0, y0, dx0, dy0] = box;
+    const dx = dx0 / a.length / zx;
+
+    for (let i = 0, x = 0; i < a.length; i++, x+=dx) {
+      const r = create_rect([x, y0, dx, dy0], zx, zy, "array");
+      r.style.stroke = `hsl(${a[i]}, 100%, 50%)`;
+      g.appendChild(r);
+    }
+  }
 }
 
 

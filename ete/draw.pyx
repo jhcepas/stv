@@ -417,11 +417,22 @@ class DrawerAlign(DrawerFull):
             yield draw_text(node.name, (0, y+h/1.5), h/2, 'name')
 
 
+class DrawerAlignHeatMap(DrawerFull):
+    "With an example heatmap as aligned content"
+
+    def draw_content_align(self, node, point):
+        if node.is_leaf:
+            _, y = point
+            w, h = self.content_size(node)
+            zx, zy = self.zoom
+            a = list(range(360))
+            yield draw_array(Box(0, y + h/8, 100, h * 0.75), a)
+
 
 def get_drawers():
     return [DrawerSimple, DrawerLeafNames, DrawerLengths, DrawerFull,
         DrawerCircSimple, DrawerCircLeafNames, DrawerCircLengths, DrawerCircFull,
-        DrawerAlign]
+        DrawerAlign, DrawerAlignHeatMap]
 
 
 # Basic drawing elements.
@@ -437,6 +448,9 @@ def draw_arc(p1, p2, large=False):
 
 def draw_text(text, point, fs, text_type=''):
     return ['t', text, point, fs, text_type]
+
+def draw_array(box, a):
+    return ['a', box, a]
 
 
 # Box-related functions.
