@@ -47,6 +47,8 @@ const view = {
 const dragging = {x0: 0, y0: 0, element: undefined, moved: false};
 const zooming = {qz: {x: 1, y: 1}, timeout: undefined};
 
+let nodeboxes = {};  // will contain the visible nodeboxes
+const selected_nodes = [];  // will contain the searched nodes
 const trees = {};  // will contain trees[tree_name] = tree_id
 let datgui = undefined;
 
@@ -116,6 +118,7 @@ document.addEventListener("keydown", event => {
 // What happens when the user selects a new tree in the datgui menu.
 async function on_tree_change() {
   div_tree.style.cursor = "wait";
+  selected_nodes.length = 0;  // unselect anything that was selected
   await reset_zoom();
   reset_position();
   draw_minimap();
@@ -125,7 +128,7 @@ async function on_tree_change() {
 
 // What happens when the user selects a new drawer in the datgui menu.
 async function on_drawer_change() {
-  div_aligned.style.display = (view.drawer === "Align") ? "initial" : "none";
+  div_aligned.style.display = view.drawer.startsWith("Align") ? "initial" : "none";
 
   const reset_draw = (view.is_circular !== view.drawer.startsWith("Circ"));
 
@@ -177,7 +180,7 @@ function set_query_string_values() {
   if (view.is_circular)
     view.zoom.x = view.zoom.y = Math.min(view.zoom.x, view.zoom.y);
 
-  div_aligned.style.display = (view.drawer === "Align") ? "initial" : "none";
+  div_aligned.style.display = view.drawer.startsWith("Align") ? "initial" : "none";
 
   if (unknown_params.length != 0)
     Swal.fire("Oops!",
@@ -324,33 +327,36 @@ async function search() {
     }});
 
   if (result.isConfirmed) {
-    if (result.value.message === 'ok')
-      show_selection_results(result.value.boxes, result.value.max);
-    else
+    if (result.value.message === 'ok') {
+      selected_nodes.concat(result.value.nodes);
+      show_selection_results(result.value.nodes, result.value.max);
+    }
+    else {
       Swal.fire({
         position: "bottom-start",
         showConfirmButton: false,
         text: result.value.message,
         icon: "error"});
+      }
   }
 }
 
 
 // Show a dialog with the selection results, and mark the boxes on the tree.
-function show_selection_results(boxes, max) {
-  const n = boxes.length;
+function show_selection_results(nodes, max) {
+  const n = nodes.length;
   const info = `Found ${n} node${n > 1 ? 's' : ''}<br><br>` +
     (n < max ? "" : `Only showing the first ${max} matches. ` +
     "There may be more.<br><br>");
-  const link = box => `<a href="#" title="Zoom into node" ` +
-    `onclick="zoom_into_box([${box}]); return false;">` +
-    `${box[0].toPrecision(4)} : ${box[1].toPrecision(4)}</a>`;
+  const link = node => `<a href="#" title="Zoom into node" ` +
+    `onclick="zoom_into_box([${node[1]}]); return false;">` +
+    `${node[1][0].toPrecision(4)} : ${node[1][1].toPrecision(4)}</a>`;
 
   if (n > 0)
     Swal.fire({
       position: "bottom-start",
       toast: true,
-      html: info + boxes.map(link).join('<br>')});
+      html: info + nodes.map(link).join("<br>")});
   else
     Swal.fire({
       position: "bottom-start",
@@ -358,16 +364,23 @@ function show_selection_results(boxes, max) {
       icon: "warning"});
 
   const g = div_tree.children[0].children[0];
-  boxes.forEach(box => g.appendChild(create_selection_box(box)));
+  nodes.forEach(node => g.appendChild(create_selection_box(node)));
 }
 
 
-// Return a box (a rectangle or annular sector) to mark a selected area.
-function create_selection_box(box) {
+// Return a box (a rectangle or annular sector) to mark a selected node.
+function create_selection_box(node) {
+  let [node_id, box] = node;
+
+  if (node_id in nodeboxes)
+    box = nodeboxes[node_id];  // so we get a nicer surrounding box
+
   const b = view.is_circular ?
     create_asec(box, view.zoom.x, "selection") :
     create_rect(box, view.zoom.x, view.zoom.y, "selection");
+
   b.addEventListener("click", event => zoom_into_box(box));
+
   return b;
 }
 
@@ -604,9 +617,11 @@ async function update_tree() {
     qs += `&rmin=${view.rmin}&amin=${view.angle.min}&amax=${view.angle.max}`;
   const items = await api(`/trees/${get_tid()}/draw?${qs}`);
 
+  save_nodeboxes(items);
+
   draw(div_tree, items, view.tl, view.zoom);
 
-  if (view.drawer === "Align") {
+  if (view.drawer.startsWith("Align")) {
     const aitems = await api(`/trees/${get_tid()}/draw?${qs}&aligned`);
     draw(div_aligned, aitems, view.tl, view.zoom);
     div_aligned.children[0].children[0].setAttribute("transform",
@@ -615,6 +630,25 @@ async function update_tree() {
 
   div_tree.style.cursor = "auto";
 }
+
+
+function save_nodeboxes(items) {
+  nodeboxes = {};
+  items.forEach(item => {
+    if (is_nodebox(item)) {
+      const [shape, box, type, name, properties, node_id] = item;
+      nodeboxes[node_id] = box;
+    }
+  });
+}
+
+
+function is_nodebox(item) {
+  return (is_rect(item) || is_asec(item)) && item[2] === "node";
+}
+
+const is_rect = item => item[0] === 'r';  // is it a rectangle?
+const is_asec = item => item[0] === 's';  // is it an annular sector?
 
 
 // Drawing.
@@ -757,8 +791,7 @@ function append_item(g, item, zoom) {
   }
   else if (item[0] === 't') {  // text
     const [ , text, point, fs, type] = item;
-    const font_size = (type === "name" ? zy * fs :
-      Math.min(view.font_size_max, fs));
+    const font_size = font_adjust(type, zy * fs);
 
     const t = create_text(text, font_size, point, zx, zy, type);
 
@@ -768,10 +801,22 @@ function append_item(g, item, zoom) {
       const [x, y] = point;
       const angle = Math.atan2(y, x) * 180 / Math.PI;
 
-      t.setAttributeNS(null, "transform", `rotate(${angle}, ${zx*x}, ${zy*y})` +
+      t.setAttributeNS(null, "transform",
+        `rotate(${angle}, ${zx*x}, ${zy*y})` +
         ((angle < -90 || angle > 90) ? flip(t) : ""));
     }
   }
+}
+
+
+// Return the font size adjusted for the given type of text.
+function font_adjust(type, fs) {
+  if (type === "name")
+    return fs;  // no adjustments
+  else
+    return Math.min(view.font_size_max, fs);
+  // NOTE: we could modify the font size depending on other kinds of text
+  // (limiting their minimum and maximum sizes if appropriate, for example).
 }
 
 

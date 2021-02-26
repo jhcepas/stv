@@ -212,9 +212,9 @@ class Trees(Resource):
             except (AssertionError, IndexError):
                 raise InvalidUsage(f'unknown tree id {tree_id}', 404)
         elif rule == '/trees/<string:tree_id>/search':
-            MAX_BOXES = 200
-            boxes = search_nodes(tree_id, request.args.copy(), MAX_BOXES)
-            return {'message': 'ok', 'max': MAX_BOXES, 'boxes': boxes}
+            MAX_NODES = 200
+            nodes = search_nodes(tree_id, request.args.copy(), MAX_NODES)
+            return {'message': 'ok', 'max': MAX_NODES, 'nodes': nodes}
         elif rule == '/trees/<string:tree_id>/draw':
             drawer = get_drawer(tree_id, request.args.copy())
             return list(drawer.draw())
@@ -397,7 +397,8 @@ def get_drawer(tree_id, args):
 
 
 def search_nodes(tree_id, args, nmax):
-    "Return a list of boxes for the tree nodes that match the search in args"
+    "Return a list of nodes that match the search in args"
+    # A "node" here means a tuple of (node_id, box).
     if 'text' not in args:
         raise InvalidUsage('missing search text')
 
@@ -406,7 +407,7 @@ def search_nodes(tree_id, args, nmax):
     drawer = get_drawer(tree_id, args)
 
     try:
-        return [box for i,box in enumerate(drawer.get_node_boxes(f)) if i < nmax]
+        return [node for i,node in enumerate(drawer.get_nodes(f)) if i < nmax]
     except InvalidUsage:
         raise
     except Exception as e:

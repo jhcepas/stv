@@ -69,27 +69,42 @@ class Drawer:
 
     def draw(self):
         "Yield graphic elements to draw the tree"
+        node_dxs = [[]]
+        nodeboxes = []  # for boxes containing the nodes (filled in postorder)
+
         x, y = self.xmin, self.ymin
         for node, node_id, first in self.tree.walk():
             dx, dy = self.content_size(node)
             if first:  # first time we visit this node
-                gs, draw_children = self.get_content(node, node_id, (x, y))
+                gs, draw_children = self.get_content(node, (x, y))
                 yield from gs
+
+                if node.is_leaf or not draw_children:
+                    ndx = max(self.node_size(node).dx,
+                        drawn_size(gs, self.get_box).dx)
+                    node_dxs[-1].append(ndx)
+                    nodeboxes.append( (node, node_id, Box(x, y, ndx, dy)) )
+                    y += dy
+                else:
+                    node_dxs.append([])
+                    x += dx
 
                 if not draw_children:
                     node_id[:] = []  # modify on the fly the walking of the tree
-
-                if node.is_leaf or not draw_children:
-                    y += dy
-                else:
-                    x += dx
             else:  # last time we visit this node
                 x -= dx
+                ndx = dx + max(node_dxs.pop())
+                if node_dxs:
+                    node_dxs[-1].append(ndx)
+                nodeboxes.append( (node, node_id, Box(x, y - dy, ndx, dy)) )
 
         if self.outline and not self.aligned:  # draw the last outline stacked
             yield self.draw_outline(self.outline)
 
-    def get_content(self, node, node_id, point):
+        for node, node_id, box in nodeboxes[::-1]:
+            yield self.draw_nodebox(node, node_id, box)
+
+    def get_content(self, node, point):
         "Return list of content's graphic elements, and if children need drawing"
         # Both the node's box and its content's box start at the given point.
         box_node = make_box(point, self.node_size(node))
@@ -98,7 +113,7 @@ class Drawer:
             return [], False
 
         if self.is_small(box_node):         # draw as collapsed & skip children
-            return list(self.draw_collapsed(node, node_id, point)), False
+            return list(self.draw_collapsed(node, point)), False
 
         if self.aligned:
             return list(self.draw_content_align(node, point)), True
@@ -110,28 +125,24 @@ class Drawer:
         if self.in_viewport(Box(x, y, dx, dy)):
             bh = self.bh(node)  # node's branching height (in the right units)
             gs.append(self.draw_lengthline((x, y + bh), (x + dx, y + bh)))
-
             if len(node.children) > 1:
                 c0, c1 = node.children[0], node.children[-1]
                 bh0, bh1 = self.bh(c0), dy - self.node_size(c1).dy + self.bh(c1)
                 gs.append(self.draw_childrenline((x + dx, y + bh0),
                                                  (x + dx, y + bh1)))
-
             gs += self.draw_content_inline(node, (x, y))
-            gs.append(self.draw_nodebox(node, node_id, box_node))
-
         gs += self.draw_content_float(node, (x, y))
 
         return gs, True
 
-    def get_node_boxes(self, func):
-        "Yield the boxes of the nodes with func(node) == True"
+    def get_nodes(self, func):
+        "Yield (node_id, box) of the nodes with func(node) == True"
         x, y = self.xmin, self.ymin
-        for node, _, first in self.tree.walk():
+        for node, node_id, first in self.tree.walk():
             dx, dy = self.content_size(node)
 
             if first and func(node):
-                yield make_box((x, y), self.node_size(node))
+                yield node_id, make_box((x, y), self.node_size(node))
 
             if node.is_leaf:
                 y += dy
@@ -169,7 +180,7 @@ class Drawer:
         "Yield graphic elements to draw the aligned contents of the node"
         yield from []
 
-    def draw_collapsed(self, node, node_id, point):
+    def draw_collapsed(self, node, point):
         "Yield graphic elements to draw a collapsed node"
         if self.aligned:
             yield from []
@@ -205,6 +216,9 @@ class DrawerRect(Drawer):
     def bh(self, node):
         "Return branching height of the node (where its horizontal line is)"
         return node.bh
+
+    def get_box(self, element):
+        return get_rect(element, self.zoom)
 
     def draw_lengthline(self, p1, p2):
         "Return a line representing a length"
@@ -258,6 +272,9 @@ class DrawerCirc(Drawer):
         "Return branching height of the node (where its radial line is)"
         return node.bh * self.y2a  # in the right angular units
 
+    def get_box(self, element):
+        return get_asec(element, self.zoom)
+
     def draw_lengthline(self, p1, p2):
         "Return a line representing a length"
         return draw_line(cartesian(*p1), cartesian(*p2))
@@ -273,6 +290,10 @@ class DrawerCirc(Drawer):
 
 def cartesian(double r, double a):
     return r * cos(a), r * sin(a)
+
+
+def polar(double x, double y):
+    return sqrt(x*x + y*y), atan2(y, x)
 
 
 class DrawerSimple(DrawerRect):
@@ -292,8 +313,7 @@ class DrawerLeafNames(DrawerRect):
         if node.is_leaf:
             x, y = point
             w, h = self.content_size(node)
-            zx, zy = self.zoom
-            p_after_content = (x + w + 2 / zx, y + h / 1.3)
+            p_after_content = (x + w, y + h / 1.3)
             fs = h / 1.4
             yield draw_text(node.name, p_after_content, fs, 'name')
 
@@ -305,8 +325,7 @@ class DrawerCircLeafNames(DrawerCirc):
         if node.is_leaf:
             r, a = point
             dr, da = self.content_size(node)
-            zx, zy = self.zoom
-            p_after_content = cartesian(r + dr + 2 / zx, a + da / 1.3)
+            p_after_content = cartesian(r + dr, a + da / 1.3)
             fs = (r + dr) * da / 1.4
             yield draw_text(node.name, p_after_content, fs, 'name')
 
@@ -320,7 +339,7 @@ class DrawerLengths(DrawerRect):
             w, h = self.content_size(node)
             zx, zy = self.zoom
             text = '%.2g' % node.length
-            fs = min(zy * node.bh, zx * 1.5 * w / len(text))
+            fs = min(zy * node.bh, zx * 1.5 * w / len(text)) / zy
             g_text = draw_text(text, (x, y + node.bh), fs, 'length')
 
             if zy * h > 1:  # NOTE: we may want to change this, but it's tricky
@@ -338,7 +357,7 @@ class DrawerCircLengths(DrawerCirc):
             dr, da = self.content_size(node)
             zx, zy = self.zoom
             text = '%.2g' % node.length
-            fs = min(zy * (r + dr) * self.bh(node), zx * 1.5 * dr / len(text))
+            fs = min(zy * (r + dr) * self.bh(node), zx * 1.5 * dr / len(text)) / zy
             g_text = draw_text(text, cartesian(r, a + self.bh(node)), fs, 'length')
 
             if zy * da > 1:  # NOTE: we may want to change this, but it's tricky
@@ -350,36 +369,31 @@ class DrawerCircLengths(DrawerCirc):
 class DrawerCollapsed(DrawerLeafNames):
     "With text on collapsed nodes"
 
-    def draw_collapsed(self, node, node_id, point):
-        if not node.name:
-            return
-
+    def draw_collapsed(self, node, point):
         x, y = point
         w, h = self.content_size(node)
         if self.aligned:
-            yield draw_text(node.name, (0, y + h / 1.5), h / 2, 'name')
+            if node.name:
+                yield draw_text(node.name, (0, y + h / 1.5), h / 2, 'name')
         else:
             yield from self.update_outline(make_box(point, self.node_size(node)))
-            zx, zy = self.zoom
-            p_before_content = (x + 2 / zx, y + h / 1.3)
-            fs = h / 1.4
-            yield draw_text(node.name, p_before_content, fs, 'name')
+            if node.name:
+                p_before_content = (x, y + h / 1.3)
+                fs = h / 1.4
+                yield draw_text(node.name, p_before_content, fs, 'name')
 
 
 class DrawerCircCollapsed(DrawerCircLeafNames):
     "With text on collapsed nodes"
 
-    def draw_collapsed(self, node, node_id, point):
-        if not node.name:
-            return
-
-        r, a = point
-        dr, da = self.content_size(node)
+    def draw_collapsed(self, node, point):
         yield from self.update_outline(make_box(point, self.node_size(node)))
-        zx, zy = self.zoom
-        p_before_content = cartesian(r + 2 / zx, a + da / 1.3)
-        fs = r * da / 1.4
-        yield draw_text(node.name, p_before_content, fs, 'name')
+        if node.name:
+            r, a = point
+            dr, da = self.content_size(node)
+            p_before_content = cartesian(r, a + da / 1.3)
+            fs = r * da / 1.4
+            yield draw_text(node.name, p_before_content, fs, 'name')
 
 
 class DrawerFull(DrawerCollapsed, DrawerLengths):
@@ -430,6 +444,81 @@ def make_box(point, size):
     x, y = point
     dx, dy = size
     return Box(x, y, dx, dy)
+
+
+def get_rect(element, zoom):
+    "Return the rectangle that contains the given graphic element"
+    eid = element[0]
+    if eid == 'r':
+        _, box, _, _, _, _ = element
+        return box
+    elif eid == 's':
+        _, box, _, _, _, _ = element
+        return circumrect(box)
+    elif eid in ['l', 'c']:
+        _, (x1, y1), (x2, y2) = element
+        return Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
+    elif eid == 't':
+        _, text, (x, y), fs, _ = element
+        zx, zy = zoom
+        return Box(x, y - fs, zy/zx * fs / 1.5 * len(text), fs)
+    elif eid == 'a':
+        _, box, _ = element
+        return box
+    else:
+        raise ValueError(f'unrecognized element: {element!r}')
+
+
+def get_asec(element, zoom):
+    "Return the annular sector that contains the given graphic element"
+    eid = element[0]
+    if eid == 'r':
+        _, box, _, _, _, _ = element
+        return circumasec(box)
+    elif eid == 's':
+        _, box, _, _, _, _ = element
+        return box
+    elif eid in ['l', 'c']:
+        _, (x1, y1), (x2, y2) = element
+        rect = Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
+        return circumasec(rect)
+    elif eid == 't':
+        _, text, point, fs, _ = element
+        r, a = polar(*point)
+        zx, zy = zoom
+        return Box(r, a - fs / r, zy/zx * fs / 1.5 * len(text), fs / r)
+    elif eid == 'a':
+        _, box, _ = element
+        return box
+    else:
+        raise ValueError(f'unrecognized element: {element!r}')
+
+
+def drawn_size(elements, get_box):
+    "Return the size of a box containing all the elements"
+    # The type of size will depend on the kind of boxes that are returned by
+    # get_box() for the elements. It is width and height for boxes that are
+    # rectangles, and dr and da for boxes that are annular sectors.
+    cdef double x, y, dx, dy, x_min, x_max, y_min, y_max
+
+    elements = [e for e in elements if not is_outline(e)]
+    if not elements:
+        return Size(0, 0)
+
+    x, y, dx, dy = get_box(elements[0])
+    x_min, x_max = x, x + dx
+    y_min, y_max = y, y + dy
+
+    for element in elements[1:]:
+        x, y, dx, dy = get_box(element)
+        x_min, x_max = min(x_min, x), max(x_max, x + dx)
+        y_min, y_max = min(y_min, y), max(y_max, y + dy)
+
+    return Size(x_max - x_min, y_max - y_min)
+
+
+def is_outline(element):
+    return element[0] in ['r', 's'] and element[2] == 'outline'
 
 
 def intersects(b1, b2):
