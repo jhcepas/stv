@@ -83,14 +83,14 @@ class Drawer:
                     ndx = max(self.node_size(node).dx,
                         drawn_size(gs, self.get_box).dx)
                     node_dxs[-1].append(ndx)
-                    nodeboxes.append( (node, node_id, Box(x, y, ndx, dy)) )
+                    nodeboxes.append( (node, node_id[:], Box(x, y, ndx, dy)) )
                     y += dy
                 else:
                     node_dxs.append([])
                     x += dx
 
                 if not draw_children:
-                    node_id[:] = []  # modify on the fly the walking of the tree
+                    node_id[:] = [None]  # mark for not following children
             else:  # last time we visit this node
                 x -= dx
                 ndx = dx + max(node_dxs.pop())
@@ -159,7 +159,7 @@ class Drawer:
             ndx, ndy = self.node_size(node)
             cdx, cdy = self.content_size(node)
             if not is_inside(point, Box(x, y, ndx, ndy)):
-                node_id[:] = []  # skip walking over the node's children
+                node_id[:] = [None]  # skip walking over the node's children
                 y += cdy
             elif node.is_leaf or is_inside(point, Box(x, y, cdx, cdy)):
                 return node

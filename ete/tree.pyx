@@ -162,8 +162,8 @@ def walk(tree):
         node, nch = visiting[-1]  # current node, number of visited children
         if nch == 0:  # first time we visit this node
             node_id = [i for _,i in visiting[:-1]]
-            yield node, node_id, True  # if node_id is emptied we prune the tree
-            if not node.children or (len(visiting) > 1 and not node_id):
+            yield node, node_id, True  # node_id can be modified...
+            if node.is_leaf or node_id == [None]:  # ...to prune the tree
                 pop()
                 continue
         if nch < len(node.children):  # add next child to the list to visit

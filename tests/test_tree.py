@@ -353,12 +353,12 @@ def test_walk():
     # Prunning the tree while we walk.
     steps = []
     for node, node_id, first in t.walk():
-        steps.append((node.name, node_id, first))
+        steps.append((node.name, node_id[:], first))
         if node.name == 'b':
-            node_id[:] = []  # do not follow the descendants of b
+            node_id[:] = [None]  # do not follow the descendants of b
     assert steps == [
         ('a', [], True),
-        ('b', [], True),  # node_id has been emptied in the loop
+        ('b', [0], True),  # node_id has been set to [None] in the loop
         ('c', [1], True),  # so we skip all the descendants of b
         ('f', [1,0], True),
         ('g', [1,1], True),
