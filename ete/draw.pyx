@@ -4,6 +4,7 @@ Classes and functions for drawing a tree.
 
 from math import sin, cos, pi, sqrt, atan2
 from collections import namedtuple
+import random
 
 Size = namedtuple('Size', 'dx dy')  # size of a 2D shape (sizes are always >= 0)
 Box = namedtuple('Box', 'x y dx dy')  # corner and size of a 2D shape
@@ -425,8 +426,24 @@ class DrawerAlignHeatMap(DrawerFull):
             _, y = point
             w, h = self.content_size(node)
             zx, zy = self.zoom
-            a = list(range(360))
-            yield draw_array(Box(0, y + h/8, 100, h * 0.75), a)
+            random.seed(node.name)
+            a = [random.randint(1, 360) for i in range(100)]
+            yield draw_array(Box(0, y + h/8, 200, h * 0.75), a)
+
+    def draw_collapsed(self, node, point):
+        x, y = point
+        w, h = self.content_size(node)
+        if self.aligned:
+            zx, zy = self.zoom
+            random.seed(node.name)
+            a = [random.randint(1, 360) for i in range(100)]
+            yield draw_array(Box(0, y + h/8, 200, h * 0.75), a)
+        else:
+            yield from self.update_outline(make_box(point, self.node_size(node)))
+            if node.name:
+                p_before_content = (x, y + h / 1.3)
+                fs = h / 1.4
+                yield draw_text(node.name, p_before_content, fs, 'name')
 
 
 def get_drawers():
