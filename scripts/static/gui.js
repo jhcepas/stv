@@ -118,6 +118,7 @@ document.addEventListener("keydown", event => {
 // What happens when the user selects a new tree in the datgui menu.
 async function on_tree_change() {
   div_tree.style.cursor = "wait";
+  remove_searches();
   await reset_zoom();
   reset_position();
   draw_minimap();
@@ -441,6 +442,12 @@ function add_search_to_datgui(search_text) {
 
   folder.addColor(view.searches[search_text], "color").onChange(colorize);
   folder.add(view.searches[search_text], "remove");
+}
+
+
+function remove_searches() {
+  const search_texts = Object.keys(view.searches);
+  search_texts.forEach(text => view.searches[text].remove());
 }
 
 
