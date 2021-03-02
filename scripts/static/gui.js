@@ -433,7 +433,7 @@ function add_search_to_datgui(search_text) {
     nodes.forEach(e => e.style.fill = view.searches[search_text]["color"]);
   }
 
-  view.searches[search_text].remove = () => {
+  view.searches[search_text].remove = function() {
     delete view.searches[search_text];
     const nodes = Array.from(div_tree.getElementsByClassName(cname));
     nodes.forEach(e => e.remove());
