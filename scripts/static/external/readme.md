@@ -2,9 +2,7 @@ Where to find the libraries that appear here:
 
 ## dat.gui
 
-* https://raw.githubusercontent.com/dataarts/dat.gui/master/build/dat.gui.js
-* https://raw.githubusercontent.com/dataarts/dat.gui/master/build/dat.gui.js.map
-
+* https://raw.githubusercontent.com/dataarts/dat.gui/master/build/dat.gui.min.js
 
 ## sweetalert2
 
