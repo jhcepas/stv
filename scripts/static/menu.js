@@ -14,10 +14,6 @@ function create_datgui(view, trees, drawers) {
   const dgui = new dat.GUI({autoPlace: false});
   div_datgui.appendChild(dgui.domElement);
 
-  dgui.add(view.pos, "x").step(0.001).listen();
-  dgui.add(view.pos, "y").step(0.001).listen();
-  dgui.add(view, "search");
-
   const dgui_tree = dgui.addFolder("tree");
 
   dgui_tree.add(view, "tree", trees).onChange(() => {
@@ -26,12 +22,22 @@ function create_datgui(view, trees, drawers) {
   });
   dgui_tree.add(view, "subtree").onChange(on_tree_change);
   dgui_tree.add(view, "drawer", drawers).onChange(on_drawer_change);
-  dgui_tree.add(view, "show_tree_info").name("info");
   dgui_tree.add(view, "upload_tree").name("upload");
   const dgui_download = dgui_tree.addFolder("download");
   dgui_download.add(view, "download_newick").name("newick");
   dgui_download.add(view, "download_svg").name("svg");
   dgui_download.add(view, "download_image").name("image");
+
+  const dgui_info = dgui.addFolder("info");
+
+  dgui_info.add(view.nodes, "n").name("visible nodes").listen();
+  dgui_info.add(view.pos, "x").step(0.001).listen();
+  dgui_info.add(view.pos, "y").step(0.001).listen();
+  dgui_info.add(view, "show_tree_info").name("show details");
+
+  const dgui_searches = dgui.addFolder("searches");
+
+  dgui_searches.add(view, "search").name("new search");
 
   const dgui_ctl = dgui.addFolder("control");
 

@@ -6,18 +6,20 @@ export { update, on_tree_change, on_drawer_change, show_minimap, draw_minimap };
 // Global variables related to the current view on the tree.
 // Most will be shown on the top-right gui (using dat.gui).
 const view = {
-  pos: {x: 0, y: 0},  // in-tree current pointer position
-  search: () => search(),
   tree: "",
   subtree: "",
   drawer: "Full",
   is_circular: false,
+  nodes: {boxes: {}, n: 0},  // will contain the visible nodeboxes
+  pos: {x: 0, y: 0},  // in-tree current pointer position
   show_tree_info: () => show_tree_info(),
   reset_view: () => reset_view(),
   download_newick: () => download_newick(),
   download_svg: () => download_svg(),
   download_image: () => download_image(),
   upload_tree: () => window.location.href = "upload_tree.html",
+  search: () => search(),
+  searches: {},  // will contain the searches done and their results
   tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
   zoom: {x: 0, y: 0},  // initially chosen depending on the size of the tree
   align_bar: 80,
@@ -47,8 +49,6 @@ const view = {
 const dragging = {x0: 0, y0: 0, element: undefined, moved: false};
 const zooming = {qz: {x: 1, y: 1}, timeout: undefined};
 
-let nodeboxes = {};  // will contain the visible nodeboxes
-const selected_nodes = [];  // will contain the searched nodes
 const trees = {};  // will contain trees[tree_name] = tree_id
 let datgui = undefined;
 
@@ -118,7 +118,6 @@ document.addEventListener("keydown", event => {
 // What happens when the user selects a new tree in the datgui menu.
 async function on_tree_change() {
   div_tree.style.cursor = "wait";
-  selected_nodes.length = 0;  // unselect anything that was selected
   await reset_zoom();
   reset_position();
   draw_minimap();
@@ -310,6 +309,8 @@ function download(fname, content) {
 
 // Search nodes and mark them as selected on the tree.
 async function search() {
+  let search_text;
+
   const result = await Swal.fire({
     input: "text",
     position: "bottom-start",
@@ -318,6 +319,8 @@ async function search() {
     preConfirm: text => {
       if (!text)
         return false;  // prevent popup from closing
+
+      search_text = text;  // to be used when checking the result later on
 
       let qs = `text=${encodeURIComponent(text)}&drawer=${view.drawer}`;
       if (view.is_circular)
@@ -328,8 +331,19 @@ async function search() {
 
   if (result.isConfirmed) {
     if (result.value.message === 'ok') {
-      selected_nodes.concat(result.value.nodes);
-      show_selection_results(result.value.nodes, result.value.max);
+      show_search_results(search_text, result.value.nodes, result.value.max);
+
+      if (result.value.nodes.length > 0) {
+        const colors = ["#FF0", "#F0F", "#0FF", "#F00", "#0F0", "#00F"];
+        view.searches[search_text] = {
+          nodes: result.value.nodes,
+          color: colors[Object.keys(view.searches).length % colors.length],
+        };
+
+        add_search_boxes(search_text);
+
+        add_search_to_datgui(search_text);
+      }
     }
     else {
       Swal.fire({
@@ -342,15 +356,22 @@ async function search() {
 }
 
 
-// Show a dialog with the selection results, and mark the boxes on the tree.
-function show_selection_results(nodes, max) {
+// Show a dialog with the selection results.
+function show_search_results(search_text, nodes, max) {
   const n = nodes.length;
-  const info = `Found ${n} node${n > 1 ? 's' : ''}<br><br>` +
+
+  const info = `Search: ${search_text}<br>` +
+    `Found ${n} node${n > 1 ? 's' : ''}<br><br>` +
     (n < max ? "" : `Only showing the first ${max} matches. ` +
     "There may be more.<br><br>");
-  const link = node => `<a href="#" title="Zoom into node" ` +
-    `onclick="zoom_into_box([${node[1]}]); return false;">` +
-    `${node[1][0].toPrecision(4)} : ${node[1][1].toPrecision(4)}</a>`;
+
+  function link(node) {
+    const [node_id, box] = node;
+    const coordinates = `${box[0].toPrecision(4)} : ${box[1].toPrecision(4)}`;
+    return `<a href="#" title="Coordinates: ${coordinates}" ` +
+      `onclick="zoom_into_box([${box}]); return false;">` +
+      `${node_id.length > 0 ? node_id : "root"}</a>`;
+  }
 
   if (n > 0)
     Swal.fire({
@@ -360,28 +381,66 @@ function show_selection_results(nodes, max) {
   else
     Swal.fire({
       position: "bottom-start",
-      text: "No nodes found",
+      text: "No nodes found for search: " + search_text,
       icon: "warning"});
-
-  const g = div_tree.children[0].children[0];
-  nodes.forEach(node => g.appendChild(create_selection_box(node)));
 }
 
 
-// Return a box (a rectangle or annular sector) to mark a selected node.
-function create_selection_box(node) {
-  let [node_id, box] = node;
+// Add boxes to the tree view that represent the visible nodes matched by
+// the given search text.
+function add_search_boxes(search_text) {
+  const cname = get_search_class(search_text);
+  const color = view.searches[search_text].color;
+  const g = div_tree.children[0].children[0];
 
-  if (node_id in nodeboxes)
-    box = nodeboxes[node_id];  // so we get a nicer surrounding box
+  view.searches[search_text].nodes.forEach(node => {
+    let [node_id, box] = node;
 
-  const b = view.is_circular ?
-    create_asec(box, view.zoom.x, "selection") :
-    create_rect(box, view.zoom.x, view.zoom.y, "selection");
+    if (node_id in view.nodes.boxes)
+      box = view.nodes.boxes[node_id];  // so we get a nicer surrounding box
+    else
+      return;  // NOTE: we could leave it and still add it, but what for?
 
-  b.addEventListener("click", event => zoom_into_box(box));
+    const b = view.is_circular ?
+      create_asec(box, view.zoom.x, "search " + cname) :
+      create_rect(box, view.zoom.x, view.zoom.y, "search " + cname);
 
-  return b;
+    b.addEventListener("click", event => on_box_click(event, box, node_id));
+
+    b.style.fill = color;
+
+    g.appendChild(b);
+  });
+}
+
+
+// Return a class name related to the results of searching for text.
+function get_search_class(text) {
+  return 'search_' + text.replace(/[^A-Za-z0-9]/g, '');
+}
+
+
+// Add a folder that corresponds to the given search_text to the datgui,
+// that lets you change the nodes color and remove them too.
+function add_search_to_datgui(search_text) {
+  const folder = datgui.__folders.searches.addFolder(search_text);
+
+  const cname = get_search_class(search_text);
+
+  function colorize() {
+    const nodes = Array.from(div_tree.getElementsByClassName(cname));
+    nodes.forEach(e => e.style.fill = view.searches[search_text]["color"]);
+  }
+
+  view.searches[search_text].remove = () => {
+    delete view.searches[search_text];
+    const nodes = Array.from(div_tree.getElementsByClassName(cname));
+    nodes.forEach(e => e.remove());
+    datgui.__folders.searches.removeFolder(folder);
+  }
+
+  folder.addColor(view.searches[search_text], "color").onChange(colorize);
+  folder.add(view.searches[search_text], "remove");
 }
 
 
@@ -628,16 +687,21 @@ async function update_tree() {
       `translate(0 ${-view.zoom.y * view.tl.y})`);
   }
 
+  for (let search_text in view.searches)
+    add_search_boxes(search_text);
+
   div_tree.style.cursor = "auto";
 }
 
 
 function save_nodeboxes(items) {
-  nodeboxes = {};
+  view.nodes.boxes = {};
+  view.nodes.n = 0;
   items.forEach(item => {
     if (is_nodebox(item)) {
       const [shape, box, type, name, properties, node_id] = item;
-      nodeboxes[node_id] = box;
+      view.nodes.boxes[node_id] = box;
+      view.nodes.n += 1;
     }
   });
 }
