@@ -70,27 +70,21 @@ def test_draw_collapsed():
     drawer = draw.DrawerCollapsed(t, zoom=(10, 10))
     assert not any(e[0] == 'r' and e[2] == 'outline' for e in drawer.draw())
 
-    drawer.update_outline(None)  # make sure we don't have a pending outline
-                                 # before reusing the drawer!
-    assert list(drawer.draw_collapsed(t, (0, 0))) == [
-        ['t', 'F', (0, 2.3076923076923075), 2.142857142857143, 'name']]
-
     assert list(draw.DrawerCollapsed(t, zoom=(2, 2)).draw()) == [
         ['l', (0, 1.25), (1.0, 1.25)],
         ['l', (1.0, 1.25), (101.0, 1.25)],
         ['l', (101.0, 0.5), (101.0, 2.0)],
-        ['t', 'B', (101.0, 0.7692307692307692), 0.7142857142857143, 'name'],
-        ['t', 'E', (101.0, 2.5384615384615383), 1.4285714285714286, 'name'],
         ['r', (101.0, 0, 650.0, 3.0), 'outline', '', {}, []],
+        ['t', 'E', (101.0, 2.727272727272727), 1.1363636363636362, 'name'],
+        ['t', 'B', (101.0, 1.3636363636363635), 1.1363636363636362, 'name'],
         ['r', (0.0, 0.0, 751.0, 3.0), 'node', 'F', {}, []],
-        ['r', (1.0, 0.0, 750.0, 3.0), 'node', 'A', {}, [0]],
-        ['r', (101.0, 1.0, 650.0, 2.0), 'node', 'E', {}, [0, 1]],
-        ['r', (101.0, 0, 200.0, 1.0), 'node', 'B', {}, [0, 0]]]
+        ['r', (1.0, 0.0, 750.0, 3.0), 'node', 'A', {}, [0]]]
 
     assert list(draw.DrawerCollapsed(t).draw()) == [
-        ['t', 'F', (0, 2.3076923076923075), 2.142857142857143, 'name'],
-        ['r', (0, 0, 751.0, 3.0), 'outline', '', {}, []],
-        ['r', (0, 0, 751.0, 3.0), 'node', 'F', {}, []]]
+        ['r', Box(x=0, y=0, dx=751.0, dy=3.0), 'outline', '', {}, []],
+        ['t', 'F', (0, 2.727272727272727), 2.5, 'name']]
+
+    # TODO: test drawer.update_collapsed() too.
 
 
 def test_draw_tree():
