@@ -54,71 +54,84 @@ class Drawer:
 
         self.xmin, self.xmax, self.ymin, self.ymax = limits or (0, 0, 0, 0)
 
-        self.outline = None
+        self.outline = None  # will contain a box surrounding collapsed nodes
+        self.collapsed = []  # will contain nodes that are collapsed together
 
-    def update_outline(self, box):
-        "Update the current outline and yield a graphic box if appropriate"
+    def update_collapsed(self, node, point):
+        "Update collapsed nodes and outline, and yield graphics if appropriate"
+        box = make_box(point, self.node_size(node))
+
         if not self.outline:
             self.outline = box
+            self.collapsed = [node]
         else:
             stacked_box = stack(self.outline, box)
             if stacked_box:
                 self.outline = stacked_box
+                self.collapsed.append(node)
             else:
-                yield self.draw_outline(self.outline)
+                if not self.aligned:
+                    yield self.draw_outline()
+                yield from self.draw_collapsed()
                 self.outline = box
+                self.collapsed = [node]
 
     def draw(self):
         "Yield graphic elements to draw the tree"
-        node_dxs = [[]]
-        nodeboxes = []  # for boxes containing the nodes (filled in postorder)
+        node_dxs = []  # in postorder, lists of nodes dx (to find the max)
+        nodeboxes = []  # will contain the node boxes (filled in postorder)
 
         x, y = self.xmin, self.ymin
         for node, node_id, first in self.tree.walk():
             dx, dy = self.content_size(node)
             if first:  # first time we visit this node
-                gs, draw_children = self.get_content(node, (x, y))
+                box_node = make_box((x, y), self.node_size(node))
+
+                if not self.in_viewport(box_node):
+                    y += dy
+                    node_id[:] = [None]  # skip children
+                    continue
+
+                if self.is_small(box_node):
+                    if node_dxs:  # node_dxs is empty if the root node is small
+                        node_dxs[-1].append(box_node.dx)
+                    yield from self.update_collapsed(node, (x, y))
+                    y += dy
+                    node_id[:] = [None]  # skip children
+                    continue
+
+                gs = self.get_content(node, (x, y))
                 yield from gs
 
-                if node.is_leaf or not draw_children:
-                    ndx = max(self.node_size(node).dx,
-                        drawn_size(gs, self.get_box).dx)
-                    node_dxs[-1].append(ndx)
+                if node.is_leaf:
+                    ndx = drawn_size(gs, self.get_box).dx
+                    if node_dxs:
+                        node_dxs[-1].append(ndx)
                     nodeboxes.append( (node, node_id[:], Box(x, y, ndx, dy)) )
                     y += dy
                 else:
                     node_dxs.append([])
                     x += dx
-
-                if not draw_children:
-                    node_id[:] = [None]  # mark for not following children
-            else:  # last time we visit this node
+            else:  # last time we visit this node (who is internal and visible)
                 x -= dx
-                ndx = dx + max(node_dxs.pop())
+                ndx = dx + max(node_dxs.pop() or [0])
                 if node_dxs:
                     node_dxs[-1].append(ndx)
                 nodeboxes.append( (node, node_id, Box(x, y - dy, ndx, dy)) )
 
-        if self.outline and not self.aligned:  # draw the last outline stacked
-            yield self.draw_outline(self.outline)
+        if self.outline:  # draw the last collapsed nodes
+            if not self.aligned:
+                yield self.draw_outline()
+            yield from self.draw_collapsed()
 
         if not self.aligned:
             for node, node_id, box in nodeboxes[::-1]:
                 yield self.draw_nodebox(node, node_id, box)
 
     def get_content(self, node, point):
-        "Return list of content's graphic elements, and if children need drawing"
-        # Both the node's box and its content's box start at the given point.
-        box_node = make_box(point, self.node_size(node))
-
-        if not self.in_viewport(box_node):  # don't draw & skip children
-            return [], False
-
-        if self.is_small(box_node):         # draw as collapsed & skip children
-            return list(self.draw_collapsed(node, point)), False
-
+        "Return list of content's graphic elements"
         if self.aligned:
-            return list(self.draw_content_align(node, point)), True
+            return list(self.draw_content_align(node, point))
 
         x, y = point
         dx, dy = self.content_size(node)
@@ -135,7 +148,7 @@ class Drawer:
             gs += self.draw_content_inline(node, (x, y))
         gs += self.draw_content_float(node, (x, y))
 
-        return gs, True
+        return gs
 
     def get_nodes(self, func):
         "Yield (node_id, box) of the nodes with func(node) == True"
@@ -182,12 +195,13 @@ class Drawer:
         "Yield graphic elements to draw the aligned contents of the node"
         yield from []
 
-    def draw_collapsed(self, node, point):
+    def draw_collapsed(self):
         "Yield graphic elements to draw a collapsed node"
+        # Can use self.outline and self.collapsed to extract and place info.
         if self.aligned:
             yield from []
         else:
-            yield from self.update_outline(make_box(point, self.node_size(node)))
+            yield from []
 
 
 
@@ -197,8 +211,8 @@ class DrawerRect(Drawer):
     def in_viewport(self, box):
         return intersects(self.viewport, box)
 
-    def draw_outline(self, box):
-        return draw_box('r', box, 'outline')
+    def draw_outline(self):
+        return draw_box('r', self.outline, 'outline')
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
@@ -252,8 +266,8 @@ class DrawerCirc(Drawer):
         return (intersects(self.circumasec_viewport, box) or
                 intersects(self.viewport, circumrect(box)))
 
-    def draw_outline(self, box):
-        return draw_box('s', box, 'outline')
+    def draw_outline(self):
+        return draw_box('s', self.outline, 'outline')
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
@@ -371,31 +385,44 @@ class DrawerCircLengths(DrawerCirc):
 class DrawerCollapsed(DrawerLeafNames):
     "With text on collapsed nodes"
 
-    def draw_collapsed(self, node, point):
-        x, y = point
-        w, h = self.content_size(node)
+    def draw_collapsed(self):
+        names = [n.name for n in self.collapsed if n.name]
+        if not names:
+            return
+
+        texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
+
+        x, y, w, h = self.outline
         if self.aligned:
-            if node.name:
-                yield draw_text(node.name, (0, y + h / 1.5), h / 2, 'name')
+            yield from draw_texts(texts, (0, y + h / 1.1), h / 1.2, 'name')
         else:
-            yield from self.update_outline(make_box(point, self.node_size(node)))
-            if node.name:
-                p_before_content = (x, y + h / 1.3)
-                fs = h / 1.4
-                yield draw_text(node.name, p_before_content, fs, 'name')
+            p_before_content = (x, y + h / 1.1)
+            fs = h / 1.2
+            yield from draw_texts(texts, p_before_content, fs, 'name')
 
 
 class DrawerCircCollapsed(DrawerCircLeafNames):
     "With text on collapsed nodes"
 
-    def draw_collapsed(self, node, point):
-        yield from self.update_outline(make_box(point, self.node_size(node)))
-        if node.name:
-            r, a = point
-            dr, da = self.content_size(node)
-            p_before_content = cartesian(r, a + da / 1.3)
-            fs = r * da / 1.4
-            yield draw_text(node.name, p_before_content, fs, 'name')
+    def draw_collapsed(self):
+        names = [n.name for n in self.collapsed if n.name]
+        if not names:
+            return
+
+        texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
+
+        r, a, dr, da = self.outline
+        p_before_content = (r, a + da / 1.1)
+        fs = r * da / 1.2
+
+        # TODO: mix the code below properly with draw_texts().
+        r, a = p_before_content
+        alpha = 0.2  # space between texts, as a fraction of the font size
+        font_size = fs / (len(texts) + (len(texts) - 1) * alpha)
+        da = font_size * (1 + alpha) / r
+        for text in texts[::-1]:
+            yield draw_text(text, cartesian(r, a), font_size, 'name')
+            a -= da
 
 
 class DrawerFull(DrawerCollapsed, DrawerLengths):
@@ -430,26 +457,40 @@ class DrawerAlignHeatMap(DrawerFull):
             a = [random.randint(1, 360) for i in range(100)]
             yield draw_array(Box(0, y + h/8, 200, h * 0.75), a)
 
-    def draw_collapsed(self, node, point):
-        x, y = point
-        w, h = self.content_size(node)
+    def draw_collapsed(self):
+        names = [n.name for n in self.collapsed if n.name]
+        texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
+
+        x, y, w, h = self.outline
         if self.aligned:
             zx, zy = self.zoom
-            random.seed(node.name)
+            random.seed(str(texts))
             a = [random.randint(1, 360) for i in range(100)]
             yield draw_array(Box(0, y + h/8, 200, h * 0.75), a)
         else:
-            yield from self.update_outline(make_box(point, self.node_size(node)))
-            if node.name:
-                p_before_content = (x, y + h / 1.3)
-                fs = h / 1.4
-                yield draw_text(node.name, p_before_content, fs, 'name')
+            if not names:
+                return
+            x, y, w, h = self.outline
+            p_before_content = (x, y + h / 1.1)
+            fs = h / 1.2
+            yield from draw_texts(texts, p_before_content, fs, 'name')
 
 
 def get_drawers():
     return [DrawerSimple, DrawerLeafNames, DrawerLengths, DrawerFull,
         DrawerCircSimple, DrawerCircLeafNames, DrawerCircLengths, DrawerCircFull,
         DrawerAlign, DrawerAlignHeatMap]
+
+
+def draw_texts(texts, point, fs, text_type):
+    "Yield texts from the bottom-left point, with total height fs"
+    alpha = 0.2  # space between texts, as a fraction of the font size
+    font_size = fs / (len(texts) + (len(texts) - 1) * alpha)
+    dy = font_size * (1 + alpha)
+    x, y = point
+    for text in texts[::-1]:
+        yield draw_text(text, (x, y), font_size, text_type)
+        y -= dy
 
 
 # Basic drawing elements.
