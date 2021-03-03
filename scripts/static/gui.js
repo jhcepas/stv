@@ -501,9 +501,15 @@ document.addEventListener("wheel", event => {
     view.angle.min = angle + qz * (view.angle.min - angle);
     view.angle.max = angle + qz * (view.angle.max - angle);
 
-    if (view.minimap_show)
-      draw_minimap();
-    update();
+    if (zooming.timeout)
+      window.clearTimeout(zooming.timeout);
+
+    zooming.timeout = window.setTimeout(() => {
+      zooming.timeout = undefined;
+      if (view.minimap_show)
+        draw_minimap();
+      update();
+    }, 200);  // 200 ms until we try to actually update (if not cancelled before!)
   }
   else {
     let [do_zoom_x, do_zoom_y] = [!event.altKey, !event.ctrlKey];
