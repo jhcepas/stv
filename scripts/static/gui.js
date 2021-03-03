@@ -119,8 +119,6 @@ document.addEventListener("keydown", event => {
 async function on_tree_change() {
   div_tree.style.cursor = "wait";
   remove_searches();
-  view.angle.min = -180;
-  view.angle.max = 180;
   await reset_zoom();
   reset_position();
   draw_minimap();
@@ -224,6 +222,8 @@ async function reset_zoom(reset_zx=true, reset_zy=true) {
 
 function reset_position() {
   if (view.is_circular) {
+    view.angle.min = -180;
+    view.angle.max = 180;
     view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
     view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
   }
@@ -496,10 +496,13 @@ document.addEventListener("wheel", event => {
   if (event.ctrlKey && view.is_circular) {
     const x = view.tl.x + event.pageX / view.zoom.x,
           y = view.tl.y + event.pageY / view.zoom.y;
-    const a = Math.atan2(y, x) * 180 / Math.PI;
+    const angle = Math.atan2(y, x) * 180 / Math.PI;
 
-    view.angle.min = a + qz * (view.angle.min - a);
-    view.angle.max = a + qz * (view.angle.max - a);
+    view.angle.min = angle + qz * (view.angle.min - angle);
+    view.angle.max = angle + qz * (view.angle.max - angle);
+
+    if (view.minimap_show)
+      draw_minimap();
     update();
   }
   else {
