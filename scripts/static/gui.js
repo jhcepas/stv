@@ -340,6 +340,7 @@ async function search() {
         const colors = ["#FF0", "#F0F", "#0FF", "#F00", "#0F0", "#00F"];
         view.searches[search_text] = {
           nodes: result.value.nodes,
+          max: result.value.max,
           color: colors[Object.keys(view.searches).length % colors.length],
         };
 
@@ -379,7 +380,6 @@ function show_search_results(search_text, nodes, max) {
   if (n > 0)
     Swal.fire({
       position: "bottom-start",
-      toast: true,
       html: info + nodes.map(link).join("<br>")});
   else
     Swal.fire({
@@ -435,6 +435,11 @@ function add_search_to_datgui(search_text) {
     nodes.forEach(e => e.style.fill = view.searches[search_text]["color"]);
   }
 
+  view.searches[search_text].show = function() {
+    const search = view.searches[search_text];
+    show_search_results(search_text, search.nodes, search.max);
+  }
+
   view.searches[search_text].remove = function() {
     delete view.searches[search_text];
     const nodes = Array.from(div_tree.getElementsByClassName(cname));
@@ -442,6 +447,7 @@ function add_search_to_datgui(search_text) {
     datgui.__folders.searches.removeFolder(folder);
   }
 
+  folder.add(view.searches[search_text], "show");
   folder.addColor(view.searches[search_text], "color").onChange(colorize);
   folder.add(view.searches[search_text], "remove");
 }
