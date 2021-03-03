@@ -21,12 +21,29 @@ function create_datgui(view, trees, drawers) {
     on_tree_change();
   });
   dgui_tree.add(view, "subtree").onChange(on_tree_change);
-  dgui_tree.add(view, "drawer", drawers).onChange(on_drawer_change);
   dgui_tree.add(view, "upload_tree").name("upload");
   const dgui_download = dgui_tree.addFolder("download");
   dgui_download.add(view, "download_newick").name("newick");
   dgui_download.add(view, "download_svg").name("svg");
   dgui_download.add(view, "download_image").name("image");
+
+  const dgui_repr = dgui.addFolder("representation");
+
+  dgui_repr.add(view, "drawer", drawers).onChange(on_drawer_change);
+  dgui_repr.add(view, "align_bar", 0, 100).name("align bar").onChange((value) =>
+    div_aligned.style.width = `${100 - value}%`);
+  const dgui_repr_circ = dgui_repr.addFolder("circular");
+  dgui_repr_circ.add(view, "rmin").name("radius min").onChange(
+    () => update_with_minimap(view.minimap_show));
+  dgui_repr_circ.add(view.angle, "min", -180, 180).name("angle min").onChange(
+    () => update_with_minimap(view.minimap_show));
+  dgui_repr_circ.add(view.angle, "max", -180, 180).name("angle max").onChange(
+    () => update_with_minimap(view.minimap_show));
+  dgui_repr.add(view, "min_size", 1, 100).name("collapse at").onChange(update);
+
+  const dgui_searches = dgui.addFolder("searches");
+
+  dgui_searches.add(view, "search").name("new search");
 
   const dgui_info = dgui.addFolder("info");
 
@@ -35,31 +52,17 @@ function create_datgui(view, trees, drawers) {
   dgui_info.add(view.pos, "y").step(0.001).listen();
   dgui_info.add(view, "show_tree_info").name("show details");
 
-  const dgui_searches = dgui.addFolder("searches");
+  const dgui_view = dgui.addFolder("view");
 
-  dgui_searches.add(view, "search").name("new search");
-
-  const dgui_ctl = dgui.addFolder("control");
-
-  dgui_ctl.add(view, "reset_view").name("reset view");
-  const dgui_ctl_tl = dgui_ctl.addFolder("top-left");
-  dgui_ctl_tl.add(view.tl, "x").onChange(update);
-  dgui_ctl_tl.add(view.tl, "y").onChange(update);
-  const dgui_ctl_zoom = dgui_ctl.addFolder("zoom");
-  dgui_ctl_zoom.add(view.zoom, "x").onChange(update);
-  dgui_ctl_zoom.add(view.zoom, "y").onChange(update);
-  dgui_ctl.add(view, "align_bar", 0, 100).name("align bar").onChange((value) =>
-    div_aligned.style.width = `${100 - value}%`);
-  const dgui_ctl_circ = dgui_ctl.addFolder("circular");
-  dgui_ctl_circ.add(view, "rmin").name("radius min").onChange(
-    () => update_with_minimap(view.minimap_show));
-  dgui_ctl_circ.add(view.angle, "min", -180, 180).name("angle min").onChange(
-    () => update_with_minimap(view.minimap_show));
-  dgui_ctl_circ.add(view.angle, "max", -180, 180).name("angle max").onChange(
-    () => update_with_minimap(view.minimap_show));
-  dgui_ctl.add(view, "min_size", 1, 100).name("collapse at").onChange(update);
-  dgui_ctl.add(view, "update_on_drag").name("update on drag");
-  dgui_ctl.add(view, "select_text").name("select text").onChange(() => {
+  dgui_view.add(view, "reset_view").name("reset view");
+  const dgui_view_tl = dgui_view.addFolder("top-left");
+  dgui_view_tl.add(view.tl, "x").onChange(update);
+  dgui_view_tl.add(view.tl, "y").onChange(update);
+  const dgui_view_zoom = dgui_view.addFolder("zoom");
+  dgui_view_zoom.add(view.zoom, "x").onChange(update);
+  dgui_view_zoom.add(view.zoom, "y").onChange(update);
+  dgui_view.add(view, "update_on_drag").name("update on drag");
+  dgui_view.add(view, "select_text").name("select text").onChange(() => {
     style_font.userSelect = (view.select_text ? "text" : "none");
     div_tree.style.cursor = (view.select_text ? "text" : "auto");
     Array.from(div_tree.getElementsByClassName("box")).forEach(
