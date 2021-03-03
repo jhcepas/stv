@@ -119,6 +119,8 @@ document.addEventListener("keydown", event => {
 async function on_tree_change() {
   div_tree.style.cursor = "wait";
   remove_searches();
+  view.angle.min = -180;
+  view.angle.max = 180;
   await reset_zoom();
   reset_position();
   draw_minimap();
@@ -490,8 +492,20 @@ window.zoom_into_box = zoom_into_box;  // exposed so it can be called in onclick
 document.addEventListener("wheel", event => {
   event.preventDefault();
   const qz = (event.deltaY < 0 ? 1.25 : 0.8);  // zoom change (quotient)
-  let [do_zoom_x, do_zoom_y] = [!event.altKey, !event.ctrlKey];
-  zoom_around([event.pageX, event.pageY], qz, do_zoom_x, do_zoom_y);
+
+  if (event.ctrlKey && view.is_circular) {
+    const x = view.tl.x + event.pageX / view.zoom.x,
+          y = view.tl.y + event.pageY / view.zoom.y;
+    const a = Math.atan2(y, x) * 180 / Math.PI;
+
+    view.angle.min = a + qz * (view.angle.min - a);
+    view.angle.max = a + qz * (view.angle.max - a);
+    update();
+  }
+  else {
+    let [do_zoom_x, do_zoom_y] = [!event.altKey, !event.ctrlKey];
+    zoom_around([event.pageX, event.pageY], qz, do_zoom_x, do_zoom_y);
+  }
 }, {passive: false});  // chrome now uses passive=true otherwise
 
 
