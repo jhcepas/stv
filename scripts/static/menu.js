@@ -73,17 +73,26 @@ function create_datgui(view, trees, drawers) {
 
   const dgui_style_node = dgui_style.addFolder("node");
 
-  dgui_style_node.add(view, "node_opacity", 0, 0.2).step(0.001).name("opacity")
-    .onChange(() => style_node.opacity = view.node_opacity);
-  dgui_style_node.addColor(view, "node_color").name("color").onChange(() =>
-    style_node.fill = view.node_color);
+  dgui_style_node.add(view.node, "opacity", 0, 0.2).step(0.001).onChange(() =>
+    style_node.opacity = view.node.opacity);
+  dgui_style_node.addColor(view.node, "color").onChange(() =>
+    style_node.fill = view.node.color);
+
+  const dgui_style_outline = dgui_style.addFolder("outline");
+
+  dgui_style_outline.add(view.outline, "opacity", 0, 1).step(0.1)
+    .onChange(() => style_outline.fillOpacity = view.outline.opacity);
+  dgui_style_outline.addColor(view.outline, "color").onChange(
+    () => style_outline.fill = view.outline.color);
+  dgui_style_outline.add(view.outline, "width", 0.1, 10).onChange(() =>
+    style_outline.strokeWidth = view.outline.width);
 
   const dgui_style_line = dgui_style.addFolder("line");
 
-  dgui_style_line.addColor(view, "line_color").name("color").onChange(() =>
-    style_line.stroke = view.line_color);
-  dgui_style_line.add(view, "line_width", 0.1, 10).name("width").onChange(() =>
-    style_line.strokeWidth = view.line_width);
+  dgui_style_line.addColor(view.line, "color").onChange(() =>
+    style_line.stroke = view.line.color);
+  dgui_style_line.add(view.line, "width", 0.1, 10).onChange(() =>
+    style_line.strokeWidth = view.line.width);
 
   const dgui_style_text = dgui_style.addFolder("text");
 
@@ -107,13 +116,6 @@ function create_datgui(view, trees, drawers) {
     return dgui_style_text.add(view, "font_size", 0.1, 50).name("font size")
       .onChange(() => style_font.fontSize = `${view.font_size}px`);
   }
-
-  const dgui_style_collapsed = dgui_style.addFolder("collapsed");
-
-  dgui_style_collapsed.add(view, "outline_opacity", 0, 1).step(0.1).name("opacity")
-    .onChange(() => style_outline.fillOpacity = view.outline_opacity);
-  dgui_style_collapsed.addColor(view, "outline_color").name("color").onChange(
-    () => style_outline.fill = view.outline_color);
 
   dgui.add(view, "minimap_show").name("minimap").onChange(show_minimap);
 

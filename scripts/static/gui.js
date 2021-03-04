@@ -39,12 +39,9 @@ const view = {
   select_text: false,
 
   // style
-  node_opacity: 0,
-  node_color: "#222",
-  line_color: "#000",
-  line_width: 1,
-  outline_opacity: 0,
-  outline_color: "#DDF",
+  node: {opacity: 0, color: "#222"},
+  outline: {opacity: 0, color: "#DDF", width: 1},
+  line: {color: "#000", width: 1},
   names_color: "#00A",
   lengths_color: "#888",
   font_family: "sans-serif",
@@ -827,7 +824,7 @@ function create_line(p1, p2, zx=1, zy=1) {
     "class": "line",
     "x1": zx * x1, "y1": zy * y1,
     "x2": zx * x2, "y2": zy * y2,
-    "stroke": view.line_color});
+    "stroke": view.line.color});
 }
 
 
@@ -839,7 +836,7 @@ function create_arc(p1, p2, large, z=1) {
   return create_svg_element("path", {
     "class": "line",
     "d": `M ${z*x1} ${z*y1} A ${r} ${r} 0 ${large} 1 ${z*x2} ${z*y2}`,
-    "stroke": view.line_color});
+    "stroke": view.line.color});
 }
 
 
