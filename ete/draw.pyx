@@ -71,7 +71,7 @@ class Drawer:
                 self.collapsed.append(node)
             else:
                 if not self.aligned:
-                    yield self.draw_outline()
+                    yield from self.draw_outline()
                 yield from self.draw_collapsed()
                 self.outline = box
                 self.collapsed = [node]
@@ -121,12 +121,12 @@ class Drawer:
 
         if self.outline:  # draw the last collapsed nodes
             if not self.aligned:
-                yield self.draw_outline()
+                yield from self.draw_outline()
             yield from self.draw_collapsed()
 
         if not self.aligned:
             for node, node_id, box in nodeboxes[::-1]:
-                yield self.draw_nodebox(node, node_id, box)
+                yield from self.draw_nodebox(node, node_id, box)
 
     def get_content(self, node, point):
         "Return list of content's graphic elements"
@@ -139,12 +139,11 @@ class Drawer:
         gs = []  # graphic elements to return
         if self.in_viewport(Box(x, y, dx, dy)):
             bh = self.bh(node)  # node's branching height (in the right units)
-            gs.append(self.draw_lengthline((x, y + bh), (x + dx, y + bh)))
+            gs += self.draw_lengthline((x, y + bh), (x + dx, y + bh))
             if len(node.children) > 1:
                 c0, c1 = node.children[0], node.children[-1]
                 bh0, bh1 = self.bh(c0), dy - self.node_size(c1).dy + self.bh(c1)
-                gs.append(self.draw_childrenline((x + dx, y + bh0),
-                                                 (x + dx, y + bh1)))
+                gs += self.draw_childrenline((x + dx, y + bh0), (x + dx, y + bh1))
             gs += self.draw_content_inline(node, (x, y))
         gs += self.draw_content_float(node, (x, y))
 
@@ -212,7 +211,7 @@ class DrawerRect(Drawer):
         return intersects(self.viewport, box)
 
     def draw_outline(self):
-        return draw_box('r', self.outline, 'outline')
+        yield draw_box('r', self.outline, 'outline')
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
@@ -237,15 +236,15 @@ class DrawerRect(Drawer):
         return get_rect(element, self.zoom)
 
     def draw_lengthline(self, p1, p2):
-        "Return a line representing a length"
-        return draw_line(p1, p2)
+        "Yield a line representing a length"
+        yield draw_line(p1, p2)
 
     def draw_childrenline(self, p1, p2):
-        "Return a line spanning children that starts at p1 and ends at p2"
-        return draw_line(p1, p2)
+        "Yield a line spanning children that starts at p1 and ends at p2"
+        yield draw_line(p1, p2)
 
     def draw_nodebox(self, node, node_id, box):
-        return draw_box('r', box, 'node', node.name, node.properties, node_id)
+        yield draw_box('r', box, 'node', node.name, node.properties, node_id)
 
 
 
@@ -268,7 +267,7 @@ class DrawerCirc(Drawer):
             intersects(Box(0, -pi, self.node_size(self.tree).dx, 2*pi), box))
 
     def draw_outline(self):
-        return draw_box('s', self.outline, 'outline')
+        yield draw_box('s', self.outline, 'outline')
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
@@ -293,16 +292,19 @@ class DrawerCirc(Drawer):
         return get_asec(element, self.zoom)
 
     def draw_lengthline(self, p1, p2):
-        "Return a line representing a length"
-        return draw_line(cartesian(*p1), cartesian(*p2))
+        "Yield a line representing a length"
+        a1, a2 = p1[1], p2[1]  # angles
+        if -pi < a1 < pi and -pi < a2 < pi:
+            yield draw_line(cartesian(*p1), cartesian(*p2))
 
     def draw_childrenline(self, p1, p2):
-        "Return a line spanning children that starts at p1 and ends at p2"
+        "Yield an arc spanning children that starts at p1 and ends at p2"
         a1, a2 = p1[1], p2[1]  # angles
-        return draw_arc(cartesian(*p1), cartesian(*p2), a2 - a1 > pi)
+        if -pi < a1 < pi and -pi < a2 < pi:
+            yield draw_arc(cartesian(*p1), cartesian(*p2), a2 - a1 > pi)
 
     def draw_nodebox(self, node, node_id, box):
-        return draw_box('s', box, 'node', node.name, node.properties, node_id)
+        yield draw_box('s', box, 'node', node.name, node.properties, node_id)
 
 
 def cartesian(double r, double a):
