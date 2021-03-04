@@ -6,28 +6,39 @@ export { update, on_tree_change, on_drawer_change, show_minimap, draw_minimap };
 // Global variables related to the current view on the tree.
 // Most will be shown on the top-right gui (using dat.gui).
 const view = {
+  // tree
   tree: "",
   subtree: "",
-  drawer: "Full",
-  is_circular: false,
-  nodes: {boxes: {}, n: 0},  // will contain the visible nodeboxes
-  pos: {x: 0, y: 0},  // in-tree current pointer position
-  show_tree_info: () => show_tree_info(),
-  reset_view: () => reset_view(),
+  upload_tree: () => window.location.href = "upload_tree.html",
   download_newick: () => download_newick(),
   download_svg: () => download_svg(),
   download_image: () => download_image(),
-  upload_tree: () => window.location.href = "upload_tree.html",
-  search: () => search(),
-  searches: {},  // will contain the searches done and their results
-  tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
-  zoom: {x: 0, y: 0},  // initially chosen depending on the size of the tree
+
+  // representation
+  drawer: "Full",
   align_bar: 80,
+  is_circular: false,
   rmin: 0,
   angle: {min: -180, max: 180},
   min_size: 6,
+
+  // search
+  search: () => search(),
+  searches: {},  // will contain the searches done and their results
+
+  // info
+  nodes: {boxes: {}, n: 0},  // will contain the visible nodeboxes
+  pos: {x: 0, y: 0},  // in-tree current pointer position
+  show_tree_info: () => show_tree_info(),
+
+  // view
+  reset_view: () => reset_view(),
+  tl: {x: 0, y: 0},  // in-tree coordinates of the top-left of the view
+  zoom: {x: 0, y: 0},  // initially chosen depending on the size of the tree
   update_on_drag: false,
   select_text: false,
+
+  // style
   node_opacity: 0,
   node_color: "#222",
   line_color: "#000",
@@ -41,7 +52,10 @@ const view = {
   font_size_scroller: undefined,
   font_size: 10,
   font_size_max: 15,
+
+  // minimap
   minimap_show: true,
+  minimap_uptodate: false,
   minimap_zoom: {x: 1, y: 1},
 };
 
@@ -61,6 +75,7 @@ async function api(endpoint) {
 }
 
 
+// Fill global var trees, and view.tree with the first of the available trees.
 async function init_trees() {
   const trees_info = await api("/trees");
   trees_info.forEach(t => trees[t.name] = t.id);
@@ -147,6 +162,8 @@ async function on_drawer_change() {
 async function reset_view() {
   await reset_zoom();
   reset_position();
+  if (view.minimap_show && !view.minimap_uptodate)
+    draw_minimap();
   update();
 }
 
@@ -222,8 +239,11 @@ async function reset_zoom(reset_zx=true, reset_zy=true) {
 
 function reset_position() {
   if (view.is_circular) {
-    view.angle.min = -180;
-    view.angle.max = 180;
+    if (!(view.angle.min === -180 && view.angle.max === 180)) {
+      view.angle.min = -180;
+      view.angle.max = 180;
+      view.minimap_uptodate = false;
+    }
     view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
     view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
   }
@@ -518,7 +538,7 @@ document.addEventListener("wheel", event => {
     }, 200);  // 200 ms until we try to actually update (if not cancelled before!)
   }
   else {
-    let [do_zoom_x, do_zoom_y] = [!event.altKey, !event.ctrlKey];
+    let [do_zoom_x, do_zoom_y] = [!event.ctrlKey, !event.altKey];
     zoom_around([event.pageX, event.pageY], qz, do_zoom_x, do_zoom_y);
   }
 }, {passive: false});  // chrome now uses passive=true otherwise
@@ -989,6 +1009,8 @@ async function draw_minimap() {
 
   Array.from(div_minimap.getElementsByClassName("node")).forEach(
     e => e.remove());
+
+  view.minimap_uptodate = true;
 
   update_minimap_visible_rect();
 }
