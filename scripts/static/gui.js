@@ -439,7 +439,7 @@ function add_search_boxes(search_text) {
 
 // Return a class name related to the results of searching for text.
 function get_search_class(text) {
-  return 'search_' + text.replace(/[^A-Za-z0-9]/g, '');
+  return 'search_' + text.replace(/[^A-Za-z0-9_-]/g, '');
 }
 
 
@@ -473,6 +473,7 @@ function add_search_to_datgui(search_text) {
 }
 
 
+// Empty view.searches.
 function remove_searches() {
   const search_texts = Object.keys(view.searches);
   search_texts.forEach(text => view.searches[text].remove());
@@ -750,6 +751,9 @@ async function update_tree() {
 }
 
 
+// From all the graphic items received, save the nodeboxes in the global
+// variable view.nodes. We can use them later to count the total number of
+// nodes shown, and to color the searched nodes that are currently visible.
 function save_nodeboxes(items) {
   view.nodes.boxes = {};
   view.nodes.n = 0;
@@ -761,7 +765,6 @@ function save_nodeboxes(items) {
     }
   });
 }
-
 
 function is_nodebox(item) {
   return (is_rect(item) || is_asec(item)) && item[2] === "node";
@@ -792,6 +795,7 @@ function create_rect(box, zx=1, zy=1, type="") {
 }
 
 
+// Return a newly-created svg annular sector, described by box and with zoom z.
 function create_asec(box, z=1, type="") {
   const [r, a, dr, da] = box;
   const large = da > Math.PI ? 1 : 0;
