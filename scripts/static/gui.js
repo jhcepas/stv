@@ -422,8 +422,8 @@ function add_search_boxes(search_text) {
       return;  // NOTE: we could leave it and still add it, but what for?
 
     const b = view.is_circular ?
-      create_asec(box, view.zoom.x, "search " + cname) :
-      create_rect(box, view.zoom.x, view.zoom.y, "search " + cname);
+      create_asec(box, view.tl, view.zoom.x, "search " + cname) :
+      create_rect(box, view.tl, view.zoom.x, view.zoom.y, "search " + cname);
 
     b.addEventListener("click", event => on_box_click(event, box, node_id));
 
@@ -564,19 +564,21 @@ function zoom_around(point, qz, do_zoom_x=true, do_zoom_y=true) {
   }
 
   if (do_zoom_x || do_zoom_y)
-    smooth_zoom();
+    smooth_zoom(point);
 }
 
 
 // Perform zoom by scaling the svg, and really update it only after a timeout.
-function smooth_zoom() {
+function smooth_zoom(point) {
+  const [x, y] = point;
+
   if (zooming.timeout)
     window.clearTimeout(zooming.timeout);
 
   const g = div_tree.children[0].children[0];
   g.setAttribute("transform",
-    `translate(${-view.zoom.x * view.tl.x} ${-view.zoom.y * view.tl.y}) ` +
-    `scale(${zooming.qz.x}, ${zooming.qz.y})`);
+    `scale(${zooming.qz.x}, ${zooming.qz.y}) ` +
+    `translate(${(1 / zooming.qz.x - 1) * x} ${(1 / zooming.qz.y - 1) * y})`);
 
   if (view.minimap_show)
     update_minimap_visible_rect();
@@ -624,20 +626,30 @@ document.addEventListener("mousemove", event => {
   update_pointer_pos(event);
 
   if (dragging.element) {
-    drag_stop(event);
+    dragging.moved = true;
 
     if (view.update_on_drag)
       update_tree();
 
+    const [scale_x, scale_y] = get_drag_scale();
+    view.tl.x += scale_x * event.movementX;
+    view.tl.y += scale_y * event.movementY;
+
+    let dx = event.pageX - dragging.x0,
+        dy = event.pageY - dragging.y0;
+
+    if (dragging.element === div_visible_rect) {
+      dx *= -view.zoom.x / view.minimap_zoom.x;
+      dy *= -view.zoom.y / view.minimap_zoom.y;
+    }
+
     const g = div_tree.children[0].children[0];
-    g.setAttribute("transform",
-      `translate(${-view.zoom.x * view.tl.x} ${-view.zoom.y * view.tl.y})`);
+    g.setAttribute("transform", `translate(${dx} ${dy})`);
 
     datgui.updateDisplay();  // update the info box on the top-right
+
     if (view.minimap_show)
       update_minimap_visible_rect();
-
-    drag_start(event);
   }
 });
 
@@ -653,16 +665,6 @@ function drag_start(event) {
 function drag_stop(event) {
   div_tree.style.cursor = "auto";
   div_visible_rect.style.cursor = "grab";
-
-  const dx = event.pageX - dragging.x0,  // mouse position increment
-        dy = event.pageY - dragging.y0;
-
-  if (dx != 0 || dy != 0) {
-    const [scale_x, scale_y] = get_drag_scale();
-    view.tl.x += scale_x * dx;
-    view.tl.y += scale_y * dy;
-    dragging.moved = true;
-  }
 }
 
 
@@ -736,9 +738,7 @@ async function update_tree() {
 
   if (view.drawer.startsWith("Align")) {
     const aitems = await api(`/trees/${get_tid()}/draw?${qs}&aligned`);
-    draw(div_aligned, aitems, view.tl, view.zoom);
-    div_aligned.children[0].children[0].setAttribute("transform",
-      `translate(0 ${-view.zoom.y * view.tl.y})`);
+    draw(div_aligned, aitems, {x: 0, y: view.tl.y}, view.zoom);
   }
 
   for (let search_text in view.searches)
@@ -781,25 +781,25 @@ function create_svg_element(name, attrs) {
 }
 
 
-function create_rect(box, zx=1, zy=1, type="") {
+function create_rect(box, tl, zx=1, zy=1, type="") {
   const [x, y, w, h] = box;
 
   return create_svg_element("rect", {
     "class": "box " + type,
-    "x": zx * x, "y": zy * y,
+    "x": zx * (x - tl.x), "y": zy * (y - tl.y),
     "width": zx * w, "height": zy * h,
     "stroke": view.rect_color});
 }
 
 
 // Return a newly-created svg annular sector, described by box and with zoom z.
-function create_asec(box, z=1, type="") {
+function create_asec(box, tl, z=1, type="") {
   const [r, a, dr, da] = box;
   const large = da > Math.PI ? 1 : 0;
-  const p00 = cartesian(z * r, a),
-        p01 = cartesian(z * r, a + da),
-        p10 = cartesian(z * (r + dr), a),
-        p11 = cartesian(z * (r + dr), a + da);
+  const p00 = cartesian_shifted(r, a, tl, z),
+        p01 = cartesian_shifted(r, a + da, tl, z),
+        p10 = cartesian_shifted(r + dr, a, tl, z),
+        p11 = cartesian_shifted(r + dr, a + da, tl, z);
 
   return create_svg_element("path", {
     "class": "box " + type,
@@ -811,41 +811,44 @@ function create_asec(box, z=1, type="") {
     "fill": view.box_color});
 }
 
-function cartesian(r, a) {
-  return {x: r * Math.cos(a), y: r * Math.sin(a)};
+function cartesian_shifted(r, a, tl, z) {
+  return {x: z * (r * Math.cos(a) - tl.x),
+          y: z * (r * Math.sin(a) - tl.y)};
 }
 
 
-function create_line(p1, p2, zx=1, zy=1) {
-  const [x1, y1] = p1,
-        [x2, y2] = p2;
+function create_line(p1, p2, tl, zx, zy) {
+  const [x1, y1] = [zx * (p1[0] - tl.x), zy * (p1[1] - tl.y)],
+        [x2, y2] = [zx * (p2[0] - tl.x), zy * (p2[1] - tl.y)];
 
   return create_svg_element("line", {
     "class": "line",
-    "x1": zx * x1, "y1": zy * y1,
-    "x2": zx * x2, "y2": zy * y2,
+    "x1": x1, "y1": y1,
+    "x2": x2, "y2": y2,
     "stroke": view.line.color});
 }
 
 
-function create_arc(p1, p2, large, z=1) {
+function create_arc(p1, p2, large, tl, z=1) {
   const [x1, y1] = p1,
         [x2, y2] = p2;
-  const r = Math.sqrt(z*x1 * z*x1 + z*y1 * z*y1);
+  const r = z * Math.sqrt(x1*x1 + y1*y1);
+  const n1 = {x: z * (x1 - tl.x), y: z * (y1 - tl.y)},
+        n2 = {x: z * (x2 - tl.x), y: z * (y2 - tl.y)};
 
   return create_svg_element("path", {
     "class": "line",
-    "d": `M ${z*x1} ${z*y1} A ${r} ${r} 0 ${large} 1 ${z*x2} ${z*y2}`,
+    "d": `M ${n1.x} ${n1.y} A ${r} ${r} 0 ${large} 1 ${n2.x} ${n2.y}`,
     "stroke": view.line.color});
 }
 
 
-function create_text(text, fs, point, zx, zy, type) {
-  const [x, y] = point;
+function create_text(text, fs, point, tl, zx, zy, type) {
+  const [x, y] = [zx * (point[0] - tl.x), zy * (point[1] - tl.y)];
 
   const t = create_svg_element("text", {
     "class": "text " + type,
-    "x": zx * x, "y": zy * y,
+    "x": x, "y": y,
     "font-size": `${fs}px`});
 
   t.appendChild(document.createTextNode(text));
@@ -871,17 +874,16 @@ function draw(element, items, tl, zoom) {
   else
     element.appendChild(svg);
 
-  const g = create_svg_element("g", {
-    "transform": `translate(${-zoom.x * tl.x} ${-zoom.y * tl.y})`});
+  const g = create_svg_element("g", {});
 
   svg.appendChild(g);
 
-  items.forEach(item => append_item(g, item, zoom));
+  items.forEach(item => append_item(g, item, tl, zoom));
 }
 
 
 // Append to g the graphical (svg) element corresponding to a drawer item.
-function append_item(g, item, zoom) {
+function append_item(g, item, tl, zoom) {
   // item looks like ['r', ...] for a rectangle, etc.
 
   const [zx, zy] = [zoom.x, zoom.y];  // shortcut
@@ -890,8 +892,8 @@ function append_item(g, item, zoom) {
     const [shape, box, type, name, properties, node_id] = item;
 
     const b = shape === 'r' ?
-      create_rect(box, zx, zy, type) :
-      create_asec(box, zx, type);
+      create_rect(box, tl, zx, zy, type) :
+      create_asec(box, tl, zx, type);
 
     g.appendChild(b);
 
@@ -903,18 +905,18 @@ function append_item(g, item, zoom) {
   else if (item[0] === 'l') {  // line
     const [ , p1, p2] = item;
 
-    g.appendChild(create_line(p1, p2, zx, zy));
+    g.appendChild(create_line(p1, p2, tl, zx, zy));
   }
   else if (item[0] === 'c') {  // arc (part of a circle)
     const [ , p1, p2, large] = item;
 
-    g.appendChild(create_arc(p1, p2, large, zx));
+    g.appendChild(create_arc(p1, p2, large, tl, zx));
   }
   else if (item[0] === 't') {  // text
     const [ , text, point, fs, type] = item;
     const font_size = font_adjust(type, zy * fs);
 
-    const t = create_text(text, font_size, point, zx, zy, type);
+    const t = create_text(text, font_size, point, tl, zx, zy, type);
 
     g.appendChild(t);
 
@@ -923,7 +925,7 @@ function append_item(g, item, zoom) {
       const angle = Math.atan2(y, x) * 180 / Math.PI;
 
       t.setAttributeNS(null, "transform",
-        `rotate(${angle}, ${zx*x}, ${zy*y})` +
+        `rotate(${angle}, ${zx * (x - tl.x)}, ${zy * (y - tl.y)})` +
         ((angle < -90 || angle > 90) ? flip(t) : ""));
     }
   }
@@ -933,7 +935,7 @@ function append_item(g, item, zoom) {
     const dx = dx0 / a.length / zx;
 
     for (let i = 0, x = 0; i < a.length; i++, x+=dx) {
-      const r = create_rect([x, y0, dx, dy0], zx, zy, "array");
+      const r = create_rect([x, y0, dx, dy0], tl, zx, zy, "array");
       r.style.stroke = `hsl(${a[i]}, 100%, 50%)`;
       g.appendChild(r);
     }
