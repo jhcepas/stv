@@ -2,16 +2,20 @@
 <html>
   <head>
     <title>Tree Explorer</title>
+    <meta charset="utf-8"/>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Expires" content="0" />
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="stylesheet" href="gui.css">
     <script src="/static/external/dat.gui.min.js"></script>
     <script src="/static/external/sweetalert2.min.js"></script>
-    <script type="module" src="/static/gui.js"></script>
+    <script type="module" src="/static/js/gui.js"></script>
   </head>
   <body>
     <div id="div_tree" class="tree" tabindex="-1"></div>
+    <div id="div_contextmenu" class="contextmenu">
+      <button id="button_show_node_info">Show node info</button><br>
+    </div>
     <div id="div_aligned" class="aligned"></div>
     <div id="div_minimap" class="minimap"></div>
     <div id="div_visible_rect" class="visible_rect"></div>

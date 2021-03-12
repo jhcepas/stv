@@ -97,3 +97,28 @@
     right: 20px;
     z-index: 3;
 }
+
+
+.contextmenu {
+    position: absolute;
+    text-align: center;
+    z-index: 4;
+    visibility: hidden;
+    border-style: solid;
+    border-width: 1px;
+}
+
+
+button {
+    width: 100%;
+    cursor: pointer;
+    padding: 5px;
+    border-style: hidden;
+    background-color: white;
+}
+
+
+button:hover {
+    background-color: #88F;
+    color: white;
+}
