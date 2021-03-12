@@ -267,7 +267,10 @@ class DrawerCirc(Drawer):
             intersects(Box(0, -pi, self.node_size(self.tree).dx, 2*pi), box))
 
     def draw_outline(self):
-        yield draw_box('s', self.outline, 'outline')
+        r, a, dr, da = self.outline
+        a1, a2 = clip_angles(a, a + da)
+        if a1 is not None:
+            yield draw_box('s', Box(r, a1, dr, a2 - a1), 'outline')
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
@@ -293,18 +296,31 @@ class DrawerCirc(Drawer):
 
     def draw_lengthline(self, p1, p2):
         "Yield a line representing a length"
-        a1, a2 = p1[1], p2[1]  # angles
-        if -pi < a1 < pi and -pi < a2 < pi:
+        if -pi < p1[1] < pi:  # NOTE: the angles p1[1] and p2[1] are equal
             yield draw_line(cartesian(*p1), cartesian(*p2))
 
     def draw_childrenline(self, p1, p2):
         "Yield an arc spanning children that starts at p1 and ends at p2"
-        a1, a2 = p1[1], p2[1]  # angles
-        if -pi < a1 < pi and -pi < a2 < pi:
-            yield draw_arc(cartesian(*p1), cartesian(*p2), a2 - a1 > pi)
+        (r1, a1), (r2, a2) = p1, p2
+        a1, a2 = clip_angles(a1, a2)
+        if a1 is not None:
+            yield draw_arc(cartesian(r1, a1), cartesian(r2, a2), a2 - a1 > pi)
 
     def draw_nodebox(self, node, node_id, box):
-        yield draw_box('s', box, 'node', node.name, node.properties, node_id)
+        r, a, dr, da = box
+        a1, a2 = clip_angles(a, a + da)
+        if a1 is not None:
+            yield draw_box('s', Box(r, a1, dr, a2 - a1), 'node',
+                           node.name, node.properties, node_id)
+
+
+def clip_angles(double a1, double a2):
+    "Return the angles such that a1 to a2 extend at maximum from -pi to pi"
+    if (a1 < -pi and a2 < -pi) or (a1 > pi and a2 > pi):
+        return None, None
+    else:
+        EPSILON = 1e-6  # NOTE: without it, p1 == p2 and svg arcs are not drawn
+        return max(-pi + EPSILON, a1), min(pi - EPSILON, a2)
 
 
 def cartesian(double r, double a):
@@ -332,9 +348,10 @@ class DrawerLeafNames(DrawerRect):
         if node.is_leaf:
             x, y = point
             w, h = self.content_size(node)
-            p_after_content = (x + w, y + h / 1.3)
-            fs = h / 1.4
-            yield draw_text(node.name, p_after_content, fs, 'name')
+
+            p = (x + w, y + h/1.3)
+            fs = h/1.4
+            yield draw_text(node.name, p, fs, 'name')
 
 
 class DrawerCircLeafNames(DrawerCirc):
@@ -344,9 +361,11 @@ class DrawerCircLeafNames(DrawerCirc):
         if node.is_leaf:
             r, a = point
             dr, da = self.content_size(node)
-            p_after_content = cartesian(r + dr, a + da / 1.3)
-            fs = (r + dr) * da / 1.4
-            yield draw_text(node.name, p_after_content, fs, 'name')
+
+            if -pi < a < pi and -pi < a + da < pi:
+                p = cartesian(r + dr, a + da/1.3)
+                fs = (r + dr) * da/1.4
+                yield draw_text(node.name, p, fs, 'name')
 
 
 class DrawerLengths(DrawerRect):
@@ -357,14 +376,11 @@ class DrawerLengths(DrawerRect):
             x, y = point
             w, h = self.content_size(node)
             zx, zy = self.zoom
-            text = '%.2g' % node.length
-            fs = min(zy * node.bh, zx * 1.5 * w / len(text)) / zy
-            g_text = draw_text(text, (x, y + node.bh), fs, 'length')
 
-            if zy * h > 1:  # NOTE: we may want to change this, but it's tricky
-                yield g_text
-            else:
-                pass  # TODO: something like  yield draw_box(get_box(g_text))
+            text = '%.2g' % node.length
+            p = (x, y + node.bh)
+            fs = min(node.bh, zx/zy * 1.5 * w / len(text))
+            yield draw_text(text, p, fs, 'length')
 
 
 class DrawerCircLengths(DrawerCirc):
@@ -375,14 +391,12 @@ class DrawerCircLengths(DrawerCirc):
             r, a = point
             dr, da = self.content_size(node)
             zx, zy = self.zoom
-            text = '%.2g' % node.length
-            fs = min(zy * (r + dr) * self.bh(node), zx * 1.5 * dr / len(text)) / zy
-            g_text = draw_text(text, cartesian(r, a + self.bh(node)), fs, 'length')
 
-            if zy * da > 1:  # NOTE: we may want to change this, but it's tricky
-                yield g_text
-            else:
-                pass  # TODO: something like  yield draw_box(get_box(g_text))
+            if -pi < a < pi and -pi < a + da < pi:
+                text = '%.2g' % node.length
+                p = cartesian(r, a + self.bh(node))
+                fs = min((r + dr) * self.bh(node), zx/zy * 1.5 * dr / len(text))
+                yield draw_text(text, p, fs, 'length')
 
 
 class DrawerCollapsed(DrawerLeafNames):
@@ -393,33 +407,32 @@ class DrawerCollapsed(DrawerLeafNames):
         if not names:
             return
 
-        texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
-
         x, y, w, h = self.outline
-        if self.aligned:
-            yield from draw_texts(texts, (0, y + h / 1.1), h / 1.2, 'name')
-        else:
-            p_before_content = (x, y + h / 1.1)
-            fs = h / 1.2
-            yield from draw_texts(texts, p_before_content, fs, 'name')
+
+        texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
+        p = ((0 if self.aligned else x), y + h/1.1)
+        fs = h/1.2
+        yield from draw_texts(texts, p, fs, 'name')
 
 
 class DrawerCircCollapsed(DrawerCircLeafNames):
     "With text on collapsed nodes"
 
     def draw_collapsed(self):
+        r, a, dr, da = self.outline
+        if not (-pi < a < pi and -pi < a + da < pi):
+            return
+
         names = [n.name for n in self.collapsed if n.name]
         if not names:
             return
 
         texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
-
-        r, a, dr, da = self.outline
-        p_before_content = (r, a + da / 1.1)
-        fs = r * da / 1.2
+        p = (r, a + da/1.1)
+        fs = r * da/1.2
 
         # TODO: mix the code below properly with draw_texts().
-        r, a = p_before_content
+        r, a = p
         alpha = 0.2  # space between texts, as a fraction of the font size
         font_size = fs / (len(texts) + (len(texts) - 1) * alpha)
         da = font_size * (1 + alpha) / r
@@ -445,7 +458,7 @@ class DrawerAlign(DrawerFull):
         if node.is_leaf:
             x, y = point
             w, h = self.content_size(node)
-            yield draw_text(node.name, (0, y+h/1.5), h/2, 'name')
+            yield draw_text(node.name, (0, y + h/1.5), h/2, 'name')
 
 
 class DrawerAlignHeatMap(DrawerFull):
@@ -474,9 +487,9 @@ class DrawerAlignHeatMap(DrawerFull):
             if not names:
                 return
             x, y, w, h = self.outline
-            p_before_content = (x, y + h / 1.1)
-            fs = h / 1.2
-            yield from draw_texts(texts, p_before_content, fs, 'name')
+            p = (x, y + h/1.1)
+            fs = h/1.2
+            yield from draw_texts(texts, p, fs, 'name')
 
 
 def get_drawers():
