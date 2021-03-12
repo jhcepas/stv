@@ -192,7 +192,7 @@ class Users(Resource):
 class Trees(Resource):
     # NOTE: If we wanted to enforce that only the 'readers' (or owner) of a
     #   tree have access to it, we would need to add  @auth.login_required
-    # and check that g.user_id is a reader (or the owner, or admin).
+    #   and check that g.user_id is a reader (or the owner, or admin).
     def get(self, tree_id=None):
         "Return info about the tree (or all trees if no id given)"
         rule = request.url_rule.rule  # shortcut
@@ -204,13 +204,17 @@ class Trees(Resource):
             return get_tree(tree_id)
         elif rule == '/trees/<string:tree_id>/newick':
             try:
+                MAX_MB = 2
                 tid, subtree = get_tid(tree_id)
                 newicks = dbget0('newick', 'trees where id=?', tid)
                 assert len(newicks) == 1
-                return (newicks[0] if not subtree else
-                    tree.dumps(tree.loads(newicks[0])[subtree]))
-            except (AssertionError, IndexError):
-                raise InvalidUsage(f'unknown tree id {tree_id}', 404)
+                newick = newicks[0]
+                size_MB = len(newick) / 1e6
+                assert size_MB < MAX_MB, 'tree too big (%.1g MB)' % size_MB
+                return (newick if not subtree else
+                    tree.dumps(tree.loads(newick)[subtree]))
+            except (AssertionError, IndexError) as e:
+                raise InvalidUsage(f'on tree id {tree_id}: {e}', 404)
         elif rule == '/trees/<string:tree_id>/search':
             MAX_NODES = 200
             nodes = search_nodes(tree_id, request.args.copy(), MAX_NODES)
