@@ -181,7 +181,8 @@ function set_query_string_values() {
     div_aligned.style.display = has_aligned ? "initial" : "none";
 
     if (unknown_params.length != 0)
-        Swal.fire("Oops!",
+        Swal.fire(
+            "Oops!",
             "There were unknown parameters passed: " + unknown_params.join(", "),
             "warning");
 }
@@ -201,6 +202,7 @@ async function reset_zoom(reset_zx=true, reset_zy=true) {
         return;
 
     const size = await api(`/trees/${get_tid()}/size`);
+
     if (view.is_circular) {
         const min_w_h = Math.min(div_tree.offsetWidth, div_tree.offsetHeight);
         view.zoom.x = view.zoom.y = min_w_h / (view.rmin + size.width) / 2;
