@@ -6,6 +6,11 @@ The text representation of the trees are expected to be in the newick format:
 https://en.wikipedia.org/wiki/Newick_format
 """
 
+from collections import namedtuple
+
+TreePos = namedtuple('TreePos', 'node nch')
+# Position on the tree: current node, number of visited children.
+
 
 class NewickError(Exception):
     pass
@@ -148,29 +153,56 @@ cdef (double, double) get_size(nodes):
 
 
 def walk(tree):
-    "Yield (node, node_id, first) as they appear when traversing the tree"
-    # Inspired on os.walk(). You can remove from descendants on the fly.
-    visiting = [(tree, 0)]  # [(tree, 2), (child2, 0), (child20, 0)]
+    "Yield an iterator as it traverses the tree"
+    it = Walker(tree)  # node iterator
+    while it.visiting:
+        if it.first_visit:
+            yield it
 
-    def pop():
-        visiting.pop()  # remove last node in the stack
-        if visiting:    # and increase the parent's number of visited children
-            node, nch = visiting[-1]
-            visiting[-1] = (node, nch + 1)
-
-    while visiting:
-        node, nch = visiting[-1]  # current node, number of visited children
-        if nch == 0:  # first time we visit this node
-            node_id = [i for _,i in visiting[:-1]]
-            yield node, node_id, True  # node_id can be modified...
-            if node.is_leaf or node_id == [None]:  # ...to prune the tree
-                pop()
+            if it.node.is_leaf or not it.descend:
+                it.go_back()
                 continue
-        if nch < len(node.children):  # add next child to the list to visit
-            visiting.append((node.children[nch], 0))
-        else:                         # go back to parent node
-            yield node, [i for _,i in visiting[:-1]], False
-            pop()
+
+        if it.has_unvisited_branches:
+            it.add_next_branch()
+        else:
+            yield it
+            it.go_back()
+
+
+class Walker:
+    def __init__(self, root):
+        self.visiting = [TreePos(node=root, nch=0)]
+        # will look like: [(root, 2), (child2, 5), (child25, 3), (child253, 0)]
+        self.descend = True
+
+    def go_back(self):
+        self.visiting.pop()
+        if self.visiting:
+            node, nch = self.visiting[-1]
+            self.visiting[-1] = TreePos(node, nch + 1)
+        self.descend = True
+
+    @property
+    def node(self):
+        return self.visiting[-1].node
+
+    @property
+    def node_id(self):
+        return [branch.nch for branch in self.visiting[:-1]]
+
+    @property
+    def first_visit(self):
+        return self.visiting[-1].nch == 0
+
+    @property
+    def has_unvisited_branches(self):
+        node, nch = self.visiting[-1]
+        return nch < len(node.children)
+
+    def add_next_branch(self):
+        node, nch = self.visiting[-1]
+        self.visiting.append(TreePos(node=node.children[nch], nch=0))
 
 
 def sort(tree, key=None, reverse=False):

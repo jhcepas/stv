@@ -82,14 +82,15 @@ class Drawer:
         nodeboxes = []  # will contain the node boxes (filled in postorder)
 
         x, y = self.xmin, self.ymin
-        for node, node_id, first in self.tree.walk():
+        for it in self.tree.walk():
+            node = it.node  # shortcut
             dx, dy = self.content_size(node)
-            if first:  # first time we visit this node
+            if it.first_visit:
                 box_node = make_box((x, y), self.node_size(node))
 
                 if not self.in_viewport(box_node):
                     y += dy
-                    node_id[:] = [None]  # skip children
+                    it.descend = False  # skip children
                     continue
 
                 if self.is_small(box_node):
@@ -97,7 +98,7 @@ class Drawer:
                         node_dxs[-1].append(box_node.dx)
                     yield from self.update_collapsed(node, (x, y))
                     y += dy
-                    node_id[:] = [None]  # skip children
+                    it.descend = False  # skip children
                     continue
 
                 gs = self.get_content(node, (x, y))
@@ -107,7 +108,7 @@ class Drawer:
                     ndx = drawn_size(gs, self.get_box).dx
                     if node_dxs:
                         node_dxs[-1].append(ndx)
-                    nodeboxes.append( (node, node_id[:], Box(x, y, ndx, dy)) )
+                    nodeboxes.append( (node, it.node_id, Box(x, y, ndx, dy)) )
                     y += dy
                 else:
                     node_dxs.append([])
@@ -117,7 +118,7 @@ class Drawer:
                 ndx = dx + max(node_dxs.pop() or [0])
                 if node_dxs:
                     node_dxs[-1].append(ndx)
-                nodeboxes.append( (node, node_id, Box(x, y - dy, ndx, dy)) )
+                nodeboxes.append( (node, it.node_id, Box(x, y - dy, ndx, dy)) )
 
         if self.outline:  # draw the last collapsed nodes
             if not self.aligned:
@@ -152,15 +153,16 @@ class Drawer:
     def get_nodes(self, func):
         "Yield (node_id, box) of the nodes with func(node) == True"
         x, y = self.xmin, self.ymin
-        for node, node_id, first in self.tree.walk():
+        for it in self.tree.walk():
+            node = it.node  # shortcut
             dx, dy = self.content_size(node)
 
-            if first and func(node):
-                yield node_id, make_box((x, y), self.node_size(node))
+            if it.first_visit and func(node):
+                yield it.node_id, make_box((x, y), self.node_size(node))
 
             if node.is_leaf:
                 y += dy
-            elif first:  # first time we visit this node
+            elif it.first_visit:  # first time we visit this node
                 x += dx
             else:  # last time we will visit this node
                 x -= dx
@@ -168,11 +170,12 @@ class Drawer:
     def get_node_at(self, point):
         "Return the node whose content area contains the given point"
         x, y = self.xmin, self.ymin
-        for node, node_id, _ in self.tree.walk():
+        for it in self.tree.walk():
+            node = it.node  # shortcut
             ndx, ndy = self.node_size(node)
             cdx, cdy = self.content_size(node)
             if not is_inside(point, Box(x, y, ndx, ndy)):
-                node_id[:] = [None]  # skip walking over the node's children
+                it.descend = False  # skip walking over the node's children
                 y += cdy
             elif node.is_leaf or is_inside(point, Box(x, y, cdx, cdy)):
                 return node

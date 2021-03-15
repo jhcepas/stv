@@ -336,8 +336,8 @@ def test_walk():
     # When nodes are visited first, they either have descendants or are leaves.
     # When nodes are visited last (coming back), their descendants are empty.
     steps = []
-    for node, node_id, first in t.walk():
-         steps.append((node.name, node_id, first))
+    for it in t.walk():
+         steps.append((it.node.name, it.node_id, it.first_visit))
     assert steps == [
         ('a', [], True),
         ('b', [0], True),  # first time visiting internal node b
@@ -352,13 +352,13 @@ def test_walk():
 
     # Prunning the tree while we walk.
     steps = []
-    for node, node_id, first in t.walk():
-        steps.append((node.name, node_id[:], first))
-        if node.name == 'b':
-            node_id[:] = [None]  # do not follow the descendants of b
+    for it in t.walk():
+        steps.append((it.node.name, it.node_id, it.first_visit))
+        if it.node.name == 'b':
+            it.descend = False  # do not follow the descendants of b
     assert steps == [
         ('a', [], True),
-        ('b', [0], True),  # node_id has been set to [None] in the loop
+        ('b', [0], True),  # it.descend has been set to False in the loop
         ('c', [1], True),  # so we skip all the descendants of b
         ('f', [1,0], True),
         ('g', [1,1], True),
