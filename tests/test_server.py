@@ -286,9 +286,19 @@ def test_get_unknown_tree():
 
 def test_get_known_tree():
     trees = [x['id'] for x in get('trees')]
+
+    newicks_checked = False
+
     for tid in trees:
-        newick = get(f'trees/{tid}/newick')
-        assert newick.startswith('(') and newick.endswith(';')
+        try:
+            newick = get(f'trees/{tid}/newick')
+            assert newick.startswith('(') and newick.endswith(';')
+            newicks_checked = True
+        except urllib.error.HTTPError as e:
+            assert e.code == 400
+            res = json.loads(e.file.read())
+            assert res['message'].startswith('Error: newick too big')
+
 
         elements = get(f'trees/{tid}/draw')
         assert all(x[0] in ['r', 's', 'l', 'c', 't'] for x in elements)
@@ -296,6 +306,8 @@ def test_get_known_tree():
             if x[0] in ['r', 's'])
 
         assert set(get(f'trees/{tid}/size').keys()) == {'width', 'height'}
+
+    assert newicks_checked  # make sure we checked at least one!
 
 
 def test_get_drawers():

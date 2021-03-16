@@ -203,18 +203,8 @@ class Trees(Resource):
         elif rule == '/trees/<string:tree_id>':
             return get_tree(tree_id)
         elif rule == '/trees/<string:tree_id>/newick':
-            try:
-                MAX_MB = 2
-                tid, subtree = get_tid(tree_id)
-                newicks = dbget0('newick', 'trees where id=?', tid)
-                assert len(newicks) == 1
-                newick = newicks[0]
-                size_MB = len(newick) / 1e6
-                assert size_MB < MAX_MB, 'tree too big (%.1g MB)' % size_MB
-                return (newick if not subtree else
-                    tree.dumps(tree.loads(newick)[subtree]))
-            except (AssertionError, IndexError) as e:
-                raise InvalidUsage(f'on tree id {tree_id}: {e}', 404)
+            MAX_MB = 2
+            return get_newick(tree_id, MAX_MB)
         elif rule == '/trees/<string:tree_id>/search':
             MAX_NODES = 200
             nodes = search_nodes(tree_id, request.args.copy(), MAX_NODES)
@@ -400,6 +390,27 @@ def get_drawer(tree_id, args):
         raise InvalidUsage(str(e))
 
 
+def get_newick(tree_id, max_mb):
+    "Return the newick representation of the given tree"
+    try:
+        tid, subtree = get_tid(tree_id)
+
+        if subtree and tree_id in app.trees:
+            newick = tree.dumps(app.trees[newick][subtree])
+        else:
+            newicks = dbget0('newick', 'trees where id=?', tid)
+            assert len(newicks) == 1
+            newick = newicks[0]
+    except (AssertionError, IndexError) as e:
+        raise InvalidUsage(f'unknown tree id {tree_id}: {e}', 404)
+
+    size_mb = len(newick) / 1e6
+    if size_mb > max_mb:
+        raise InvalidUsage('newick too big (%.3g MB)' % size_mb)
+
+    return newick
+
+
 def search_nodes(tree_id, args, nmax):
     "Return a list of nodes that match the search in args"
     # A "node" here means a tuple of (node_id, box).
@@ -528,7 +539,7 @@ def get_tid(tree_id):
             tid, *subtree = tree_id.split(',')
             return int(tid), [int(n) for n in subtree]
     except ValueError:
-        raise InvalidUsage(f'invalid tree id {tree_id}')
+        raise InvalidUsage(f'invalid tree id {tree_id}', 404)
 
 
 def get_tree(tree_id):
