@@ -16,7 +16,7 @@ import sqlite3
 
 from ete import tree
 
-TData = namedtuple('TData', 'name, description, newick, owner, readers')
+TData = namedtuple('TData', 'name description newick owner readers')
 
 
 def main():
@@ -66,6 +66,7 @@ def get_newick(treefile, verify=True):
 def update_database(connection, tdata):
     "Update database with the tree data supplied and return its id and name"
     c = connection.cursor()
+
     c.execute('SELECT MAX(id) FROM trees')
     tree_id = int(c.fetchone()[0] or 0) + 1
 
