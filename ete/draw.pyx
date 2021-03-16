@@ -438,7 +438,7 @@ class DrawerCircCollapsed(DrawerCircLeafNames):
         r, a = p
         alpha = 0.2  # space between texts, as a fraction of the font size
         font_size = fs / (len(texts) + (len(texts) - 1) * alpha)
-        da = font_size * (1 + alpha) / r
+        da = font_size * (1 + alpha) / r if r > 0 else 2*pi
         for text in texts[::-1]:
             yield draw_text(text, cartesian(r, a), font_size, 'name')
             a -= da
@@ -578,7 +578,9 @@ def get_asec(element, zoom):
         _, text, point, fs, _ = element
         r, a = polar(*point)
         zx, zy = zoom
-        return Box(r, a - fs / r, zy/zx * fs / 1.5 * len(text), fs / r)
+        dr = zy/zx * fs / 1.5 * len(text)
+        da = fs/r if r > 0 else 2*pi
+        return Box(r, a - da, dr, da)
     elif eid == 'a':
         _, box, _ = element
         return box
