@@ -24,10 +24,12 @@ cdef class Tree:
     cdef public double length
     cdef public dict properties
     cdef public list children
+    cdef public Tree parent
     cdef public (double, double) size  # sum of lenghts, number of leaves
     cdef public double bh  # branching height (where the branch starts)
 
     def __init__(self, content='', children=None):
+        self.parent = None
         self.name = ''
         self.length = -1
         self.properties = {}
@@ -42,16 +44,16 @@ cdef class Tree:
     def init_normal(self, content, children):
         self.content = content
         self.children = children or []
-
-        sumlengths, nleaves = get_size(self.children)
-        self.size = (abs(self.length) + sumlengths, max(1, nleaves))
-        self.bh = self.size[1] / 2 + (0 if not children else
-            (children[0].bh - children[-1].size[1] + children[-1].bh) / 2)
+        for node in self.children:
+            node.parent = self
+        update_metrics(self)
 
     def init_from_newick(self, tree_text):
         tree = loads(tree_text)
         self.content = tree.content
         self.children = tree.children
+        for node in self.children:
+            node.parent = self
         self.size = tree.size
         self.bh = tree.bh
 
@@ -138,6 +140,15 @@ def quote(name, escaped_chars=" \t\r\n()[]':;,"):
         return "'%s'" % name.replace("'", "''")  # ' escapes to '' in newicks
     else:
         return name
+
+
+def update_metrics(node):
+    "Update the size and branching height of the given node"
+    children = node.children
+    sumlengths, nleaves = get_size(children)
+    node.size = (abs(node.length) + sumlengths, max(1, nleaves))
+    node.bh = node.size[1] / 2 + (0 if not children else
+        (children[0].bh - children[-1].size[1] + children[-1].bh) / 2)
 
 
 cdef (double, double) get_size(nodes):
