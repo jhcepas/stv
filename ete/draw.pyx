@@ -299,7 +299,7 @@ class DrawerCirc(Drawer):
 
     def draw_lengthline(self, p1, p2):
         "Yield a line representing a length"
-        if -pi < p1[1] < pi:  # NOTE: the angles p1[1] and p2[1] are equal
+        if -pi <= p1[1] <= pi:  # NOTE: the angles p1[1] and p2[1] are equal
             yield draw_line(cartesian(*p1), cartesian(*p2))
 
     def draw_childrenline(self, p1, p2):
@@ -365,7 +365,7 @@ class DrawerCircLeafNames(DrawerCirc):
             r, a = point
             dr, da = self.content_size(node)
 
-            if -pi < a < pi and -pi < a + da < pi:
+            if -pi <= a <= pi and -pi <= a + da <= pi:
                 p = cartesian(r + dr, a + da/1.3)
                 fs = (r + dr) * da/1.4
                 yield draw_text(node.name, p, fs, 'name')
@@ -395,7 +395,7 @@ class DrawerCircLengths(DrawerCirc):
             dr, da = self.content_size(node)
             zx, zy = self.zoom
 
-            if -pi < a < pi and -pi < a + da < pi:
+            if -pi <= a <= pi and -pi <= a + da <= pi:
                 text = '%.2g' % node.length
                 p = cartesian(r, a + self.bh(node))
                 fs = min((r + dr) * self.bh(node), zx/zy * 1.5 * dr / len(text))
@@ -423,7 +423,7 @@ class DrawerCircCollapsed(DrawerCircLeafNames):
 
     def draw_collapsed(self):
         r, a, dr, da = self.outline
-        if not (-pi < a < pi and -pi < a + da < pi):
+        if not (-pi <= a <= pi and -pi <= a + da <= pi):
             return
 
         names = [n.name for n in self.collapsed if n.name]
