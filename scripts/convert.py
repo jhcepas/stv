@@ -52,7 +52,7 @@ def get_args():
 
 
 def get_sample_nodes(t, k=10):
-    "Return a set of internal nodes and a set of leaves"
+    "Return a list of internal nodes and a list of leaves"
     internals = [n for n in t if not n.is_leaf and not n == t]
     leaves = [n for n in t if n.is_leaf and not n == t]
     return random.sample(internals, k), random.sample(leaves, k)
