@@ -23,10 +23,6 @@ function init_events() {
     document.addEventListener("mousemove", on_mousemove);
 
     window.addEventListener("resize", on_resize);
-
-    div_tree.addEventListener("contextmenu", on_contextmenu, false);
-
-    init_contextmenu_buttons();
 }
 
 
@@ -119,28 +115,4 @@ function on_mousemove(event) {
 function on_resize(event) {
     update();
     // We could also draw_minimap()
-}
-
-
-// Context menu (which normally appears on right-click).
-function on_contextmenu(event) {
-    event.preventDefault();
-
-    div_contextmenu.style.left = event.pageX + "px";
-    div_contextmenu.style.top = event.pageY + "px";
-    div_contextmenu.style.visibility = "visible";
-
-    return false;
-}
-
-
-function init_contextmenu_buttons() {
-    button_show_node_info.addEventListener("click", event => {
-        div_contextmenu.style.visibility = "hidden";
-
-        const rect = div_contextmenu.getBoundingClientRect();
-        Swal.fire("In-tree position", `${coordinates(rect)}`, "info");
-        // TODO: Actually return information about the node. This is just an
-        //   example of how it can be used.
-    });
 }
