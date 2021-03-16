@@ -5,10 +5,11 @@ Convert from strange newick formats.
 """
 
 import sys
-from os.path import abspath, dirname, basename
+from os.path import abspath, dirname, exists
 sys.path.insert(0, f'{abspath(dirname(__file__))}/..')
 
 import re
+import random
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter as fmt
 
 from ete import tree
@@ -16,59 +17,45 @@ from ete import tree
 
 def main():
     args = get_args()
+
+    print(f'Loading tree from {args.treefile} ...')
     try:
         t = tree.load(open(args.treefile))
-        assert is_informative_enough(t), 'Cannot get enough information'
-    except (FileNotFoundError, tree.NewickError, AssertionError) as e:
+        sample_nodes = get_sample_nodes(t)
+    except (FileNotFoundError, tree.NewickError, ValueError) as e:
         sys.exit(f'Problem with newick file "{args.treefile}": {e}')
 
-    convert = get_convert_fn(get_sample_nodes(t))
+    convert_fn = get_convert_fn(sample_nodes)
 
-    if convert:
-        name = args.name or basename(args.treefile).rsplit('.', 1)[0]
-        fname = name + '_converted.tree'
+    if convert_fn:
+        fname = args.output or args.treefile.rsplit('.', 1)[0] + '_converted.tree'
+        if exists(fname):
+            sys.exit(f'Output file already exists: {fname}')
 
         print(args.treefile, '->', fname)
 
         for node in t:
-            convert(node)
+            convert_fn(node)
+
         tree.dump(t, open(fname, 'wt'))
     else:
-        print('Not converting', args.treefile)
+        print('Tree is not in a known weird format. Not converting.')
 
 
 def get_args():
     "Return the command-line arguments"
     parser = ArgumentParser(description=__doc__, formatter_class=fmt)
     add = parser.add_argument  # shortcut
-    add('treefile', help='file with the tree in newick format (- for stdin)')
-    add('-n', '--name', default='', help='name of the tree')
+    add('treefile', help='file with the tree in newick format')
+    add('-o', '--output', default='', help='output file')
     return parser.parse_args()
 
 
-def is_informative_enough(t):
-    return not (t.is_leaf or t.children[0] == t.children[-1] or
-                t.children[0].is_leaf or t.children[-1].is_leaf)
-
-
-def get_sample_nodes(t):
+def get_sample_nodes(t, k=10):
     "Return a set of internal nodes and a set of leaves"
-    sample_internals = set()
-    sample_leaves = set()
-
-    node = t[0]
-    while not node.is_leaf:
-        sample_internals.add(node)
-        node = node.children[-1]
-    sample_leaves.add(node)
-
-    node = t[-1]
-    while not node.is_leaf:
-        sample_internals.add(node)
-        node = node.children[-1]
-    sample_leaves.add(node)
-
-    return sample_internals, sample_leaves
+    internals = [n for n in t if not n.is_leaf and not n == t]
+    leaves = [n for n in t if n.is_leaf and not n == t]
+    return random.sample(internals, k), random.sample(leaves, k)
 
 
 def get_convert_fn(sample_nodes):
