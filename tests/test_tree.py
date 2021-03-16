@@ -364,3 +364,26 @@ def test_walk():
         ('g', [1,1], True),
         ('c', [1], False),
         ('a', [], False)]
+
+
+def test_parent():
+    t = tree.loads('((d:8,e:7)b:6,(f:5,g:4)c:3)a:2;')
+    # a
+    # ├─b
+    # │ ├─d
+    # │ └─e
+    # └─c
+    #   ├─f
+    #   └─g
+
+    assert t.parent is None
+
+    parents = [n.parent.name for n in t if n != t]
+    assert parents == ['a', 'b', 'b', 'a', 'c', 'c']
+
+    for tree_text in good_trees:
+        t = tree.loads(tree_text)
+        assert t.parent is None
+        for node in t:
+            if node != t:
+                assert node.parent.children.count(node) == 1
