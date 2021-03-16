@@ -28,7 +28,7 @@ def main():
     convert_fn = get_convert_fn(sample_nodes)
 
     if convert_fn:
-        fname = args.output or args.treefile.rsplit('.', 1)[0] + '_converted.tree'
+        fname = args.output or (args.treefile.rsplit('.', 1)[0] + '_norm.tree')
         if exists(fname):
             sys.exit(f'Output file already exists: {fname}')
 
@@ -83,7 +83,7 @@ def get_convert_fn(sample_nodes):
                     node.properties['taxid'] = taxid
                     node.name = name
                 if node.length == 1:
-                    node.length = - 1
+                    node.length = -1
         return convert
     elif (all('sci_name' in node.properties for node in sample_internals) and
           all('sci_name' in node.properties for node in sample_leaves)):
