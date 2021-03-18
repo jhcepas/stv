@@ -12,15 +12,10 @@ function on_box_contextmenu(event, box, name, properties, node_id) {
 
     div_contextmenu.innerHTML = "";
 
-    let name_text;
-    if (name.length === 0)
-        name_text = "";
-    else if (name.length < 15)
-        name_text = `: ${name}`;
-    else
-        name_text = `: ${name.slice(0, 5)}...${name.slice(-5)}`;
+    const name_text = ": " +
+        (name.length < 15 ? name : (name.slice(0, 5) + "..." + name.slice(-5)));
 
-    add_label("Node" + name_text);
+    add_label("Node" + (name.length > 0 ? name_text : ""));
 
     add_button("🔍 Zoom into node", () => zoom_into_box(box));
     add_button("📌 Go to subtree at node", () => {
@@ -77,20 +72,15 @@ function on_box_contextmenu(event, box, name, properties, node_id) {
 }
 
 
-function create_button(text, fn) {
+function add_button(text, fn) {
     const button = document.createElement("button");
     button.appendChild(document.createTextNode(text));
-    button.addEventListener("click", fn);
-    return button;
-}
-
-
-function add_button(text, fn) {
-    const button = create_button(text, event => {
+    button.addEventListener("click", event => {
         div_contextmenu.style.visibility = "hidden";
         fn(event);
     });
     button.classList.add("ctx_button");
+
     div_contextmenu.appendChild(button);
     add_element("br");
 }
@@ -100,6 +90,7 @@ function add_label(text) {
     const p = document.createElement("p");
     p.appendChild(document.createTextNode(text));
     p.classList.add("ctx_label");
+
     div_contextmenu.appendChild(p);
 }
 
