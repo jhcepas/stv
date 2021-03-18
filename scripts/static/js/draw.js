@@ -4,7 +4,7 @@ import { view, datgui, api, get_tid, on_box_click } from "./gui.js";
 import { update_minimap_visible_rect } from "./minimap.js";
 import { add_search_boxes } from "./search.js";
 import { on_box_contextmenu } from "./contextmenu.js";
-import { zoom_towards_box } from "./zoom.js";
+import { zoom_around, zoom_towards_box } from "./zoom.js";
 
 export { update, update_tree, create_rect, create_asec, draw };
 
@@ -265,7 +265,10 @@ function on_wheel(event, box) {
     const zoom_in = event.deltaY < 0;
     const [do_zoom_x, do_zoom_y] = [!event.ctrlKey, !event.altKey];
 
-    zoom_towards_box(box, point, zoom_in, do_zoom_x, do_zoom_y);
+    if (view.is_circular || !view.smart_zoom)
+        zoom_around(point, zoom_in, do_zoom_x, do_zoom_y);
+    else
+        zoom_towards_box(box, point, zoom_in, do_zoom_x, do_zoom_y);
 }
 
 

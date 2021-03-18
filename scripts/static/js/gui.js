@@ -48,7 +48,7 @@ const view = {
     reset_view: () => reset_view(),
     tl: {x: 0, y: 0},  // top-left of the view (in tree rectangular coordinates)
     zoom: {x: 0, y: 0},  // initially chosen depending on the size of the tree
-    update_on_drag: false,
+    smart_zoom: true,
     select_text: false,
 
     // style
