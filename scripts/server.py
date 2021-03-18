@@ -512,6 +512,8 @@ def shared_connection(functions):
         yield [partial(f, conn=conn) for f in functions]
 
 
+# Manage basic fields (related to the SQL schema, like users, readers, etc.).
+
 def get_user(uid):
     "Return all the fields of a given user as a dict"
     with shared_connection([dbget, dbget0]) as [get, get0]:
@@ -522,10 +524,9 @@ def get_user(uid):
         user = users[0]
 
         user['trees_owner'] = get0('id_tree',
-            'user_owns_trees where id_user=?', uid)
-
+                                   'user_owns_trees where id_user=?', uid)
         user['trees_reader'] = get0('id_tree',
-            'user_reads_trees where id_user=?', uid)
+                                    'user_reads_trees where id_user=?', uid)
 
     return strip(user)
 
