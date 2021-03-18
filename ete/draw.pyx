@@ -383,7 +383,8 @@ class DrawerLengths(DrawerRect):
             text = '%.2g' % node.length
             p = (x, y + node.bh)
             fs = min(node.bh, zx/zy * 1.5 * w / len(text))
-            yield draw_text(text, p, fs, 'length')
+            if fs * zy > self.MIN_SIZE:
+                yield draw_text(text, p, fs, 'length')
 
 
 class DrawerCircLengths(DrawerCirc):
@@ -399,7 +400,8 @@ class DrawerCircLengths(DrawerCirc):
                 text = '%.2g' % node.length
                 p = cartesian(r, a + self.bh(node))
                 fs = min((r + dr) * self.bh(node), zx/zy * 1.5 * dr / len(text))
-                yield draw_text(text, p, fs, 'length')
+                if fs * zy > self.MIN_SIZE:
+                    yield draw_text(text, p, fs, 'length')
 
 
 class DrawerCollapsed(DrawerLeafNames):
