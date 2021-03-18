@@ -12,6 +12,18 @@ function on_box_contextmenu(event, box, name, properties, node_id) {
 
     div_contextmenu.innerHTML = "";
 
+    add_node_options(box, name, properties, node_id);
+    add_element("hr");
+    add_tree_options();
+
+    const s = div_contextmenu.style;
+    s.left = event.pageX + "px";
+    s.top = event.pageY + "px";
+    s.visibility = "visible";
+}
+
+
+function add_node_options(box, name, properties, node_id) {
     const name_text = ": " +
         (name.length < 15 ? name : (name.slice(0, 5) + "..." + name.slice(-5)));
 
@@ -39,9 +51,10 @@ function on_box_contextmenu(event, box, name, properties, node_id) {
             update();
         });
     }
+}
 
-    add_element("hr");
 
+function add_tree_options() {
     add_label("Tree");
 
     add_button("🔭 Reset view", reset_view);
@@ -63,12 +76,6 @@ function on_box_contextmenu(event, box, name, properties, node_id) {
             update();
         });
     }
-
-    const s = div_contextmenu.style;
-
-    s.left = event.pageX + "px";
-    s.top = event.pageY + "px";
-    s.visibility = "visible";
 }
 
 
