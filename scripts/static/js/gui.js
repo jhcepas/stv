@@ -92,7 +92,11 @@ async function main() {
 // Return the data coming from an api endpoint (like "/trees/<id>/size").
 async function api(endpoint) {
     const response = await fetch(endpoint);
-    return await response.json();
+
+    if (response.status !== 200)
+        Swal.fire("Access failed", `Error code: ${response.status}`);
+    else
+        return await response.json();
 }
 
 
@@ -126,10 +130,8 @@ async function put_command(command, params=undefined) {
         body: JSON.stringify(params),
     });
 
-    if (response.status !== 200) {
+    if (response.status !== 200)
         Swal.fire("Modification failed", `Error code: ${response.status}`);
-        return;
-    }
 }
 
 

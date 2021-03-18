@@ -101,9 +101,10 @@ def test_repr():
     node1 = tree.Tree('node1:3.1416[&&NHX:k1=v1:k2=v2]')
     node2 = tree.Tree(':22')
     node3 = tree.Tree('node3', [node1, node2])
-    assert repr(node3) == ("Tree('node3', "
-        "[Tree('node1:3.1416[&&NHX:k1=v1:k2=v2]', []), "
-        "Tree(':22', [])])")
+    assert repr(node3) == (
+        "Tree('node3', ["
+            "Tree('node1:3.1416[&&NHX:k1=v1:k2=v2]', []), "
+            "Tree(':22', [])])")
 
     # See if we recover trees from their representations (playing with eval).
     for tree_text in good_trees:
@@ -183,17 +184,17 @@ def test_read_content():
     tree_text = '(a:11[&&NHX:x=foo:y=bar],b:22,,()c,(d[&&NHX:z=foo]));'
     t = tree.loads(tree_text)
     assert (t.name == '' and t.length == -1 and t.properties == {} and
-        t.content == '')
+            t.content == '')
     t1 = t.children[0]
     assert (t1.name == 'a' and t1.length == 11 and
-        t1.properties == {'x': 'foo', 'y': 'bar'} and
-        t1.content == 'a:11[&&NHX:x=foo:y=bar]' and t1.children == [])
+            t1.properties == {'x': 'foo', 'y': 'bar'} and
+            t1.content == 'a:11[&&NHX:x=foo:y=bar]' and t1.children == [])
     t2 = t.children[1]
     assert (t2.name == 'b' and t2.length == 22 and t2.properties == {} and
-        t2.content == 'b:22' and t2.children == [])
+            t2.content == 'b:22' and t2.children == [])
     td = t.children[-1].children[-1]
     assert (td.name == 'd' and td.length == -1 and
-        td.properties == {'z': 'foo'} and td.content == 'd[&&NHX:z=foo]')
+            td.properties == {'z': 'foo'} and td.content == 'd[&&NHX:z=foo]')
 
 
 def test_read_quoted_name():

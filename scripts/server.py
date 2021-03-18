@@ -222,37 +222,7 @@ class Trees(Resource):
     @auth.login_required
     def post(self):
         "Add tree"
-        data = get_fields(
-            required=['name', 'newick'],
-            valid_extra=['description', 'owner'])
-
-        owner = data.pop('owner', g.user_id)
-
-        admin_id = 1
-        if g.user_id not in [owner, admin_id]:
-            raise InvalidUsage('owner set different from current user')
-
-        if dbcount('trees where name=?', data['name']) != 0:
-            raise InvalidUsage('existing tree name %r' % data['name'])
-
-        try:
-            tree.loads(data['newick'])  # load it to validate
-        except tree.NewickError as e:
-            raise InvalidUsage(f'malformed tree - {e}')
-
-        tid = None  # will be filled later if it all works
-        with shared_connection([dbget0, dbexe]) as [get0, exe]:
-            cols, vals = zip(*data.items())
-            try:
-                qs = '(%s)' % ','.join('?' * len(vals))
-                exe('insert into trees %r values %s' % (tuple(cols), qs), vals)
-            except sqlalchemy.exc.IntegrityError as e:
-                raise InvalidUsage(f'database exception adding tree: {e}')
-
-            tid = get0('id', 'trees where name=?', data['name'])[0]
-
-            exe('insert into user_owns_trees values (%d, %d)' % (owner, tid))
-
+        tid = add_tree()
         return {'message': 'ok', 'id': tid}, 201
 
     @auth.login_required
@@ -273,7 +243,7 @@ class Trees(Resource):
             return {'message': 'ok'}
         elif rule == '/trees/<string:tree_id>/root_at':
             t = load_tree(tree_id)
-            node_id = request.json  # not in request.args
+            node_id = request.json  # NOTE: not in request.args
             app.trees[tree_id] = rooting.root_at(t[node_id])
             return {'message': 'ok'}
 
@@ -472,8 +442,43 @@ def safer_eval(code, context):
     return eval(code, {'__builtins__': {}}, context)
 
 
+def add_tree():
+    "Add a tree to the database (with data from the request) and return its id"
+    data = get_fields(required=['name', 'newick'],
+                      valid_extra=['description', 'owner'])
+
+    owner = data.pop('owner', g.user_id)
+
+    admin_id = 1
+    if g.user_id not in [owner, admin_id]:
+        raise InvalidUsage('owner set different from current user')
+
+    if dbcount('trees where name=?', data['name']) != 0:
+        raise InvalidUsage('existing tree name %r' % data['name'])
+
+    try:
+        tree.loads(data['newick'])  # load it to validate
+    except tree.NewickError as e:
+        raise InvalidUsage(f'malformed tree - {e}')
+
+    tid = None  # will be filled later if it all works
+    with shared_connection([dbget0, dbexe]) as [get0, exe]:
+        cols, vals = zip(*data.items())
+        try:
+            qs = '(%s)' % ','.join('?' * len(vals))
+            exe('insert into trees %r values %s' % (tuple(cols), qs), vals)
+        except sqlalchemy.exc.IntegrityError as e:
+            raise InvalidUsage(f'database exception adding tree: {e}')
+
+        tid = get0('id', 'trees where name=?', data['name'])[0]
+
+        exe('insert into user_owns_trees values (%d, %d)' % (owner, tid))
+
+    return tid
+
+
 def modify_tree_fields(tree_id):
-    "Modify the tree fields that appear in a request"
+    "Modify in the database the tree fields that appear in a request"
     try:
         tid = int(tree_id)
 
