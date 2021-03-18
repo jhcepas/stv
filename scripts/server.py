@@ -235,16 +235,25 @@ class Trees(Resource):
             return {'message': 'ok'}
         elif rule == '/trees/<string:tree_id>/unroot':
             t = load_tree(tree_id)
-            app.trees[tree_id] = rooting.unroot(t)
+            tid, subtree = get_tid(tree_id)
+            if subtree:
+                raise InvalidUsage(f'operation not allowed with subtree')
+            app.trees[tid] = rooting.unroot(t)
             return {'message': 'ok'}
         elif rule == '/trees/<string:tree_id>/reroot':
             t = load_tree(tree_id)
-            app.trees[tree_id] = rooting.reroot(t)
+            tid, subtree = get_tid(tree_id)
+            if subtree:
+                raise InvalidUsage(f'operation not allowed with subtree')
+            app.trees[tid] = rooting.reroot(t)
             return {'message': 'ok'}
         elif rule == '/trees/<string:tree_id>/root_at':
             t = load_tree(tree_id)
+            tid, subtree = get_tid(tree_id)
+            if subtree:
+                raise InvalidUsage(f'operation not allowed with subtree')
             node_id = request.json  # NOTE: not in request.args
-            app.trees[tree_id] = rooting.root_at(t[node_id])
+            app.trees[tid] = rooting.root_at(t[node_id])
             return {'message': 'ok'}
 
     @auth.login_required
@@ -295,9 +304,6 @@ class Id(Resource):
 def load_tree(tree_id):
     "Add tree to app.trees and initialize it if not there, and return it"
     try:
-        if tree_id in app.trees:
-            return app.trees[tree_id]
-
         tid, subtree = get_tid(tree_id)
 
         if tid in app.trees:
@@ -306,9 +312,9 @@ def load_tree(tree_id):
         newicks = dbget0('newick', 'trees where id=?', tid)
         assert len(newicks) == 1
 
-        t = tree.loads(newicks[0])[subtree]
-        app.trees[tree_id] = t
-        return t
+        t = tree.loads(newicks[0])
+        app.trees[tid] = t
+        return t[subtree]
     except (AssertionError, IndexError):
         raise InvalidUsage(f'unknown tree id {tree_id}', 404)
 
