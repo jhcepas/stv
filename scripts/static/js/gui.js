@@ -63,6 +63,9 @@ const view = {
     font_size: 10,
     font_size_max: 15,
 
+    // share current tree view
+    share_view: () => share_view(),
+
     // minimap
     minimap_show: true,
     minimap_uptodate: false,
@@ -307,6 +310,27 @@ async function show_tree_info() {
 
     if (result.isConfirmed && navigator.clipboard)
         navigator.clipboard.writeText(url);
+}
+
+
+function share_view() {
+    const w = div_tree.offsetWidth / view.zoom.x,
+          h = div_tree.offsetHeight / view.zoom.y;
+    const url = get_url_view(view.tl.x, view.tl.y, w, h);
+
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(url);
+        Swal.fire({
+            text: "Current view has been copied to the clipboard.",
+            icon: "success",
+        });
+    }
+    else {
+        Swal.fire({
+            html: "Right-click on link to copy to the clipboard:<br><br>" +
+                  `<a href="${url}">-- link to current tree view --</a>`,
+        });
+    }
 }
 
 

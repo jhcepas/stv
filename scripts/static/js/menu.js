@@ -26,6 +26,8 @@ function create_datgui(trees, drawers) {
 
     dgui.add(view, "minimap_show").name("minimap").onChange(show_minimap);
 
+    dgui.add(view, "share_view").name("share view");
+
     return dgui;
 }
 
