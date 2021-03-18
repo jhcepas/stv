@@ -38,9 +38,6 @@ function drag_move(point, movement) {
     if (dragging.element) {
         dragging.moved = true;
 
-        if (view.update_on_drag)
-            update_tree();
-
         const [scale_x, scale_y] = get_drag_scale();
         view.tl.x += scale_x * movement.x;
         view.tl.y += scale_y * movement.y;
