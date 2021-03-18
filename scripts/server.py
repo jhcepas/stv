@@ -51,6 +51,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer as JSONSigSerializer
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from ete import tree, draw
+from ete import rooting
 
 
 db = None  # call initialize() to fill these up
@@ -244,47 +245,37 @@ class Trees(Resource):
             cols, vals = zip(*data.items())
             try:
                 qs = '(%s)' % ','.join('?' * len(vals))
-                exe('insert into trees %r values %s' % (tuple(cols), qs),
-                    vals)
+                exe('insert into trees %r values %s' % (tuple(cols), qs), vals)
             except sqlalchemy.exc.IntegrityError as e:
                 raise InvalidUsage(f'database exception adding tree: {e}')
 
             tid = get0('id', 'trees where name=?', data['name'])[0]
 
-            exe('insert into user_owns_trees values (%d, %d)' %
-                (owner, tid))
+            exe('insert into user_owns_trees values (%d, %d)' % (owner, tid))
 
         return {'message': 'ok', 'id': tid}, 201
 
     @auth.login_required
     def put(self, tree_id):
         "Modify tree"
-        try:
-            tid = int(tree_id)
+        rule = request.url_rule.rule  # shortcut
 
-            assert dbcount('trees where id=?', tid) == 1, 'invalid id'
-
-            admin_id = 1
-            assert g.user_id in [get_owner(tid), admin_id], 'no permission'
-
-            data = get_fields(valid_extra=[
-                'addReaders','delReaders',
-                'name', 'description', 'newick'])
-
-            add_readers(tid, data.pop('addReaders', None))
-            del_readers(tid, data.pop('delReaders', None))
-            if not data:
-                return {'message': 'ok'}
-
-            cols, vals = zip(*data.items())
-            qs = ','.join('%s=?' % x for x in cols)
-            res = dbexe('update trees set %s where id=%d' % (qs, tid), vals)
-
-            assert res.rowcount == 1, f'unknown tree'
-
+        if rule == '/trees/<string:tree_id>':
+            modify_tree_fields(tree_id)
             return {'message': 'ok'}
-        except (ValueError, AssertionError) as e:
-            raise InvalidUsage(f'for tree id {tree_id}: {e}')
+        elif rule == '/trees/<string:tree_id>/unroot':
+            t = load_tree(tree_id)
+            app.trees[tree_id] = rooting.unroot(t)
+            return {'message': 'ok'}
+        elif rule == '/trees/<string:tree_id>/reroot':
+            t = load_tree(tree_id)
+            app.trees[tree_id] = rooting.reroot(t)
+            return {'message': 'ok'}
+        elif rule == '/trees/<string:tree_id>/root_at':
+            t = load_tree(tree_id)
+            node_id = request.json  # not in request.args
+            app.trees[tree_id] = rooting.root_at(t[node_id])
+            return {'message': 'ok'}
 
     @auth.login_required
     def delete(self, tree_id):
@@ -480,6 +471,35 @@ def safer_eval(code, context):
             raise InvalidUsage('invalid use of %r during evaluation' % name)
     return eval(code, {'__builtins__': {}}, context)
 
+
+def modify_tree_fields(tree_id):
+    "Modify the tree fields that appear in a request"
+    try:
+        tid = int(tree_id)
+
+        assert dbcount('trees where id=?', tid) == 1, 'invalid id'
+
+        admin_id = 1
+        assert g.user_id in [get_owner(tid), admin_id], 'no permission'
+
+        data = get_fields(valid_extra=[
+            'name', 'description', 'newick', 'addReaders','delReaders'])
+
+        add_readers(tid, data.pop('addReaders', None))
+        del_readers(tid, data.pop('delReaders', None))
+        if not data:
+            return {'message': 'ok'}
+
+        cols, vals = zip(*data.items())
+        qs = ','.join('%s=?' % x for x in cols)
+        res = dbexe('update trees set %s where id=%d' % (qs, tid), vals)
+
+        assert res.rowcount == 1, f'unknown tree'
+    except (ValueError, AssertionError) as e:
+        raise InvalidUsage(f'for tree id {tree_id}: {e}')
+
+
+# Database-access functions.
 
 def dbexe(command, *args, conn=None):
     "Execute a sql command (using a given connection if given)"
@@ -700,7 +720,10 @@ def add_resources(api):
         '/trees/<string:tree_id>/newick',
         '/trees/<string:tree_id>/draw',
         '/trees/<string:tree_id>/size',
-        '/trees/<string:tree_id>/search')
+        '/trees/<string:tree_id>/search',
+        '/trees/<string:tree_id>/unroot',
+        '/trees/<string:tree_id>/reroot',
+        '/trees/<string:tree_id>/root_at')
     add(Info, '/info')
     add(Id, '/id/<path:path>')
 

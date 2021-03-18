@@ -108,16 +108,23 @@
 }
 
 
-button {
+.ctx_button {
     width: 100%;
     cursor: pointer;
-    padding: 5px;
+    padding: 3px 15px;
     border-style: hidden;
+    text-align: left;
     background-color: white;
 }
 
 
-button:hover {
+.ctx_button:hover {
     background-color: #88F;
     color: white;
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background-color: #333;
 }

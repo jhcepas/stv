@@ -8,8 +8,8 @@ import { search, remove_searches } from "./search.js";
 import { zoom_into_box } from "./zoom.js";
 import { draw_minimap, update_minimap_visible_rect } from "./minimap.js";
 
-export { view, datgui, on_tree_change, on_drawer_change, show_minimap,
-         api, get_tid, on_box_click, coordinates, reset_view };
+export { view, datgui, on_tree_change, on_drawer_change, show_minimap, api,
+         get_tid, on_box_click, on_box_contextmenu, coordinates, reset_view };
 
 
 // Run main() when the page is loaded.
@@ -94,6 +94,44 @@ async function api(endpoint) {
     const response = await fetch(endpoint);
     return await response.json();
 }
+
+
+function get_login_info() {
+    return JSON.parse(window.localStorage.getItem("login_info"));
+}
+
+async function login_as_guest() {
+    window.localStorage.clear();
+
+    const [username, password] = ["guest", "123"];
+
+    const response = await fetch("/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({username, password}),
+    });
+
+    const data = await response.json();
+    window.localStorage.setItem("login_info", JSON.stringify(data));
+}
+
+async function put_command(command, params=undefined) {
+    await login_as_guest();
+    const login = get_login_info();
+
+    const response = await fetch(`/trees/${get_tid()}/${command}`, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json",
+                  "Authorization": `Bearer ${login.token}`},
+        body: JSON.stringify(params),
+    });
+
+    if (response.status !== 200) {
+        Swal.fire("Modification failed", `Error code: ${response.status}`);
+        return;
+    }
+}
+
 
 
 // Fill global var trees, and view.tree with the first of the available trees.
@@ -291,4 +329,82 @@ function on_box_click(event, box, node_id) {
         view.subtree += (view.subtree ? "," : "") + node_id;
         on_tree_change();
     }
+}
+
+
+
+function create_button(text, fn) {
+    const button = document.createElement("button");
+    button.appendChild(document.createTextNode(text));
+    button.addEventListener("click", fn);
+    return button;
+}
+
+
+function add_contextmenu_button(text, fn) {
+    const button = create_button(text, event => {
+        div_contextmenu.style.visibility = "hidden";
+        fn(event);
+    });
+    button.classList.add("ctx_button");
+    div_contextmenu.appendChild(button);
+    add_contextmenu_element("br");
+}
+
+function add_contextmenu_element(name) {
+    div_contextmenu.appendChild(document.createElement(name));
+}
+
+function update_with_minimap() {
+    if (view.minimap_show)
+        draw_minimap();
+    update();
+}
+
+
+function on_box_contextmenu(event, box, node_id) {
+    event.preventDefault();
+
+    div_contextmenu.innerHTML = "";
+
+    const add = add_contextmenu_button;  // shortcut
+
+    add("🔍 Zoom into node", () => zoom_into_box(box));
+    add("📌 Go to subtree at node", () => {
+        view.subtree += (view.subtree ? "," : "") + node_id;
+        on_tree_change();
+    });
+    add("❓ Show node id", () => {
+        Swal.fire({text: `${node_id}`, position: "bottom",
+                   showConfirmButton: false});
+    });
+    if (!view.subtree) {
+        add("🧲 Root on this node ⚠️", async () => {
+            await put_command("root_at", node_id);
+            update_with_minimap();
+        });
+    }
+
+    add_contextmenu_element("hr");
+
+    if (view.subtree) {
+        add("🏠 Go to main tree", () => {
+            view.subtree = "";
+            on_tree_change();
+        });
+    }
+    add("🌾 Unroot tree ⚠️", async () => {
+        await put_command("unroot");
+        update_with_minimap();
+    });
+    add("🌲 Reroot tree ⚠️", async () => {
+        await put_command("reroot");
+        update_with_minimap();
+    });
+
+    const s = div_contextmenu.style;
+
+    s.left = event.pageX + "px";
+    s.top = event.pageY + "px";
+    s.visibility = "visible";
 }

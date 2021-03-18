@@ -52,6 +52,9 @@ function on_keydown(event) {
                         y: div_tree.offsetHeight / 2};
         zoom_around(center, false);
     }
+    else if (key === "Escape") {
+        div_contextmenu.style.visibility = "hidden";
+    }
     else {
         is_hotkey = false;
     }

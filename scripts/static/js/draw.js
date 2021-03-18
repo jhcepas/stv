@@ -1,6 +1,7 @@
 // Functions related to updating (drawing) the view.
 
-import { view, datgui, api, get_tid, on_box_click } from "./gui.js";
+import { view, datgui, api, get_tid, on_box_click, on_box_contextmenu }
+    from "./gui.js";
 import { update_minimap_visible_rect } from "./minimap.js";
 import { add_search_boxes } from "./search.js";
 
@@ -190,28 +191,6 @@ function draw(element, items, tl, zoom) {
 }
 
 
-function on_contextmenu(event, node_id) {
-    event.preventDefault();
-
-    div_contextmenu.innerHTML = "";
-
-    const b = document.createElement("button");
-    b.appendChild(document.createTextNode("Show id"));
-
-    b.addEventListener("click", event => {
-        div_contextmenu.style.visibility = "hidden";
-
-        Swal.fire("ID", `${node_id}`);
-    });
-
-    div_contextmenu.appendChild(b);
-
-    div_contextmenu.style.left = event.pageX + "px";
-    div_contextmenu.style.top = event.pageY + "px";
-    div_contextmenu.style.visibility = "visible";
-}
-
-
 // Append to g the graphical (svg) element corresponding to a drawer item.
 function draw_item(g, item, tl, zoom) {
     // item looks like ['r', ...] for a rectangle, etc.
@@ -227,8 +206,10 @@ function draw_item(g, item, tl, zoom) {
 
         g.appendChild(b);
 
-        b.addEventListener("click", event => on_box_click(event, box, node_id));
-        b.addEventListener("contextmenu", event => on_contextmenu(event, node_id));
+        b.addEventListener("click",
+                           event => on_box_click(event, box, node_id));
+        b.addEventListener("contextmenu",
+                           event => on_box_contextmenu(event, box, node_id));
 
         if (name.length > 0 || Object.entries(properties).length > 0)
             b.appendChild(create_tooltip(name, properties));
