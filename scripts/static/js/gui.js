@@ -8,8 +8,8 @@ import { search, remove_searches } from "./search.js";
 import { zoom_into_box } from "./zoom.js";
 import { draw_minimap, update_minimap_visible_rect } from "./minimap.js";
 
-export { view, datgui, on_tree_change, on_drawer_change, show_minimap, api,
-         get_tid, on_box_click, on_box_contextmenu, coordinates, reset_view };
+export { view, datgui, on_tree_change, on_drawer_change, show_minimap,
+         api, api_put, get_tid, on_box_click, coordinates, reset_view };
 
 
 // Run main() when the page is loaded.
@@ -334,79 +334,4 @@ function on_box_click(event, box, node_id) {
         view.subtree += (view.subtree ? "," : "") + node_id;
         on_tree_change();
     }
-}
-
-
-
-function create_button(text, fn) {
-    const button = document.createElement("button");
-    button.appendChild(document.createTextNode(text));
-    button.addEventListener("click", fn);
-    return button;
-}
-
-
-function add_contextmenu_button(text, fn) {
-    const button = create_button(text, event => {
-        div_contextmenu.style.visibility = "hidden";
-        fn(event);
-    });
-    button.classList.add("ctx_button");
-    div_contextmenu.appendChild(button);
-    add_contextmenu_element("br");
-}
-
-function add_contextmenu_element(name) {
-    div_contextmenu.appendChild(document.createElement(name));
-}
-
-
-function on_box_contextmenu(event, box, node_id) {
-    event.preventDefault();
-
-    div_contextmenu.innerHTML = "";
-
-    const add = add_contextmenu_button;  // shortcut
-
-    add("🔍 Zoom into node", () => zoom_into_box(box));
-    add("📌 Go to subtree at node", () => {
-        view.subtree += (view.subtree ? "," : "") + node_id;
-        on_tree_change();
-    });
-    add("❓ Show node id", () => {
-        Swal.fire({text: `${node_id}`, position: "bottom",
-                   showConfirmButton: false});
-    });
-    if (!view.subtree) {
-        add("🧲 Root on this node ⚠️", async () => {
-            await api_put("root_at", node_id);
-            draw_minimap();
-            update();
-        });
-    }
-
-    add_contextmenu_element("hr");
-
-    if (view.subtree) {
-        add("🏠 Go to main tree", () => {
-            view.subtree = "";
-            on_tree_change();
-        });
-    }
-    add("🌾 Unroot tree ⚠️", async () => {
-        await api_put("unroot");
-        draw_minimap();
-        update();
-    });
-    add("🌲 Reroot tree ⚠️", async () => {
-        await api_put("reroot");
-        draw_minimap();
-        update();
-    });
-
-    const s = div_contextmenu.style;
-
-    s.left = event.pageX + "px";
-    s.top = event.pageY + "px";
-    s.visibility = "visible";
 }

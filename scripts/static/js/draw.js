@@ -1,9 +1,9 @@
 // Functions related to updating (drawing) the view.
 
-import { view, datgui, api, get_tid, on_box_click, on_box_contextmenu }
-    from "./gui.js";
+import { view, datgui, api, get_tid, on_box_click } from "./gui.js";
 import { update_minimap_visible_rect } from "./minimap.js";
 import { add_search_boxes } from "./search.js";
+import { on_box_contextmenu } from "./contextmenu.js";
 
 export { update, update_tree, create_rect, create_asec, draw };
 
@@ -206,10 +206,10 @@ function draw_item(g, item, tl, zoom) {
 
         g.appendChild(b);
 
-        b.addEventListener("click",
-                           event => on_box_click(event, box, node_id));
-        b.addEventListener("contextmenu",
-                           event => on_box_contextmenu(event, box, node_id));
+        b.addEventListener("click", event =>
+            on_box_click(event, box, node_id));
+        b.addEventListener("contextmenu", event =>
+            on_box_contextmenu(event, box, name, properties, node_id));
 
         if (name.length > 0 || Object.entries(properties).length > 0)
             b.appendChild(create_tooltip(name, properties));

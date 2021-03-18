@@ -101,7 +101,6 @@
 
 .contextmenu {
     position: absolute;
-    text-align: center;
     z-index: 4;
     visibility: hidden;
     border: 1px solid #AAA;
@@ -122,6 +121,15 @@
     background-color: #88F;
     color: white;
 }
+
+
+.ctx_label {
+    font-family: sans-serif;
+    padding: 3px 10px;
+    text-align: left;
+    background-color: white;
+}
+
 
 hr {
     border: 0;
