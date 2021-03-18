@@ -4,7 +4,7 @@ import { view } from "./gui.js";
 import { update } from "./draw.js";
 import { draw_minimap, update_minimap_visible_rect } from "./minimap.js";
 
-export { zoom_around, zoom_into_box };
+export { zoom_around, zoom_into_box, zoom_towards_box };
 
 
 const zooming = {qz: {x: 1, y: 1}, timeout: undefined};
@@ -120,4 +120,38 @@ function smooth_zoom(point) {
         zooming.timeout = undefined;
         update();
     }, 200);  // 200 ms until we actually update (if not cancelled before!)
+}
+
+
+function zoom_towards_box(box, point, zoom_in, do_zoom_x, do_zoom_y) {
+    const [dx, dy] = [box[2], box[3]];
+
+    let qz;
+    if (zoom_in) {
+        const qx = div_tree.offsetWidth / (dx * view.zoom.x) - 1,
+              qy = div_tree.offsetHeight / (dy * view.zoom.y) - 1;
+        qz = {x: 1 + 0.1 * Math.atan(qx),
+              y: 1 + 0.1 * Math.atan(qy)};
+    }
+    else {
+        qz = {x: 0.8,
+              y: 0.8};
+    }
+
+    if (do_zoom_x) {
+        const zoom_new = qz.x * view.zoom.x;
+        view.tl.x += (1 / view.zoom.x - 1 / zoom_new) * point.x;
+        view.zoom.x = zoom_new;
+        zooming.qz.x *= qz.x;
+    }
+
+    if (do_zoom_y) {
+        const zoom_new = qz.y * view.zoom.y;
+        view.tl.y += (1 / view.zoom.y - 1 / zoom_new) * point.y;
+        view.zoom.y = zoom_new;
+        zooming.qz.y *= qz.y;
+    }
+
+    if (do_zoom_x || do_zoom_y)
+        smooth_zoom(point);
 }

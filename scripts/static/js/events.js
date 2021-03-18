@@ -6,6 +6,7 @@ import { move_minimap_view } from "./minimap.js";
 import { drag_start, drag_stop, drag_move } from "./drag.js";
 import { search } from "./search.js";
 import { update } from "./draw.js";
+import { on_box_contextmenu } from "./contextmenu.js";
 
 export { init_events };
 
@@ -21,6 +22,8 @@ function init_events() {
     document.addEventListener("mouseup", on_mouseup);
 
     document.addEventListener("mousemove", on_mousemove);
+
+    document.addEventListener("contextmenu", on_contextmenu);
 
     window.addEventListener("resize", on_resize);
 }
@@ -66,6 +69,9 @@ function on_keydown(event) {
 
 // Mouse wheel -- zoom in/out (instead of scrolling).
 function on_wheel(event) {
+    if (event.target !== div_tree.children[0])
+        return;
+
     event.preventDefault();
 
     const point = {x: event.pageX, y: event.pageY};
@@ -112,6 +118,14 @@ function on_mousemove(event) {
     drag_move(point, movement);
 
     [view.pos.cx, view.pos.cy] = coordinates(point);
+}
+
+
+function on_contextmenu(event) {
+    if (event.target !== div_tree.children[0])
+        return;
+
+    on_box_contextmenu(event);
 }
 
 

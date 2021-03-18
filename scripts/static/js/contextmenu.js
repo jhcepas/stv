@@ -12,8 +12,10 @@ function on_box_contextmenu(event, box, name, properties, node_id) {
 
     div_contextmenu.innerHTML = "";
 
-    add_node_options(box, name, properties, node_id);
-    add_element("hr");
+    if (node_id) {
+        add_node_options(box, name, properties, node_id);
+        add_element("hr");
+    }
     add_tree_options();
 
     const s = div_contextmenu.style;

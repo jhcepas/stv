@@ -4,6 +4,7 @@ import { view, datgui, api, get_tid, on_box_click } from "./gui.js";
 import { update_minimap_visible_rect } from "./minimap.js";
 import { add_search_boxes } from "./search.js";
 import { on_box_contextmenu } from "./contextmenu.js";
+import { zoom_towards_box } from "./zoom.js";
 
 export { update, update_tree, create_rect, create_asec, draw };
 
@@ -210,6 +211,8 @@ function draw_item(g, item, tl, zoom) {
             on_box_click(event, box, node_id));
         b.addEventListener("contextmenu", event =>
             on_box_contextmenu(event, box, name, properties, node_id));
+        b.addEventListener("wheel", event =>
+            on_wheel(event, box), {passive: false});
 
         if (name.length > 0 || Object.entries(properties).length > 0)
             b.appendChild(create_tooltip(name, properties));
@@ -252,6 +255,17 @@ function draw_item(g, item, tl, zoom) {
             g.appendChild(r);
         }
     }
+}
+
+// Mouse wheel -- zoom in/out (instead of scrolling).
+function on_wheel(event, box) {
+    event.preventDefault();
+
+    const point = {x: event.pageX, y: event.pageY};
+    const zoom_in = event.deltaY < 0;
+    const [do_zoom_x, do_zoom_y] = [!event.ctrlKey, !event.altKey];
+
+    zoom_towards_box(box, point, zoom_in, do_zoom_x, do_zoom_y);
 }
 
 
