@@ -119,7 +119,7 @@ async function login_as_guest() {
     window.localStorage.setItem("login_info", JSON.stringify(data));
 }
 
-async function put_command(command, params=undefined) {
+async function api_put(command, params=undefined) {
     await login_as_guest();
     const login = get_login_info();
 
@@ -182,7 +182,7 @@ async function on_drawer_change() {
 async function reset_view() {
     await reset_zoom();
     reset_position();
-    if (view.minimap_show && !view.minimap_uptodate)
+    if (!view.minimap_uptodate)
         draw_minimap();
     update();
 }
@@ -231,8 +231,11 @@ function set_query_string_values() {
 function show_minimap(show) {
     const status = (show ? "visible" : "hidden");
     div_minimap.style.visibility = div_visible_rect.style.visibility = status;
-    if (show)
+    if (show) {
+        if (!view.minimap_uptodate)
+            draw_minimap();
         update_minimap_visible_rect();
+    }
 }
 
 
@@ -357,12 +360,6 @@ function add_contextmenu_element(name) {
     div_contextmenu.appendChild(document.createElement(name));
 }
 
-function update_with_minimap() {
-    if (view.minimap_show)
-        draw_minimap();
-    update();
-}
-
 
 function on_box_contextmenu(event, box, node_id) {
     event.preventDefault();
@@ -382,8 +379,9 @@ function on_box_contextmenu(event, box, node_id) {
     });
     if (!view.subtree) {
         add("🧲 Root on this node ⚠️", async () => {
-            await put_command("root_at", node_id);
-            update_with_minimap();
+            await api_put("root_at", node_id);
+            draw_minimap();
+            update();
         });
     }
 
@@ -396,12 +394,14 @@ function on_box_contextmenu(event, box, node_id) {
         });
     }
     add("🌾 Unroot tree ⚠️", async () => {
-        await put_command("unroot");
-        update_with_minimap();
+        await api_put("unroot");
+        draw_minimap();
+        update();
     });
     add("🌲 Reroot tree ⚠️", async () => {
-        await put_command("reroot");
-        update_with_minimap();
+        await api_put("reroot");
+        draw_minimap();
+        update();
     });
 
     const s = div_contextmenu.style;

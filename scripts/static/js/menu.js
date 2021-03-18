@@ -58,8 +58,7 @@ function add_menu_representation(dgui, drawers) {
     const folder_circ = folder_repr.addFolder("circular");
 
     function update_with_minimap() {
-        if (view.minimap_show)
-            draw_minimap();
+        draw_minimap();
         update();
     }
     folder_circ.add(view, "rmin").name("radius min").onChange(

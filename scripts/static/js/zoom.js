@@ -74,8 +74,7 @@ function zoom_circular(point, qz, do_zoom_x, do_zoom_y) {
 
         zooming.timeout = window.setTimeout(() => {
             zooming.timeout = undefined;
-            if (view.minimap_show)
-                draw_minimap();
+            draw_minimap();
             update();
         }, 200);  // 200 ms until we actually update (if not cancelled before!)
     }

@@ -8,6 +8,11 @@ export { draw_minimap, update_minimap_visible_rect, move_minimap_view };
 
 // Draw the full tree on a small div on the bottom-right ("minimap").
 async function draw_minimap() {
+    if (!view.minimap_show) {
+        view.minimap_uptodate = false;
+        return;
+    }
+
     const size = await api(`/trees/${get_tid()}/size`);
     const mbw = 3;  // border-width from .minimap css
     if (view.is_circular) {
