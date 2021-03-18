@@ -70,7 +70,7 @@ function on_keydown(event) {
 // Mouse wheel -- zoom in/out (instead of scrolling).
 function on_wheel(event) {
     if (event.target !== div_tree.children[0])
-        return;
+        return;  // it will be done on the nodes instead
 
     event.preventDefault();
 
@@ -123,7 +123,7 @@ function on_mousemove(event) {
 
 function on_contextmenu(event) {
     if (event.target !== div_tree.children[0])
-        return;
+        return;  // it will be done on the nodes instead
 
     on_box_contextmenu(event);
 }
