@@ -103,7 +103,7 @@ function add_menu_view(dgui) {
     folder_zoom.add(view.zoom, "x").step(0.001).onChange(update);
     folder_zoom.add(view.zoom, "y").step(0.001).onChange(update);
 
-    folder_view.add(view, "update_on_drag").name("update on drag");
+    folder_view.add(view, "smart_zoom").name("smart zoom");
 
     folder_view.add(view, "select_text").name("select text").onChange(() => {
         style("font").userSelect = (view.select_text ? "text" : "none");
