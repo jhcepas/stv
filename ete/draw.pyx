@@ -57,8 +57,17 @@ class Drawer:
         self.outline = None  # will contain a box surrounding collapsed nodes
         self.collapsed = []  # will contain nodes that are collapsed together
 
-    def update_collapsed(self, node, point):
+    def update_collapsed(self, node=None, point=(0, 0)):
         "Update collapsed nodes and outline, and yield graphics if appropriate"
+        if node is None:
+            if self.outline:
+                if not self.aligned:
+                    yield from self.draw_outline()
+                yield from self.draw_collapsed()
+            self.outline = None
+            self.collapsed = []
+            return
+
         box = make_box(point, self.node_size(node))
 
         if not self.outline:
@@ -114,18 +123,20 @@ class Drawer:
                     node_dxs.append([])
                     x += dx
             else:  # last time we visit this node (who is internal and visible)
+                gs = list(self.update_collapsed())
+                yield from gs
+
+                node_dxs[-1].append(drawn_size(gs, self.get_box).dx)
+
                 x -= dx
                 ndx = dx + max(node_dxs.pop() or [0])
                 if node_dxs:
                     node_dxs[-1].append(ndx)
                 nodeboxes.append( (node, it.node_id, Box(x, y - dy, ndx, dy)) )
 
-        if self.outline:  # draw the last collapsed nodes
-            if not self.aligned:
-                yield from self.draw_outline()
-            yield from self.draw_collapsed()
+        yield from self.update_collapsed()
 
-        if not self.aligned:
+        if not self.aligned:  # draw the nodeboxes we found in postorder
             for node, node_id, box in nodeboxes[::-1]:
                 yield from self.draw_nodebox(node, node_id, box)
 
