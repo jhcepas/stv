@@ -1,6 +1,7 @@
 // Handle gui events.
 
-import { view, datgui, coordinates, reset_view, show_minimap } from "./gui.js";
+import { view, datgui, coordinates, reset_view, show_minimap, show_help }
+    from "./gui.js";
 import { zoom_around } from "./zoom.js";
 import { move_minimap_view } from "./minimap.js";
 import { drag_start, drag_stop, drag_move } from "./drag.js";
@@ -34,7 +35,10 @@ function on_keydown(event) {
     const key = event.key;  // shortcut
     let is_hotkey = true;  // will set to false if it isn't
 
-    if (key === "/" || key === "F1") {
+    if (key === "F1") {
+        show_help();
+    }
+    else if (key === "/") {
         search();
     }
     else if (key === "r") {

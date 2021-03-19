@@ -10,7 +10,7 @@ import { draw_minimap, update_minimap_visible_rect } from "./minimap.js";
 
 export { view, datgui, on_tree_change, on_drawer_change, show_minimap,
          api, api_put, get_tid, on_box_click, on_box_wheel, coordinates,
-         reset_view };
+         reset_view, show_help };
 
 
 // Run main() when the page is loaded.
@@ -44,6 +44,7 @@ const view = {
     nodes: {boxes: {}, n: 0},  // will contain the visible nodeboxes
     pos: {cx: 0, cy: 0},  // in-tree current pointer position
     show_tree_info: () => show_tree_info(),
+    show_help: () => show_help(),
 
     // view
     reset_view: () => reset_view(),
@@ -54,7 +55,7 @@ const view = {
 
     // style
     node: {opacity: 0, color: "#222"},
-    outline: {opacity: 0, color: "#DDF", width: 1},
+    outline: {opacity: 0.1, color: "#A50", width: 0.2},
     line: {color: "#000", width: 1},
     names_color: "#00A",
     lengths_color: "#888",
@@ -333,6 +334,61 @@ function share_view() {
                   `<a href="${url}">-- link to current tree view --</a>`,
         });
     }
+}
+
+
+function show_help() {
+    const help_text = `
+<table style="margin: 0 auto">
+<thead><tr><th>General Instructions</th></tr></thead>
+<tbody style="text-align: left">
+<tr><td><br>
+Click and drag with the left mouse button to move around the tree.
+</td></tr>
+<tr><td><br>
+Use the mouse wheel to zoom in and out.
+</td></tr>
+<tr><td><br>
+Click on the minimap to go to a different area or drag the current view.
+</td></tr>
+<tr><td><br>
+Right-click on a node to show options to interact with it.
+</td></tr>
+<tr><td><br>
+Use the options in the menu at the top right to change the visualization.
+</td></tr>
+</tbody>
+</table>
+
+<br>
+<br>
+
+<table style="margin: 0 auto">
+<thead><tr><th colspan="2">Keyboard Shortcuts</th></tr></thead>
+<tbody style="text-align: left">
+<tr><td><tt> </tt></td><td>&nbsp; </td></tr>
+<tr><td><tt>F1</tt></td><td>&nbsp; help</td></tr>
+<tr><td><tt>/</tt></td><td>&nbsp; search</td></tr>
+<tr><td><tt>r</tt></td><td>&nbsp; reset view</td></tr>
+<tr><td><tt>m</tt></td><td>&nbsp; toggle minimap</td></tr>
+<tr><td><tt>+</tt></td><td>&nbsp; zoom in</td></tr>
+<tr><td><tt>&ndash;</tt></td><td>&nbsp; zoom out</td></tr>
+</tbody>
+</table>
+
+<br>
+<br>
+
+Tree Explorer is part of the <a href="http://etetoolkit.org/">ETE Toolkit</a>.
+
+<br>
+<br>
+`;
+    Swal.fire({
+        title: "Tree Explorer",
+        html: help_text,
+        icon: "info",
+    });
 }
 
 
