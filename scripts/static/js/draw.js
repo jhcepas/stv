@@ -84,6 +84,23 @@ function create_svg_element(name, attrs) {
 }
 
 
+// Return a box (rectangle, annular sector, or their collapsed versions).
+function create_box(box, tl, zx, zy, type) {
+    if (view.is_circular) {
+        if (type === "outline")  // for collapsed nodes
+            return create_circ_cone(box, tl, zx, type);
+        else
+            return create_asec(box, tl, zx, type);
+    }
+    else {
+        if (type === "outline")  // for collapsed nodes
+            return create_rect_cone(box, tl, zx, zy, type);
+        else
+            return create_rect(box, tl, zx, zy, type);
+    }
+}
+
+
 function create_rect(box, tl, zx=1, zy=1, type="") {
     const [x, y, w, h] = box;
 
@@ -91,12 +108,11 @@ function create_rect(box, tl, zx=1, zy=1, type="") {
         "class": "box " + type,
         "x": zx * (x - tl.x), "y": zy * (y - tl.y),
         "width": zx * w, "height": zy * h,
-        "stroke": view.rect_color,
     });
 }
 
 
-// Return a newly-created svg annular sector, described by box and with zoom z.
+// Return a svg annular sector, described by box and with zoom z.
 function create_asec(box, tl, z=1, type="") {
     const [r, a, dr, da] = box;
     const large = da > Math.PI ? 1 : 0;
@@ -112,13 +128,50 @@ function create_asec(box, tl, z=1, type="") {
               A ${z * (r + dr)} ${z * (r + dr)} 0 ${large} 1 ${p11.x} ${p11.y}
               L ${p01.x} ${p01.y}
               A ${z * r} ${z * r} 0 ${large} 0 ${p00.x} ${p00.y}`,
-        "fill": view.box_color,
     });
 }
 
 function cartesian_shifted(r, a, tl, z) {
     return {x: z * (r * Math.cos(a) - tl.x),
             y: z * (r * Math.sin(a) - tl.y)};
+}
+
+
+// Return a svg horizontal cone.
+function create_rect_cone(box, tl, zx=1, zy=1, type="") {
+    const [x, y, w, h] = transform(box, tl, zx, zy);
+
+    return create_svg_element("path", {
+        "class": "box " + type,
+        "d": `M ${x} ${y + h/2}
+              L ${x + w} ${y}
+              L ${x + w} ${y + h}
+              L ${x} ${y + h/2}`,
+    });
+}
+
+// Return the box translated (from tl) and scaled.
+function transform(box, tl, zx, zy) {
+    const [x, y, w, h] = box;
+    return [zx * (x - tl.x), zy * (y - tl.y), zx * w, zy * h];
+}
+
+
+// Return a svg cone in the direction of an annular sector.
+function create_circ_cone(box, tl, z=1, type="") {
+    const [r, a, dr, da] = box;
+    const large = da > Math.PI ? 1 : 0;
+    const p0 = cartesian_shifted(r, a + da/2, tl, z),
+          p10 = cartesian_shifted(r + dr, a, tl, z),
+          p11 = cartesian_shifted(r + dr, a + da, tl, z);
+
+    return create_svg_element("path", {
+        "class": "box " + type,
+        "d": `M ${p0.x} ${p0.y}
+              L ${p10.x} ${p10.y}
+              A ${z * (r + dr)} ${z * (r + dr)} 0 ${large} 1 ${p11.x} ${p11.y}
+              L ${p0.x} ${p0.y}`,
+    });
 }
 
 
@@ -204,9 +257,7 @@ function draw_item(g, item, tl, zoom) {
     if (item[0] === 'r' || item[0] === 's') {  // rectangle or annular sector
         const [shape, box, type, name, properties, node_id] = item;
 
-        const b = shape === 'r' ?
-            create_rect(box, tl, zx, zy, type) :
-            create_asec(box, tl, zx, type);
+        const b = create_box(box, tl, zx, zy, type);
 
         g.appendChild(b);
 

@@ -33,17 +33,15 @@
 }
 
 .outline {
-    fill-opacity: 0;
-    fill: #DDF;
+    fill-opacity: 0.2;
+    fill: #F00;
+    stroke-width: 0.5;
 }
 
 .node:hover {
     opacity: 0.05;
 }
 
-.outline:hover {
-    fill-opacity: 0.8;
-}
 
 .search {
     opacity: 0.3;
