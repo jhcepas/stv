@@ -222,7 +222,7 @@ class DrawerRect(Drawer):
         return intersects(self.viewport, box)
 
     def draw_outline(self):
-        yield draw_box('r', self.outline, 'outline')
+        yield draw_box('r', self.outline, 'outline', '(collapsed)')
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
@@ -281,7 +281,7 @@ class DrawerCirc(Drawer):
         r, a, dr, da = self.outline
         a1, a2 = clip_angles(a, a + da)
         if a1 is not None:
-            yield draw_box('s', Box(r, a1, dr, a2 - a1), 'outline')
+            yield draw_box('s', Box(r, a1, dr, a2 - a1), 'outline', '(collapsed)')
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
