@@ -167,6 +167,8 @@ function add_menu_style(dgui) {
     });
     folder_text.add(view, "font_size_max", 1, 100).name("max size").onChange(
         update);
+    folder_text.add(view, "text_padding", -20, 200).name("padding").onChange(
+        update);
 
     function create_font_size_scroller() {
         return folder_text.add(view, "font_size", 0.1, 50).name("font size")

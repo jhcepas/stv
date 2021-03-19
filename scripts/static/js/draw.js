@@ -153,9 +153,12 @@ function create_arc(p1, p2, large, tl, z=1) {
 function create_text(text, fs, point, tl, zx, zy, type) {
     const [x, y] = [zx * (point[0] - tl.x), zy * (point[1] - tl.y)];
 
+    const dx = (type !== "name" || view.is_circular) ? 0 :
+        view.text_padding * fs / 100;
+
     const t = create_svg_element("text", {
         "class": "text " + type,
-        "x": x, "y": y,
+        "x": x + dx, "y": y,
         "font-size": `${fs}px`,
     });
 

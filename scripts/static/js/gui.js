@@ -62,6 +62,7 @@ const view = {
     font_size_scroller: undefined,
     font_size: 10,
     font_size_max: 15,
+    text_padding: 10,
 
     // share current tree view
     share_view: () => share_view(),
