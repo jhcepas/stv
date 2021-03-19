@@ -219,9 +219,12 @@ class Walker:
 def sort(tree, key=None, reverse=False):
     "Sort the tree in-place"
     key = key or (lambda node: (node.size[1], node.size[0], node.name))
-    tree.children.sort(key=key, reverse=reverse)
-    for node in tree.children:
+    children = tree.children
+    children.sort(key=key, reverse=reverse)
+    for node in children:
         sort(node, key, reverse)
+    tree.bh = tree.size[1] / 2 + (0 if not children else
+        (children[0].bh - children[-1].size[1] + children[-1].bh) / 2)
 
 
 # Read and write.
