@@ -1,7 +1,8 @@
 // Search-related functions.
 
-import { view, datgui, api, get_tid, on_box_click } from "./gui.js";
+import { view, datgui, api, get_tid, on_box_click, on_box_wheel } from "./gui.js";
 import { create_rect, create_asec } from "./draw.js";
+import { on_box_contextmenu } from "./contextmenu.js";
 
 export { search, add_search_boxes, remove_searches };
 
@@ -113,7 +114,12 @@ function add_search_boxes(search_text) {
             create_asec(box, view.tl, view.zoom.x, "search " + cname) :
             create_rect(box, view.tl, view.zoom.x, view.zoom.y, "search " + cname);
 
-        b.addEventListener("click", event => on_box_click(event, box, node_id));
+        b.addEventListener("click", event =>
+            on_box_click(event, box, node_id));
+        b.addEventListener("contextmenu", event =>
+            on_box_contextmenu(event, box, "", {}, node_id));
+        b.addEventListener("wheel", event =>
+            on_box_wheel(event, box), {passive: false});
 
         b.style.fill = color;
 

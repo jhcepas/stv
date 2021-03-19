@@ -5,11 +5,12 @@ import { init_events } from "./events.js";
 import { update } from "./draw.js";
 import { download_newick, download_image, download_svg } from "./download.js";
 import { search, remove_searches } from "./search.js";
-import { zoom_into_box } from "./zoom.js";
+import { zoom_into_box, zoom_around, zoom_towards_box } from "./zoom.js";
 import { draw_minimap, update_minimap_visible_rect } from "./minimap.js";
 
 export { view, datgui, on_tree_change, on_drawer_change, show_minimap,
-         api, api_put, get_tid, on_box_click, coordinates, reset_view };
+         api, api_put, get_tid, on_box_click, on_box_wheel, coordinates,
+         reset_view };
 
 
 // Run main() when the page is loaded.
@@ -359,4 +360,19 @@ function on_box_click(event, box, node_id) {
         view.subtree += (view.subtree ? "," : "") + node_id;
         on_tree_change();
     }
+}
+
+
+// Mouse wheel -- zoom in/out (instead of scrolling).
+function on_box_wheel(event, box) {
+    event.preventDefault();
+
+    const point = {x: event.pageX, y: event.pageY};
+    const zoom_in = event.deltaY < 0;
+    const [do_zoom_x, do_zoom_y] = [!event.ctrlKey, !event.altKey];
+
+    if (view.is_circular || !view.smart_zoom)
+        zoom_around(point, zoom_in, do_zoom_x, do_zoom_y);
+    else
+        zoom_towards_box(box, point, zoom_in, do_zoom_x, do_zoom_y);
 }
