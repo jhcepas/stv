@@ -40,6 +40,7 @@ import re
 from math import pi
 from functools import partial
 from contextlib import contextmanager
+import gzip
 
 from flask import Flask, request, jsonify, g, redirect, url_for
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth, MultiAuth
@@ -450,8 +451,14 @@ def safer_eval(code, context):
 
 def add_tree():
     "Add a tree to the database (with data from the request) and return its id"
-    data = get_fields(required=['name', 'newick'],
-                      valid_extra=['description', 'owner'])
+    if request.form:
+        form = request.form
+        data = {'name': form['name'],
+                'description': form['description']}
+        data['newick'] = form['newick'] if 'newick' in form else get_newick_file()
+    else:
+        data = get_fields(required=['name', 'newick'],
+                          valid_extra=['description', 'owner'])
 
     owner = data.pop('owner', g.user_id)
 
@@ -481,6 +488,18 @@ def add_tree():
         exe('insert into user_owns_trees values (%d, %d)' % (owner, tid))
 
     return tid
+
+
+def get_newick_file():
+    "Return the contents of a newick file received as formdata"
+    try:
+        f = request.files['newick']
+        data = f.stream.read()
+        if f.filename.endswith('.gz'):
+            data = gzip.decompress(data)
+        return data.decode('utf-8').strip()
+    except (gzip.BadGzipFile, UnicodeDecodeError) as e:
+        raise InvalidUsage(f'when reading {f.filename}: {e}')
 
 
 def modify_tree_fields(tree_id):

@@ -73,7 +73,10 @@ button_upload.addEventListener("click", async () => {
         return;
     }
 
-    let newick;
+    const data = new FormData();
+    data.append("name", name);
+    data.append("description", description);
+
     if (!input_newick_file.disabled) {
         if (input_newick_file.files.length === 0) {
             div_info.innerHTML = "Missing newick file";
@@ -86,19 +89,18 @@ button_upload.addEventListener("click", async () => {
                 `(${size_MB.toFixed(1)} MB, the maximum is set to 10 MB)`;
             return;
         }
-        newick = (await input_newick_file.files[0].text()).trim();
+        data.append("newick", input_newick_file.files[0]);
     }
     else {
-        newick = input_newick_string.value.trim();
+        data.append("newick", input_newick_string.value.trim());
     }
 
     const login = get_login_info();
 
     const response = await fetch("/trees", {
         method: "POST",
-        headers: {"Content-Type": "application/json",
-                  "Authorization": `Bearer ${login.token}`},
-        body: JSON.stringify({name, description, newick}),
+        headers: {"Authorization": `Bearer ${login.token}`},
+        body: data,
     });
 
     if (response.status === 401) {
