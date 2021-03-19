@@ -57,33 +57,30 @@ class Drawer:
         self.outline = None  # will contain a box surrounding collapsed nodes
         self.collapsed = []  # will contain nodes that are collapsed together
 
+    def flush_collapsed(self):
+        if self.outline:
+            if not self.aligned:
+                yield from self.draw_outline()
+            yield from self.draw_collapsed()
+
     def update_collapsed(self, node=None, point=(0, 0)):
         "Update collapsed nodes and outline, and yield graphics if appropriate"
         if node is None:
-            if self.outline:
-                if not self.aligned:
-                    yield from self.draw_outline()
-                yield from self.draw_collapsed()
+            yield from self.flush_collapsed()
             self.outline = None
             self.collapsed = []
             return
 
         box = make_box(point, self.node_size(node))
 
-        if not self.outline:
+        stacked_box = stack(self.outline, box)
+        if stacked_box:
+            self.outline = stacked_box
+            self.collapsed.append(node)
+        else:
+            yield from self.flush_collapsed()
             self.outline = box
             self.collapsed = [node]
-        else:
-            stacked_box = stack(self.outline, box)
-            if stacked_box:
-                self.outline = stacked_box
-                self.collapsed.append(node)
-            else:
-                if not self.aligned:
-                    yield from self.draw_outline()
-                yield from self.draw_collapsed()
-                self.outline = box
-                self.collapsed = [node]
 
     def draw(self):
         "Yield graphic elements to draw the tree"
@@ -655,7 +652,7 @@ def is_inside(point, box):
 
 def stack(b1, b2):
     "Return the box containing boxes b1 and b2 stacked, or None if unstackable"
-    if b1.x == b2.x and b1.y + b1.dy == b2.y:
+    if b1 and b2 and b1.x == b2.x and b1.y + b1.dy == b2.y:
         return Box(b1.x, b1.y, max(b1.dx, b2.dx), b1.dy + b2.dy)
     else:
         return None
