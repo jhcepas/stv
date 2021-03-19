@@ -45,7 +45,7 @@ function add_node_options(box, name, properties, node_id) {
         add_button("📖 Show in taxonomy browser", () => {
             const urlbase = "https://www.ncbi.nlm.nih.gov/Taxonomy/Browser";
             window.open(`${urlbase}/wwwtax.cgi?id=${taxid}`);
-        }, `Open the NCBI Taxonomy Browser on this taxonomy ID: (${taxid}).`);
+        }, `Open the NCBI Taxonomy Browser on this taxonomy ID: ${taxid}.`);
     }
     if (!view.subtree) {
         add_button("🎯 Root on this node ⚠️", async () => {
@@ -84,6 +84,7 @@ function add_button(text, fn, tooltip) {
         fn(event);
     });
     button.classList.add("ctx_button");
+
     if (tooltip)
         button.setAttribute("title", tooltip);
 
