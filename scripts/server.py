@@ -234,19 +234,9 @@ class Trees(Resource):
         if rule == '/trees/<string:tree_id>':
             modify_tree_fields(tree_id)
             return {'message': 'ok'}
-        elif rule == '/trees/<string:tree_id>/unroot':
+        elif rule == '/trees/<string:tree_id>/sort':
             t = load_tree(tree_id)
-            tid, subtree = get_tid(tree_id)
-            if subtree:
-                raise InvalidUsage(f'operation not allowed with subtree')
-            app.trees[tid] = rooting.unroot(t)
-            return {'message': 'ok'}
-        elif rule == '/trees/<string:tree_id>/reroot':
-            t = load_tree(tree_id)
-            tid, subtree = get_tid(tree_id)
-            if subtree:
-                raise InvalidUsage(f'operation not allowed with subtree')
-            app.trees[tid] = rooting.reroot(t)
+            t.sort()
             return {'message': 'ok'}
         elif rule == '/trees/<string:tree_id>/root_at':
             t = load_tree(tree_id)
@@ -751,8 +741,7 @@ def add_resources(api):
         '/trees/<string:tree_id>/draw',
         '/trees/<string:tree_id>/size',
         '/trees/<string:tree_id>/search',
-        '/trees/<string:tree_id>/unroot',
-        '/trees/<string:tree_id>/reroot',
+        '/trees/<string:tree_id>/sort',
         '/trees/<string:tree_id>/root_at')
     add(Info, '/info')
     add(Id, '/id/<path:path>')

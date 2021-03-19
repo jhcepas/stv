@@ -61,23 +61,16 @@ function add_tree_options() {
 
     add_button("🔭 Reset view", reset_view);
     if (view.subtree) {
-        add_button("🏠 Go to main tree", () => {
+        add_button("⬅️ Go back to main tree", () => {
             view.subtree = "";
             on_tree_change();
         });
     }
-    if (!view.subtree) {
-        add_button("🪴 Unroot tree ⚠️", async () => {
-            await api_put("unroot");
-            draw_minimap();
-            update();
-        });
-        add_button("🌲 Reroot tree ⚠️", async () => {
-            await api_put("reroot");
-            draw_minimap();
-            update();
-        });
-    }
+    add_button("🔃 Sort tree ⚠️", async () => {
+        await api_put("sort");
+        draw_minimap();
+        update();
+    });
 }
 
 
