@@ -102,6 +102,7 @@
     z-index: 4;
     visibility: hidden;
     border: 1px solid #AAA;
+    background-color: white;
 }
 
 
@@ -122,10 +123,11 @@
 
 
 .ctx_label {
-    font-family: sans-serif;
     padding: 3px 10px;
     text-align: left;
-    background-color: white;
+    background-color: #EEE;
+    font-family: sans-serif;
+    font-size: 0.8em;
 }
 
 
