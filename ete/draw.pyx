@@ -145,12 +145,15 @@ class Drawer:
         if self.in_viewport(Box(x, y, dx, dy)):
             bh = self.bh(node)  # node's branching height (in the right units)
             yield from self.draw_lengthline((x, y + bh), (x + dx, y + bh))
+
             if len(node.children) > 1:
                 c0, c1 = node.children[0], node.children[-1]
                 bh0, bh1 = self.bh(c0), dy - self.node_size(c1).dy + self.bh(c1)
                 yield from self.draw_childrenline((x + dx, y + bh0),
                                                   (x + dx, y + bh1))
+
             yield from self.draw_content_inline(node, (x, y))
+
         yield from self.draw_content_float(node, (x, y))
 
     def get_nodes(self, func):
@@ -216,10 +219,10 @@ class DrawerRect(Drawer):
     def in_viewport(self, box):
         return intersects(self.viewport, box)
 
-    def flush_outline(self, minimum_width=0):
+    def flush_outline(self, minimum_dx=0):
         "Yield a box outlining the collapsed nodes, and reset them"
         x, y, dx, dy = self.outline
-        dx = max(dx, minimum_width)
+        dx = max(dx, minimum_dx)
 
         self.outline = None
         self.collapsed = []
