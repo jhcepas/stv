@@ -119,7 +119,7 @@ function smooth_zoom(point) {
         zooming.qz.x = zooming.qz.y = 1;
         zooming.timeout = undefined;
         update();
-    }, 500);  // 500 ms until we actually update (if not cancelled before!)
+    }, 400);  // 400 ms until we actually update (if not cancelled before!)
 }
 
 
