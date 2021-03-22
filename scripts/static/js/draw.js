@@ -66,11 +66,8 @@ function save_nodeboxes(items) {
 }
 
 function is_nodebox(item) {
-    return (is_rect(item) || is_asec(item)) && item[2] === "node";
+    return item[0] === 'b' && item[2] === "node";
 }
-
-const is_rect = item => item[0] === 'r';  // is it a rectangle?
-const is_asec = item => item[0] === 's';  // is it an annular sector?
 
 
 // Drawing.
