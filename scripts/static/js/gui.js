@@ -346,7 +346,8 @@ function show_help() {
 Click and drag with the left mouse button to move around the tree.
 </td></tr>
 <tr><td><br>
-Use the mouse wheel to zoom in and out.
+Use the mouse wheel to zoom in and out. Press <kbd>Ctrl</kbd> or <kbd>Alt</kbd>
+while using the wheel to zoom differently.
 </td></tr>
 <tr><td><br>
 Click on the minimap to go to a different area or drag the current view.
@@ -365,14 +366,14 @@ Use the options in the menu at the top right to change the visualization.
 
 <table style="margin: 0 auto">
 <thead><tr><th colspan="2">Keyboard Shortcuts</th></tr></thead>
-<tbody style="text-align: left">
-<tr><td><tt> </tt></td><td>&nbsp; </td></tr>
-<tr><td><tt>F1</tt></td><td>&nbsp; help</td></tr>
-<tr><td><tt>/</tt></td><td>&nbsp; search</td></tr>
-<tr><td><tt>r</tt></td><td>&nbsp; reset view</td></tr>
-<tr><td><tt>m</tt></td><td>&nbsp; toggle minimap</td></tr>
-<tr><td><tt>+</tt></td><td>&nbsp; zoom in</td></tr>
-<tr><td><tt>&ndash;</tt></td><td>&nbsp; zoom out</td></tr>
+<tbody>
+<tr><td> </td><td>&nbsp; </td></tr>
+<tr><td><kbd>F1</kbd></td><td style="text-align: left">&nbsp; help</td></tr>
+<tr><td><kbd>/</kbd></td><td style="text-align: left">&nbsp; search</td></tr>
+<tr><td><kbd>r</kbd></td><td style="text-align: left">&nbsp; reset view</td></tr>
+<tr><td><kbd>m</kbd></td><td style="text-align: left">&nbsp; toggle minimap</td></tr>
+<tr><td><kbd>+</kbd></td><td style="text-align: left">&nbsp; zoom in</td></tr>
+<tr><td><kbd>&ndash;</kbd></td><td style="text-align: left">&nbsp; zoom out</td></tr>
 </tbody>
 </table>
 
