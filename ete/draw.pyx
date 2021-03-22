@@ -372,10 +372,10 @@ class DrawerLeafNames(DrawerRect):
     def draw_content_float(self, node, point):
         if node.is_leaf:
             x, y = point
-            w, h = self.content_size(node)
+            dx, dy = self.content_size(node)
 
-            p = (x + w, y + h/1.3)
-            fs = h/1.4
+            p = (x + dx, y + dy/1.3)
+            fs = dy/1.4
             yield draw_text(node.name, p, fs, 'name')
 
 
@@ -399,12 +399,12 @@ class DrawerLengths(DrawerRect):
     def draw_content_inline(self, node, point):
         if node.length >= 0:
             x, y = point
-            w, h = self.content_size(node)
+            dx, dy = self.content_size(node)
             zx, zy = self.zoom
 
             text = '%.2g' % node.length
             p = (x, y + node.bh)
-            fs = min(node.bh, zx/zy * 1.5 * w / len(text))
+            fs = min(node.bh, zx/zy * 1.5 * dx / len(text))
             if fs * zy > self.MIN_SIZE:
                 yield draw_text(text, p, fs, 'length')
 
@@ -434,11 +434,11 @@ class DrawerCollapsed(DrawerLeafNames):
         if not names:
             return
 
-        x, y, w, h = self.outline
+        x, y, dx, dy = self.outline
 
         texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
-        p = ((0 if self.aligned else x), y + h/1.1)
-        fs = h/1.2
+        p = ((0 if self.aligned else x), y + dy/1.1)
+        fs = dy/1.2
         yield from draw_texts(texts, p, fs, 'name')
 
 
@@ -484,8 +484,8 @@ class DrawerAlign(DrawerFull):
     def draw_content_align(self, node, point):
         if node.is_leaf:
             x, y = point
-            w, h = self.content_size(node)
-            yield draw_text(node.name, (0, y + h/1.5), h/2, 'name')
+            dx, dy = self.content_size(node)
+            yield draw_text(node.name, (0, y + dy/1.5), dy/2, 'name')
 
 
 class DrawerAlignHeatMap(DrawerFull):
@@ -494,28 +494,28 @@ class DrawerAlignHeatMap(DrawerFull):
     def draw_content_align(self, node, point):
         if node.is_leaf:
             _, y = point
-            w, h = self.content_size(node)
+            dx, dy = self.content_size(node)
             zx, zy = self.zoom
             random.seed(node.name)
             a = [random.randint(1, 360) for i in range(100)]
-            yield draw_array(Box(0, y + h/8, 200, h * 0.75), a)
+            yield draw_array(Box(0, y + dy/8, 200, dy * 0.75), a)
 
     def draw_collapsed(self):
         names = [n.name for n in self.collapsed if n.name]
         texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
 
-        x, y, w, h = self.outline
+        x, y, dx, dy = self.outline
         if self.aligned:
             zx, zy = self.zoom
             random.seed(str(texts))
             a = [random.randint(1, 360) for i in range(100)]
-            yield draw_array(Box(0, y + h/8, 200, h * 0.75), a)
+            yield draw_array(Box(0, y + dy/8, 200, dy * 0.75), a)
         else:
             if not names:
                 return
-            x, y, w, h = self.outline
-            p = (x, y + h/1.1)
-            fs = h/1.2
+            x, y, dx, dy = self.outline
+            p = (x, y + dy/1.1)
+            fs = dy/1.2
             yield from draw_texts(texts, p, fs, 'name')
 
 
@@ -684,13 +684,13 @@ def circumrect(asec):
 
 def circumasec(rect):
     "Return the annular sector that circumscribes the given rectangle"
-    cdef double x, y, w, h
+    cdef double x, y, dx, dy
     if rect is None:
         return None
-    x, y, w, h = rect
-    points = [(x, y), (x, y+h), (x+w, y), (x+w, y+h)]
+    x, y, dx, dy = rect
+    points = [(x, y), (x, y+dy), (x+dx, y), (x+dx, y+dy)]
     radius2 = [x*x + y*y for x,y in points]
-    if x <= 0 and x+w >= 0 and y <= 0 and y+h >= 0:
+    if x <= 0 and x+dx >= 0 and y <= 0 and y+dy >= 0:
         return Box(0, -pi, sqrt(max(radius2)), 2*pi)
     else:
         angles = [atan2(y, x) for x,y in points]
