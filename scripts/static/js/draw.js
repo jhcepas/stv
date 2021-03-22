@@ -253,8 +253,8 @@ function draw_item(g, item, tl, zoom) {
 
     const [zx, zy] = [zoom.x, zoom.y];  // shortcut
 
-    if (item[0] === 'r' || item[0] === 's') {  // rectangle or annular sector
-        const [shape, box, type, name, properties, node_id] = item;
+    if (item[0] === 'b') {  // box (rectangle or annular sector)
+        const [ , box, type, name, properties, node_id] = item;
 
         const b = create_box(box, tl, zx, zy, type);
 

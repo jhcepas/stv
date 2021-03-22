@@ -54,109 +54,104 @@ class Drawer:
 
         self.xmin, self.xmax, self.ymin, self.ymax = limits or (0, 0, 0, 0)
 
-        self.outline = None  # will contain a box surrounding collapsed nodes
-        self.collapsed = []  # will contain nodes that are collapsed together
-
-    def flush_collapsed(self):
-        if self.outline:
-            if not self.aligned:
-                yield from self.draw_outline()
-            yield from self.draw_collapsed()
-
-    def update_collapsed(self, node=None, point=(0, 0)):
-        "Update collapsed nodes and outline, and yield graphics if appropriate"
-        if node is None:
-            yield from self.flush_collapsed()
-            self.outline = None
-            self.collapsed = []
-            return
-
-        box = make_box(point, self.node_size(node))
-
-        stacked_box = stack(self.outline, box)
-        if stacked_box:
-            self.outline = stacked_box
-            self.collapsed.append(node)
-        else:
-            yield from self.flush_collapsed()
-            self.outline = box
-            self.collapsed = [node]
+        self.outline = None  # box surrounding collapsed nodes
+        self.collapsed = []  # nodes that are collapsed together
 
     def draw(self):
         "Yield graphic elements to draw the tree"
-        node_dxs = []  # in postorder, lists of nodes dx (to find the max)
-        nodeboxes = []  # will contain the node boxes (filled in postorder)
+        node_dxs = [[]]  # lists of nodes dx (to find the max)
+        boxes = []  # node and collapsed boxes (will be filled in postorder)
 
         x, y = self.xmin, self.ymin
         for it in self.tree.walk():
-            node = it.node  # shortcut
-            dx, dy = self.content_size(node)
+            graphics = []
             if it.first_visit:
-                box_node = make_box((x, y), self.node_size(node))
+                x, y = self.on_first_visit(x, y, it, graphics, node_dxs, boxes)
+            else:
+                x, y = self.on_last_visit(x, y, it, graphics, node_dxs, boxes)
+            yield from graphics
 
-                if not self.in_viewport(box_node):
-                    y += dy
-                    it.descend = False  # skip children
-                    continue
+        if self.outline:
+            yield from self.get_outline(node_dxs, boxes)
 
-                if self.is_small(box_node):
-                    if node_dxs:  # node_dxs is empty if the root node is small
-                        node_dxs[-1].append(box_node.dx)
-                    yield from self.update_collapsed(node, (x, y))
-                    y += dy
-                    it.descend = False  # skip children
-                    continue
+        if not self.aligned:  # draw in preorder the boxes we found in postorder
+            yield from boxes[::-1]  # (so they overlap nicely)
 
-                gs = self.get_content(node, (x, y))
-                yield from gs
+    def on_first_visit(self, x, y, it, graphics, node_dxs, boxes):
+        "Update lists of graphics, node_dxs, boxes, and return new position"
+        node = it.node  # shortcut
+        box_node = make_box((x, y), self.node_size(node))
 
-                if node.is_leaf:
-                    ndx = drawn_size(gs, self.get_box).dx
-                    if node_dxs:
-                        node_dxs[-1].append(ndx)
-                    nodeboxes.append( (node, it.node_id, Box(x, y, ndx, dy)) )
-                    y += dy
-                else:
-                    node_dxs.append([])
-                    x += dx
-            else:  # last time we visit this node (who is internal and visible)
-                gs = list(self.update_collapsed())
-                yield from gs
+        if not self.in_viewport(box_node):
+            it.descend = False  # skip children
+            return x, y + box_node.dy
 
-                node_dxs[-1].append(drawn_size(gs, self.get_box).dx)
+        if self.is_small(box_node):
+            node_dxs[-1].append(box_node.dx)
+            self.collapsed.append(node)
+            self.outline = stack(self.outline, box_node)
+            it.descend = False  # skip children
+            return x, y + box_node.dy
 
-                x -= dx
-                ndx = dx + max(node_dxs.pop() or [0])
-                if node_dxs:
-                    node_dxs[-1].append(ndx)
-                nodeboxes.append( (node, it.node_id, Box(x, y - dy, ndx, dy)) )
+        if self.outline:
+            graphics += self.get_outline(node_dxs, boxes)
 
-        yield from self.update_collapsed()
+        graphics += self.get_content(node, (x, y))
 
-        if not self.aligned:  # draw the nodeboxes we found in postorder
-            for node, node_id, box in nodeboxes[::-1]:
-                yield from self.draw_nodebox(node, node_id, box)
+        dx, dy = self.content_size(node)
+
+        if node.is_leaf:
+            ndx = drawn_size(graphics, self.get_box).dx
+            node_dxs[-1].append(ndx)
+            boxes += self.draw_nodebox(node, it.node_id, Box(x, y, ndx, dy))
+            return x, y + dy
+        else:
+            node_dxs.append([])
+            return x + dx, y
+
+    def on_last_visit(self, x, y, it, graphics, node_dxs, boxes):
+        "Update lists of graphics, node_dxs, boxes, and return new position"
+        # Last time we visit this node (who is internal and visible).
+        if self.outline:
+            graphics += self.get_outline(node_dxs, boxes)
+
+        dx, dy = self.content_size(it.node)
+
+        ndx = dx + max(node_dxs.pop() or [0])
+        node_dxs[-1].append(ndx)
+
+        box = Box(x - dx, y - dy, ndx, dy)
+        boxes += self.draw_nodebox(it.node, it.node_id, box)
+
+        return x - dx, y
+
+    def get_outline(self, node_dxs, boxes):
+        "Update input lists and outline, and yield its representation"
+        graphics = list(self.draw_collapsed())
+        ndx = drawn_size(graphics, self.get_box).dx
+        node_dxs[-1].append(ndx)
+        boxes += self.flush_outline(ndx)
+        yield from graphics
 
     def get_content(self, node, point):
-        "Return list of content's graphic elements"
+        "Yield the node content's graphic elements"
         if self.aligned:
-            return list(self.draw_content_align(node, point))
+            yield from self.draw_content_align(node, point)
+            return
 
         x, y = point
         dx, dy = self.content_size(node)
 
-        gs = []  # graphic elements to return
         if self.in_viewport(Box(x, y, dx, dy)):
             bh = self.bh(node)  # node's branching height (in the right units)
-            gs += self.draw_lengthline((x, y + bh), (x + dx, y + bh))
+            yield from self.draw_lengthline((x, y + bh), (x + dx, y + bh))
             if len(node.children) > 1:
                 c0, c1 = node.children[0], node.children[-1]
                 bh0, bh1 = self.bh(c0), dy - self.node_size(c1).dy + self.bh(c1)
-                gs += self.draw_childrenline((x + dx, y + bh0), (x + dx, y + bh1))
-            gs += self.draw_content_inline(node, (x, y))
-        gs += self.draw_content_float(node, (x, y))
-
-        return gs
+                yield from self.draw_childrenline((x + dx, y + bh0),
+                                                  (x + dx, y + bh1))
+            yield from self.draw_content_inline(node, (x, y))
+        yield from self.draw_content_float(node, (x, y))
 
     def get_nodes(self, func):
         "Yield (node_id, box) of the nodes with func(node) == True"
@@ -221,8 +216,15 @@ class DrawerRect(Drawer):
     def in_viewport(self, box):
         return intersects(self.viewport, box)
 
-    def draw_outline(self):
-        yield draw_box('r', self.outline, 'outline', '(collapsed)')
+    def flush_outline(self, minimum_width=0):
+        "Yield a box outlining the collapsed nodes, and reset them"
+        x, y, dx, dy = self.outline
+        dx = max(dx, minimum_width)
+
+        self.outline = None
+        self.collapsed = []
+
+        yield draw_box(Box(x, y, dx, dy), 'outline', '(collapsed)')
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
@@ -255,7 +257,7 @@ class DrawerRect(Drawer):
         yield draw_line(p1, p2)
 
     def draw_nodebox(self, node, node_id, box):
-        yield draw_box('r', box, 'node', node.name, node.properties, node_id)
+        yield draw_box(box, 'node', node.name, node.properties, node_id)
 
 
 
@@ -277,11 +279,17 @@ class DrawerCirc(Drawer):
             intersects(self.viewport, circumrect(box))) and
             intersects(Box(0, -pi, self.node_size(self.tree).dx, 2*pi), box))
 
-    def draw_outline(self):
+    def flush_outline(self, minimum_dr=0):
+        "Yield a box outlining the collapsed nodes, and reset them"
         r, a, dr, da = self.outline
+        dr = max(dr, minimum_dr)
+
+        self.outline = None
+        self.collapsed = []
+
         a1, a2 = clip_angles(a, a + da)
         if a1 is not None:
-            yield draw_box('s', Box(r, a1, dr, a2 - a1), 'outline', '(collapsed)')
+            yield draw_box(Box(r, a1, dr, a2 - a1), 'outline', '(collapsed)')
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
@@ -321,7 +329,7 @@ class DrawerCirc(Drawer):
         r, a, dr, da = box
         a1, a2 = clip_angles(a, a + da)
         if a1 is not None:
-            yield draw_box('s', Box(r, a1, dr, a2 - a1), 'node',
+            yield draw_box(Box(r, a1, dr, a2 - a1), 'node',
                            node.name, node.properties, node_id)
 
 
@@ -524,8 +532,8 @@ def draw_texts(texts, point, fs, text_type):
 
 # Basic drawing elements.
 
-def draw_box(shape, box, box_type='', name='', properties=None, node_id=None):
-    return [shape, box, box_type, name, properties or {}, node_id or []]
+def draw_box(box, box_type='', name='', properties=None, node_id=None):
+    return ['b', box, box_type, name, properties or {}, node_id or []]
 
 def draw_line(p1, p2):
     return ['l', p1, p2]
@@ -605,7 +613,6 @@ def drawn_size(elements, get_box):
     # rectangles, and dr and da for boxes that are annular sectors.
     cdef double x, y, dx, dy, x_min, x_max, y_min, y_max
 
-    elements = [e for e in elements if not is_outline(e)]
     if not elements:
         return Size(0, 0)
 
@@ -619,10 +626,6 @@ def drawn_size(elements, get_box):
         y_min, y_max = min(y_min, y), max(y_max, y + dy)
 
     return Size(x_max - x_min, y_max - y_min)
-
-
-def is_outline(element):
-    return element[0] in ['r', 's'] and element[2] == 'outline'
 
 
 def intersects(b1, b2):
@@ -651,11 +654,13 @@ def is_inside(point, box):
 
 
 def stack(b1, b2):
-    "Return the box containing boxes b1 and b2 stacked, or None if unstackable"
-    if b1 and b2 and b1.x == b2.x and b1.y + b1.dy == b2.y:
-        return Box(b1.x, b1.y, max(b1.dx, b2.dx), b1.dy + b2.dy)
+    "Return the box resulting from stacking boxes b1 and b2"
+    if not b1:
+        return b2
     else:
-        return None
+        x, y, dx1, dy1 = b1
+        _, _, dx2, dy2 = b2
+        return Box(x, y, max(dx1, dx2), dy1 + dy2)
 
 
 def circumrect(asec):

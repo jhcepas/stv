@@ -301,9 +301,8 @@ def test_get_known_tree():
 
 
         elements = get(f'trees/{tid}/draw')
-        assert all(x[0] in ['r', 's', 'l', 'c', 't'] for x in elements)
-        assert all(x[2] in ['node', 'outline'] for x in elements
-            if x[0] in ['r', 's'])
+        assert all(x[0] in ['b', 'l', 'c', 't'] for x in elements)
+        assert all(x[2] in ['node', 'outline'] for x in elements if x[0] == 'b')
 
         assert set(get(f'trees/{tid}/size').keys()) == {'width', 'height'}
 
