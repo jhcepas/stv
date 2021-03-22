@@ -335,18 +335,18 @@ class DrawerCirc(Drawer):
                            node.name, node.properties, node_id)
 
 
-cdef (double, double) clip_angles(double a1, double a2):
+def clip_angles(double a1, double a2):
     "Return the angles such that a1 to a2 extend at maximum from -pi to pi"
     EPSILON = 1e-8  # NOTE: without it, p1 == p2 and svg arcs are not drawn
     return max(-pi + EPSILON, a1), min(pi - EPSILON, a2)
 
 
-cdef (double, double) cartesian((double, double) point):
+def cartesian((double, double) point):
     r, a = point
     return r * cos(a), r * sin(a)
 
 
-cdef (double, double) polar((double, double) point):
+def polar((double, double) point):
     x, y = point
     return sqrt(x*x + y*y), atan2(y, x)
 
