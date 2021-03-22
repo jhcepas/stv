@@ -54,47 +54,47 @@ class Drawer:
 
         self.xmin, self.xmax, self.ymin, self.ymax = limits or (0, 0, 0, 0)
 
-        self.outline = None  # box surrounding collapsed nodes
-        self.collapsed = []  # nodes that are collapsed together
-
     def draw(self):
         "Yield graphic elements to draw the tree"
-        node_dxs = [[]]  # lists of nodes dx (to find the max)
-        boxes = []  # node and collapsed boxes (will be filled in postorder)
+        self.outline = None  # box surrounding collapsed nodes
+        self.collapsed = []  # nodes that are collapsed together
+        self.boxes = []  # node and collapsed boxes (will be filled in postorder)
+        self.node_dxs = [[]]  # lists of nodes dx (to find the max)
 
-        x, y = self.xmin, self.ymin
+        point = self.xmin, self.ymin
         for it in self.tree.walk():
             graphics = []
             if it.first_visit:
-                x, y = self.on_first_visit(x, y, it, graphics, node_dxs, boxes)
+                point = self.on_first_visit(point, it, graphics)
             else:
-                x, y = self.on_last_visit(x, y, it, graphics, node_dxs, boxes)
+                point = self.on_last_visit(point, it, graphics)
             yield from graphics
 
         if self.outline:
-            yield from self.get_outline(node_dxs, boxes)
+            yield from self.get_outline()
 
         if not self.aligned:  # draw in preorder the boxes we found in postorder
-            yield from boxes[::-1]  # (so they overlap nicely)
+            yield from self.boxes[::-1]  # (so they overlap nicely)
 
-    def on_first_visit(self, x, y, it, graphics, node_dxs, boxes):
-        "Update lists of graphics, node_dxs, boxes, and return new position"
+    def on_first_visit(self, point, it, graphics):
+        "Update list of graphics to draw and return new position"
         node = it.node  # shortcut
-        box_node = make_box((x, y), self.node_size(node))
+        box_node = make_box(point, self.node_size(node))
+        x, y = point
 
         if not self.in_viewport(box_node):
             it.descend = False  # skip children
             return x, y + box_node.dy
 
         if self.is_small(box_node):
-            node_dxs[-1].append(box_node.dx)
+            self.node_dxs[-1].append(box_node.dx)
             self.collapsed.append(node)
             self.outline = stack(self.outline, box_node)
             it.descend = False  # skip children
             return x, y + box_node.dy
 
         if self.outline:
-            graphics += self.get_outline(node_dxs, boxes)
+            graphics += self.get_outline()
 
         graphics += self.get_content(node, (x, y))
 
@@ -102,36 +102,30 @@ class Drawer:
 
         if node.is_leaf:
             ndx = drawn_size(graphics, self.get_box).dx
-            node_dxs[-1].append(ndx)
-            boxes += self.draw_nodebox(node, it.node_id, Box(x, y, ndx, dy))
+            self.node_dxs[-1].append(ndx)
+            self.boxes += self.draw_nodebox(node, it.node_id, Box(x, y, ndx, dy))
             return x, y + dy
         else:
-            node_dxs.append([])
+            self.node_dxs.append([])
             return x + dx, y
 
-    def on_last_visit(self, x, y, it, graphics, node_dxs, boxes):
-        "Update lists of graphics, node_dxs, boxes, and return new position"
+    def on_last_visit(self, point, it, graphics):
+        "Update list of graphics to draw and return new position"
         # Last time we visit this node (who is internal and visible).
         if self.outline:
-            graphics += self.get_outline(node_dxs, boxes)
+            graphics += self.get_outline()
 
+        x_after, y_after = point
         dx, dy = self.content_size(it.node)
+        x_before, y_before = x_after - dx, y_after - dy
 
-        ndx = dx + max(node_dxs.pop() or [0])
-        node_dxs[-1].append(ndx)
+        ndx = dx + max(self.node_dxs.pop() or [0])
+        self.node_dxs[-1].append(ndx)
 
-        box = Box(x - dx, y - dy, ndx, dy)
-        boxes += self.draw_nodebox(it.node, it.node_id, box)
+        box = Box(x_before, y_before, ndx, dy)
+        self.boxes += self.draw_nodebox(it.node, it.node_id, box)
 
-        return x - dx, y
-
-    def get_outline(self, node_dxs, boxes):
-        "Update input lists and outline, and yield its representation"
-        graphics = list(self.draw_collapsed())
-        ndx = drawn_size(graphics, self.get_box).dx
-        node_dxs[-1].append(ndx)
-        boxes += self.flush_outline(ndx)
-        yield from graphics
+        return x_before, y_after
 
     def get_content(self, node, point):
         "Yield the node content's graphic elements"
@@ -156,6 +150,27 @@ class Drawer:
 
         yield from self.draw_content_float(node, (x, y))
 
+    def get_outline(self):
+        "Yield the outline representation"
+        graphics = list(self.draw_collapsed())
+        self.collapsed = []
+
+        ndx = drawn_size(graphics, self.get_box).dx
+        self.node_dxs[-1].append(ndx)
+
+        box = draw_box(self.flush_outline(ndx), 'outline', '(collapsed)')
+        self.boxes.append(box)
+
+        yield from graphics
+
+    def flush_outline(self, minimum_dx=0):
+        "Return box outlining the collapsed nodes and reset the current outline"
+        x, y, dx, dy = self.outline
+        self.outline = None
+        return Box(x, y, max(dx, minimum_dx), dy)
+
+    # These are functions useful for searches and for picking nodes from
+    # their covered areas.
     def get_nodes(self, func):
         "Yield (node_id, box) of the nodes with func(node) == True"
         x, y = self.xmin, self.ymin
@@ -219,16 +234,6 @@ class DrawerRect(Drawer):
     def in_viewport(self, box):
         return intersects(self.viewport, box)
 
-    def flush_outline(self, minimum_dx=0):
-        "Yield a box outlining the collapsed nodes, and reset them"
-        x, y, dx, dy = self.outline
-        dx = max(dx, minimum_dx)
-
-        self.outline = None
-        self.collapsed = []
-
-        yield draw_box(Box(x, y, dx, dy), 'outline', '(collapsed)')
-
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
         return Size(node.size[0], node.size[1])
@@ -283,16 +288,10 @@ class DrawerCirc(Drawer):
             intersects(Box(0, -pi, self.node_size(self.tree).dx, 2*pi), box))
 
     def flush_outline(self, minimum_dr=0):
-        "Yield a box outlining the collapsed nodes, and reset them"
-        r, a, dr, da = self.outline
-        dr = max(dr, minimum_dr)
-
-        self.outline = None
-        self.collapsed = []
-
+        "Return box outlining the collapsed nodes"
+        r, a, dr, da = super().flush_outline(minimum_dr)
         a1, a2 = clip_angles(a, a + da)
-        if a1 is not None:
-            yield draw_box(Box(r, a1, dr, a2 - a1), 'outline', '(collapsed)')
+        return Box(r, a1, dr, a2 - a1)
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
@@ -318,39 +317,43 @@ class DrawerCirc(Drawer):
 
     def draw_lengthline(self, p1, p2):
         "Yield a line representing a length"
-        if -pi <= p1[1] <= pi:  # NOTE: the angles p1[1] and p2[1] are equal
-            yield draw_line(cartesian(*p1), cartesian(*p2))
+        if -pi <= p1[1] < pi:  # NOTE: the angles p1[1] and p2[1] are equal
+            yield draw_line(cartesian(p1), cartesian(p2))
 
     def draw_childrenline(self, p1, p2):
         "Yield an arc spanning children that starts at p1 and ends at p2"
         (r1, a1), (r2, a2) = p1, p2
         a1, a2 = clip_angles(a1, a2)
-        if a1 is not None:
-            yield draw_arc(cartesian(r1, a1), cartesian(r2, a2), a2 - a1 > pi)
+        if a1 < a2:
+            yield draw_arc(cartesian((r1, a1)), cartesian((r2, a2)), a2 - a1 > pi)
 
     def draw_nodebox(self, node, node_id, box):
         r, a, dr, da = box
         a1, a2 = clip_angles(a, a + da)
-        if a1 is not None:
+        if a1 < a2:
             yield draw_box(Box(r, a1, dr, a2 - a1), 'node',
                            node.name, node.properties, node_id)
 
 
-def clip_angles(double a1, double a2):
+cdef (double, double) clip_angles(double a1, double a2):
     "Return the angles such that a1 to a2 extend at maximum from -pi to pi"
-    if (a1 < -pi and a2 < -pi) or (a1 > pi and a2 > pi):
-        return None, None
-    else:
-        EPSILON = 1e-6  # NOTE: without it, p1 == p2 and svg arcs are not drawn
-        return max(-pi + EPSILON, a1), min(pi - EPSILON, a2)
+    EPSILON = 1e-8  # NOTE: without it, p1 == p2 and svg arcs are not drawn
+    return max(-pi + EPSILON, a1), min(pi - EPSILON, a2)
 
 
-def cartesian(double r, double a):
+cdef (double, double) cartesian((double, double) point):
+    r, a = point
     return r * cos(a), r * sin(a)
 
 
-def polar(double x, double y):
+cdef (double, double) polar((double, double) point):
+    x, y = point
     return sqrt(x*x + y*y), atan2(y, x)
+
+
+def is_good_angle_interval(a1, a2):
+    EPSILON = 1e-12  # without it, rounding can fake a2 > pi
+    return -pi <= a1 < a2 < pi + EPSILON
 
 
 class DrawerSimple(DrawerRect):
@@ -384,8 +387,8 @@ class DrawerCircLeafNames(DrawerCirc):
             r, a = point
             dr, da = self.content_size(node)
 
-            if -pi <= a <= pi and -pi <= a + da <= pi:
-                p = cartesian(r + dr, a + da/1.3)
+            if is_good_angle_interval(a, a + da):
+                p = cartesian((r + dr, a + da/1.3))
                 fs = (r + dr) * da/1.4
                 yield draw_text(node.name, p, fs, 'name')
 
@@ -415,9 +418,9 @@ class DrawerCircLengths(DrawerCirc):
             dr, da = self.content_size(node)
             zx, zy = self.zoom
 
-            if -pi <= a <= pi and -pi <= a + da <= pi:
+            if is_good_angle_interval(a, a + da):
                 text = '%.2g' % node.length
-                p = cartesian(r, a + self.bh(node))
+                p = cartesian((r, a + self.bh(node)))
                 fs = min((r + dr) * self.bh(node), zx/zy * 1.5 * dr / len(text))
                 if fs * zy > self.MIN_SIZE:
                     yield draw_text(text, p, fs, 'length')
@@ -461,7 +464,7 @@ class DrawerCircCollapsed(DrawerCircLeafNames):
         font_size = fs / (len(texts) + (len(texts) - 1) * alpha)
         da = font_size * (1 + alpha) / r if r > 0 else 2*pi
         for text in texts[::-1]:
-            yield draw_text(text, cartesian(r, a), font_size, 'name')
+            yield draw_text(text, cartesian((r, a)), font_size, 'name')
             a -= da
 
 
@@ -597,7 +600,7 @@ def get_asec(element, zoom):
         return circumasec(rect)
     elif eid == 't':
         _, text, point, fs, _ = element
-        r, a = polar(*point)
+        r, a = polar(point)
         zx, zy = zoom
         dr = zy/zx * fs / 1.5 * len(text)
         da = fs/r if r > 0 else 2*pi
