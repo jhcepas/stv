@@ -478,8 +478,21 @@ class DrawerCircFull(DrawerCircCollapsed, DrawerCircLengths):
     pass
 
 
-class DrawerAlign(DrawerFull):
+class DrawerAlign(DrawerLengths):
     "With aligned content"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.tree_dx = self.tree.size[0]
+
+    def draw_content_float(self, node, point):
+        if node.is_leaf:
+            x, y = point
+            dx, dy = self.content_size(node)
+
+            p1 = (x + dx, y + dy/2)
+            p2 = (2 * self.tree_dx, y + dy/2)
+            yield draw_line(p1, p2, 'dotted')
 
     def draw_content_align(self, node, point):
         if node.is_leaf:
@@ -541,11 +554,11 @@ def draw_texts(texts, point, fs, text_type):
 def draw_box(box, box_type='', name='', properties=None, node_id=None):
     return ['b', box, box_type, name, properties or {}, node_id or []]
 
-def draw_line(p1, p2):
-    return ['l', p1, p2]
+def draw_line(p1, p2, line_type=''):
+    return ['l', p1, p2, line_type]
 
-def draw_arc(p1, p2, large=False):
-    return ['c', p1, p2, int(large)]
+def draw_arc(p1, p2, large=False, arc_type=''):
+    return ['c', p1, p2, int(large), arc_type]
 
 def draw_text(text, point, fs, text_type=''):
     return ['t', text, point, fs, text_type]
@@ -565,14 +578,14 @@ def make_box(point, size):
 def get_rect(element, zoom):
     "Return the rectangle that contains the given graphic element"
     eid = element[0]
-    if eid == 'r':
+    if eid == 'b':
         _, box, _, _, _, _ = element
         return box
-    elif eid == 's':
-        _, box, _, _, _, _ = element
-        return circumrect(box)
-    elif eid in ['l', 'c']:
-        _, (x1, y1), (x2, y2) = element
+    elif eid == 'l':
+        _, (x1, y1), (x2, y2), _ = element
+        return Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
+    elif eid == 'c':
+        _, (x1, y1), (x2, y2), _, _ = element
         return Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
     elif eid == 't':
         _, text, (x, y), fs, _ = element
@@ -588,16 +601,15 @@ def get_rect(element, zoom):
 def get_asec(element, zoom):
     "Return the annular sector that contains the given graphic element"
     eid = element[0]
-    if eid == 'r':
-        _, box, _, _, _, _ = element
-        return circumasec(box)
-    elif eid == 's':
+    if eid == 'b':
         _, box, _, _, _, _ = element
         return box
-    elif eid in ['l', 'c']:
-        _, (x1, y1), (x2, y2) = element
-        rect = Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
-        return circumasec(rect)
+    elif eid == 'l':
+        _, (x1, y1), (x2, y2), _ = element
+        return Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
+    elif eid == 'c':
+        _, (x1, y1), (x2, y2), _, _ = element
+        return Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
     elif eid == 't':
         _, text, point, fs, _ = element
         r, a = polar(point)

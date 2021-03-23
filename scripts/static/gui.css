@@ -68,6 +68,12 @@
     border-left: dashed;
 }
 
+
+.dotted {
+    stroke-dasharray: 4;
+}
+
+
 .minimap {
     position: absolute;
     border-style: double;

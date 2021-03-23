@@ -171,12 +171,12 @@ function create_circ_cone(box, tl, z=1, type="") {
 }
 
 
-function create_line(p1, p2, tl, zx, zy) {
+function create_line(p1, p2, tl, zx, zy, type) {
     const [x1, y1] = [zx * (p1[0] - tl.x), zy * (p1[1] - tl.y)],
           [x2, y2] = [zx * (p2[0] - tl.x), zy * (p2[1] - tl.y)];
 
     return create_svg_element("line", {
-        "class": "line",
+        "class": "line " + type,
         "x1": x1, "y1": y1,
         "x2": x2, "y2": y2,
         "stroke": view.line.color,
@@ -184,7 +184,7 @@ function create_line(p1, p2, tl, zx, zy) {
 }
 
 
-function create_arc(p1, p2, large, tl, z=1) {
+function create_arc(p1, p2, large, tl, z=1, type) {
     const [x1, y1] = p1,
           [x2, y2] = p2;
     const r = z * Math.sqrt(x1*x1 + y1*y1);
@@ -192,7 +192,7 @@ function create_arc(p1, p2, large, tl, z=1) {
           n2 = {x: z * (x2 - tl.x), y: z * (y2 - tl.y)};
 
     return create_svg_element("path", {
-        "class": "line",
+        "class": "line " + type,
         "d": `M ${n1.x} ${n1.y} A ${r} ${r} 0 ${large} 1 ${n2.x} ${n2.y}`,
         "stroke": view.line.color,
     });
@@ -267,14 +267,14 @@ function draw_item(g, item, tl, zoom) {
             b.appendChild(create_tooltip(name, properties));
     }
     else if (item[0] === 'l') {  // line
-        const [ , p1, p2] = item;
+        const [ , p1, p2, type] = item;
 
-        g.appendChild(create_line(p1, p2, tl, zx, zy));
+        g.appendChild(create_line(p1, p2, tl, zx, zy, type));
     }
     else if (item[0] === 'c') {  // arc (part of a circle)
-        const [ , p1, p2, large] = item;
+        const [ , p1, p2, large, type] = item;
 
-        g.appendChild(create_arc(p1, p2, large, tl, zx));
+        g.appendChild(create_arc(p1, p2, large, tl, zx, type));
     }
     else if (item[0] === 't') {  // text
         const [ , text, point, fs, type] = item;
