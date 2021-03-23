@@ -96,7 +96,7 @@ class Drawer:
         if self.outline:
             graphics += self.get_outline()
 
-        graphics += self.get_content(node, (x, y))
+        graphics += self.get_content(node, point)
 
         dx, dy = self.content_size(node)
 
@@ -146,9 +146,9 @@ class Drawer:
                 yield from self.draw_childrenline((x + dx, y + bh0),
                                                   (x + dx, y + bh1))
 
-            yield from self.draw_content_inline(node, (x, y))
+            yield from self.draw_content_inline(node, point)
 
-        yield from self.draw_content_float(node, (x, y))
+        yield from self.draw_content_float(node, point)
 
     def get_outline(self):
         "Yield the outline representation"
@@ -169,8 +169,8 @@ class Drawer:
         self.outline = None
         return Box(x, y, max(dx, minimum_dx), dy)
 
-    # These are functions useful for searches and for picking nodes from
-    # their covered areas.
+    # These are functions useful for searches and for picking a node from
+    # a point inside it.
     def get_nodes(self, func):
         "Yield (node_id, box) of the nodes with func(node) == True"
         x, y = self.xmin, self.ymin
@@ -197,7 +197,7 @@ class Drawer:
             cdx, cdy = self.content_size(node)
             if not is_inside(point, Box(x, y, ndx, ndy)):
                 it.descend = False  # skip walking over the node's children
-                y += cdy
+                y += ndy
             elif node.is_leaf or is_inside(point, Box(x, y, cdx, cdy)):
                 return node
             else:

@@ -246,7 +246,7 @@ function draw(element, items, tl, zoom) {
 
 // Append to g the graphical (svg) element corresponding to a drawer item.
 function draw_item(g, item, tl, zoom) {
-    // item looks like ['r', ...] for a rectangle, etc.
+    // item looks like ['l', ...] for a line, etc.
 
     const [zx, zy] = [zoom.x, zoom.y];  // shortcut
 
