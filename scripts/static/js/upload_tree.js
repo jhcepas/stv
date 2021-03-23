@@ -5,8 +5,18 @@ document.addEventListener("DOMContentLoaded", update);
 
 
 function get_login_info() {
-    return JSON.parse(window.localStorage.getItem("login_info"));
+    return JSON.parse(localStorage.getItem("login_info"));
 }
+
+function save_login_info(data) {
+    localStorage.setItem("login_info", JSON.stringify(data));
+}
+
+function clear_login_info() {
+    localStorage.removeItem("login_info");
+}
+
+window.clear_login_info = clear_login_info;  // so it can be called in onclick
 
 
 function update() {
@@ -18,7 +28,7 @@ function update() {
             `Logged in as ${login.username} (${login.name})<br>` +
             `<a href="/users/${login.id}">info</a> | ` +
             `<a href="#" onclick="` +
-                `window.localStorage.clear(); update(); return false;` +
+                `clear_login_info(); update(); return false;` +
             `">log out</a>`;
     }
     else {
@@ -59,8 +69,8 @@ button_login.addEventListener("click", async () => {
         return;
     }
 
-    const data = await response.json();
-    window.localStorage.setItem("login_info", JSON.stringify(data));
+    save_login_info(await response.json());
+
     update();
 });
 
@@ -107,7 +117,7 @@ button_upload.addEventListener("click", async () => {
         div_info.innerHTML =
             `Upload failed - Unauthorized<br>` +
             `<a href="#" onclick="` +
-                `window.localStorage.clear(); update(); return false;` +
+                `clear_login_info(); update(); return false;` +
             `">You need to login again</a>`;
         return;
     }
