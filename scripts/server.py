@@ -626,6 +626,8 @@ def del_tree(tid):
     exe('delete from trees where id=?', tid)
     exe('delete from user_owns_trees where id_tree=?', tid)
     exe('delete from user_reads_trees where id_tree=?', tid)
+    if tid in app.trees:
+        del app.trees[tid]
 
 
 def strip(d):
