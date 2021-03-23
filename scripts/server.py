@@ -367,8 +367,8 @@ def get_newick(tree_id, max_mb):
     try:
         tid, subtree = get_tid(tree_id)
 
-        if subtree and tree_id in app.trees:
-            newick = tree.dumps(app.trees[newick][subtree])
+        if subtree and tid in app.trees:
+            newick = tree.dumps(app.trees[tid][subtree])
         else:
             newicks = dbget0('newick', 'trees where id=?', tid)
             assert len(newicks) == 1
