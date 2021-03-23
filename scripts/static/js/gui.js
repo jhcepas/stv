@@ -110,11 +110,11 @@ async function api(endpoint) {
 
 
 function get_login_info() {
-    return JSON.parse(window.localStorage.getItem("login_info"));
+    return JSON.parse(localStorage.getItem("login_info"));
 }
 
 async function login_as_guest() {
-    window.localStorage.clear();
+    localStorage.clear();
 
     const [username, password] = ["guest", "123"];
 
@@ -125,7 +125,7 @@ async function login_as_guest() {
     });
 
     const data = await response.json();
-    window.localStorage.setItem("login_info", JSON.stringify(data));
+    localStorage.setItem("login_info", JSON.stringify(data));
 }
 
 async function api_put(command, params=undefined) {
