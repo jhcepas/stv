@@ -327,7 +327,7 @@ def load_tree(tree_id):
 def get_drawer(tree_id, args):
     "Return the drawer initialized as specified in the args"
     valid_keys = ['x', 'y', 'w', 'h', 'zx', 'zy', 'drawer', 'min_size',
-        'aligned', 'rmin', 'amin', 'amax']
+                  'aligned', 'rmin', 'amin', 'amax']
 
     try:
         assert all(k in valid_keys for k in args.keys()), 'invalid keys'
