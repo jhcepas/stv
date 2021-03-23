@@ -10,7 +10,7 @@ import { draw_minimap, update_minimap_visible_rect } from "./minimap.js";
 
 export { view, datgui, on_tree_change, on_drawer_change, show_minimap,
          api, api_put, get_tid, on_box_click, on_box_wheel, coordinates,
-         reset_view, show_help };
+         reset_view, show_help, sort };
 
 
 // Run main() when the page is loaded.
@@ -23,6 +23,9 @@ const view = {
     // tree
     tree: "",
     subtree: "",
+    sorting: {sort: () => sort(),
+              key: '(node.size[1], node.size[0], node.name)',
+              reverse: false},
     upload: () => window.location.href = "upload_tree.html",
     download: {newick: () => download_newick(),
                svg:    () => download_svg(),
@@ -432,4 +435,11 @@ function on_box_wheel(event, box) {
         zoom_around(point, zoom_in, do_zoom_x, do_zoom_y);
     else
         zoom_towards_box(box, point, zoom_in, do_zoom_x, do_zoom_y);
+}
+
+
+async function sort() {
+    await api_put("sort", [view.sorting.key, view.sorting.reverse]);
+    draw_minimap();
+    update();
 }

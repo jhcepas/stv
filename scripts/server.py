@@ -236,7 +236,10 @@ class Trees(Resource):
             return {'message': 'ok'}
         elif rule == '/trees/<string:tree_id>/sort':
             t = load_tree(tree_id)
-            t.sort()
+            key_text, reverse = request.json  # NOTE: not in request.args
+            def key(node):
+                safer_eval(key_text, {'node', node})
+            rooting.sort(t, None, reverse)  # None -> key
             return {'message': 'ok'}
         elif rule == '/trees/<string:tree_id>/root_at':
             t = load_tree(tree_id)
@@ -245,6 +248,17 @@ class Trees(Resource):
                 raise InvalidUsage(f'operation not allowed with subtree')
             node_id = request.json  # NOTE: not in request.args
             app.trees[tid] = rooting.root_at(t[node_id])
+            return {'message': 'ok'}
+        elif rule == '/trees/<string:tree_id>/remove':
+            try:
+                t = load_tree(tree_id)
+                node_id = request.json  # NOTE: not in request.args
+                rooting.remove(t[node_id])
+            except AssertionError as e:
+                raise InvalidUsage(f'cannot remove ${node_id}: {e}')
+            return {'message': 'ok'}
+        elif rule == '/trees/<string:tree_id>/search':
+            add_search(tree_id, request.args.copy())
             return {'message': 'ok'}
 
     @auth.login_required
@@ -741,8 +755,10 @@ def add_resources(api):
         '/trees/<string:tree_id>/draw',
         '/trees/<string:tree_id>/size',
         '/trees/<string:tree_id>/search',
+        '/trees/<string:tree_id>/searches',
         '/trees/<string:tree_id>/sort',
-        '/trees/<string:tree_id>/root_at')
+        '/trees/<string:tree_id>/root_at',
+        '/trees/<string:tree_id>/remove')
     add(Info, '/info')
     add(Id, '/id/<path:path>')
 

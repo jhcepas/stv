@@ -41,6 +41,11 @@ function add_menu_tree(dgui, trees) {
     });
     folder_tree.add(view, "subtree").onChange(on_tree_change);
 
+    const folder_sort = folder_tree.addFolder("sort");
+    folder_sort.add(view.sorting, "sort");
+    folder_sort.add(view.sorting, "key");
+    folder_sort.add(view.sorting, "reverse");
+
     folder_tree.add(view, "upload");
 
     const folder_download = folder_tree.addFolder("download");

@@ -1,6 +1,6 @@
 // Functions related to the context menu (right-click menu).
 
-import { view, api_put, on_tree_change, reset_view } from "./gui.js";
+import { view, api_put, on_tree_change, reset_view, sort } from "./gui.js";
 import { draw_minimap } from "./minimap.js";
 import { update } from "./draw.js";
 
@@ -54,6 +54,11 @@ function add_node_options(box, name, properties, node_id) {
             update();
         }, "Set this node as the root of the tree. Changes the tree structure.");
     }
+    add_button("✂️ Remove node ⚠️", async () => {
+        await api_put("remove", node_id);
+        draw_minimap();
+        update();
+    }, "Prune this branch from the tree. Changes the tree structure.");
 }
 
 
@@ -67,11 +72,8 @@ function add_tree_options() {
             on_tree_change();
         }, "Exit view on current subtree.");
     }
-    add_button("🔃 Sort tree ⚠️", async () => {
-        await api_put("sort");
-        draw_minimap();
-        update();
-    }, "Sort the branches according to the current sorting function. " +
+    add_button("🔃 Sort tree ⚠️", sort,
+        "Sort the branches according to the current sorting function. " +
        "Changes the tree structure.");
 }
 
