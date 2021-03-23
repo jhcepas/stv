@@ -60,3 +60,26 @@ def get_root_id(node):
         positions.append(parent.children.index(current_root))
         current_root, parent = parent, parent.parent
     return current_root, positions[::-1]
+
+
+def remove(node):
+    "Remove the given node from its tree"
+    assert node.parent, 'cannot remove the root'
+
+    parent = node.parent
+    parent.children.remove(node)
+
+    while parent:
+        update_metrics(parent)
+        parent = parent.parent
+
+
+def sort(tree, key=None, reverse=False):
+    "Sort the tree in-place"
+    key = key or (lambda node: (node.size[1], node.size[0], node.name))
+    children = tree.children
+    children.sort(key=key, reverse=reverse)
+    for node in children:
+        sort(node, key, reverse)
+    tree.bh = tree.size[1] / 2 + (0 if not children else
+        (children[0].bh - children[-1].size[1] + children[-1].bh) / 2)
