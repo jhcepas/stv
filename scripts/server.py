@@ -236,28 +236,36 @@ class Trees(Resource):
             return {'message': 'ok'}
         elif rule == '/trees/<string:tree_id>/sort':
             t = load_tree(tree_id)
-            key_text, reverse = request.json  # NOTE: not in request.args
+            node_id, key_text, reverse = request.json
             def key(node):
                 safer_eval(key_text, {'node', node})
-            rooting.sort(t, None, reverse)  # None -> key
+            rooting.sort(t[node_id], None, reverse)  # TODO: None -> key
             return {'message': 'ok'}
         elif rule == '/trees/<string:tree_id>/root_at':
             t = load_tree(tree_id)
             tid, subtree = get_tid(tree_id)
             if subtree:
-                raise InvalidUsage(f'operation not allowed with subtree')
-            node_id = request.json  # NOTE: not in request.args
+                raise InvalidUsage('operation not allowed with subtree')
+            node_id = request.json
             app.trees[tid] = rooting.root_at(t[node_id])
             return {'message': 'ok'}
+        elif rule == '/trees/<string:tree_id>/move':
+            try:
+                t = load_tree(tree_id)
+                node_id, shift = request.json
+                rooting.move(t[node_id], shift)
+                return {'message': 'ok'}
+            except AssertionError as e:
+                raise InvalidUsage(f'cannot move ${node_id}: {e}')
         elif rule == '/trees/<string:tree_id>/remove':
             try:
                 t = load_tree(tree_id)
-                node_id = request.json  # NOTE: not in request.args
+                node_id = request.json
                 rooting.remove(t[node_id])
+                return {'message': 'ok'}
             except AssertionError as e:
                 raise InvalidUsage(f'cannot remove ${node_id}: {e}')
-            return {'message': 'ok'}
-        elif rule == '/trees/<string:tree_id>/search':
+        elif rule == '/trees/<string:tree_id>/search':  # TODO: make this useful
             add_search(tree_id, request.args.copy())
             return {'message': 'ok'}
 
@@ -760,6 +768,7 @@ def add_resources(api):
         '/trees/<string:tree_id>/searches',
         '/trees/<string:tree_id>/sort',
         '/trees/<string:tree_id>/root_at',
+        '/trees/<string:tree_id>/move',
         '/trees/<string:tree_id>/remove')
     add(Info, '/info')
     add(Id, '/id/<path:path>')

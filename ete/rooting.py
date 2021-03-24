@@ -2,7 +2,7 @@
 Unrooting, rooting and rerooting.
 """
 
-from .tree import Tree, update_metrics
+from .tree import Tree, update_metrics, update_branch_height
 
 
 def unroot(root):
@@ -81,5 +81,16 @@ def sort(tree, key=None, reverse=False):
     children.sort(key=key, reverse=reverse)
     for node in children:
         sort(node, key, reverse)
-    tree.bh = tree.size[1] / 2 + (0 if not children else
-        (children[0].bh - children[-1].size[1] + children[-1].bh) / 2)
+    update_branch_height(tree)
+
+
+def move(node, shift=1):
+    "Change the position of the current node with respect to its parent"
+    assert node.parent, 'cannot move the root'
+
+    siblings = node.parent.children
+    pos_old = siblings.index(node)
+    pos_new = (pos_old + shift) % len(siblings)
+    siblings[pos_old], siblings[pos_new] = siblings[pos_new], siblings[pos_old]
+
+    update_branch_height(node.parent)

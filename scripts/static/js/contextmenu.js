@@ -54,11 +54,28 @@ function add_node_options(box, name, properties, node_id) {
             update();
         }, "Set this node as the root of the tree. Changes the tree structure.");
     }
-    add_button("✂️ Remove node ⚠️", async () => {
-        await api_put("remove", node_id);
-        draw_minimap();
-        update();
-    }, "Prune this branch from the tree. Changes the tree structure.");
+    if (node_id) {
+        add_button("⬆️ Move node up ⚠️", async () => {
+            await api_put("move", [node_id, -1]);
+            draw_minimap();
+            update();
+        }, "Move the current node one step above its current position. " +
+            "Changes the tree structure.");
+        add_button("⬇️ Move node down ⚠️", async () => {
+            await api_put("move", [node_id, +1]);
+            draw_minimap();
+            update();
+        }, "Move the current node one step below its current position. " +
+            "Changes the tree structure.");
+        add_button("🔃 Sort from node ⚠️", () => sort(node_id),
+            "Sort branches below this node according to the current sorting " +
+            "function. Changes the tree structure.");
+        add_button("✂️ Remove node ⚠️", async () => {
+            await api_put("remove", node_id);
+            draw_minimap();
+            update();
+        }, "Prune this branch from the tree. Changes the tree structure.");
+    }
 }
 
 
@@ -72,9 +89,9 @@ function add_tree_options() {
             on_tree_change();
         }, "Exit view on current subtree.");
     }
-    add_button("🔃 Sort tree ⚠️", sort,
-        "Sort the branches according to the current sorting function. " +
-       "Changes the tree structure.");
+    add_button("🔃 Sort tree ⚠️", () => sort(),
+        "Sort all branches according to the current sorting function. " +
+        "Changes the tree structure.");
 }
 
 

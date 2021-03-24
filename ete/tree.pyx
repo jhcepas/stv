@@ -26,7 +26,7 @@ cdef class Tree:
     cdef public list children
     cdef public Tree parent
     cdef public (double, double) size  # sum of lenghts, number of leaves
-    cdef public double bh  # branching height (where the branch starts)
+    cdef public double bh  # branch height (where the branch starts)
 
     def __init__(self, content='', children=None):
         self.parent = None
@@ -140,12 +140,18 @@ def quote(name, escaped_chars=" \t\r\n()[]':;,"):
 
 
 def update_metrics(node):
-    "Update the size and branching height of the given node"
-    children = node.children
-    sumlengths, nleaves = get_size(children)
+    "Update the size and branch height of the given node"
+    sumlengths, nleaves = get_size(node.children)
     node.size = (abs(node.length) + sumlengths, max(1, nleaves))
-    node.bh = node.size[1] / 2 + (0 if not children else
-        (children[0].bh - children[-1].size[1] + children[-1].bh) / 2)
+    update_branch_height(node)
+
+
+def update_branch_height(node):
+    "Center the branch height of the node with respect to its children"
+    node.bh = node.size[1] / 2
+    if node.children:
+        c0, c1 = node.children[0], node.children[-1]
+        node.bh += (c0.bh - c1.size[1] + c1.bh) / 2
 
 
 cdef (double, double) get_size(nodes):

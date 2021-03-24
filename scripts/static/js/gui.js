@@ -438,8 +438,8 @@ function on_box_wheel(event, box) {
 }
 
 
-async function sort() {
-    await api_put("sort", [view.sorting.key, view.sorting.reverse]);
+async function sort(node_id=[]) {
+    await api_put("sort", [node_id, view.sorting.key, view.sorting.reverse]);
     draw_minimap();
     update();
 }
