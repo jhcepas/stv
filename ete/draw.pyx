@@ -578,22 +578,15 @@ def make_box(point, size):
 def get_rect(element, zoom):
     "Return the rectangle that contains the given graphic element"
     eid = element[0]
-    if eid == 'b':
-        _, box, _, _, _, _ = element
-        return box
-    elif eid == 'l':
-        _, (x1, y1), (x2, y2), _ = element
+    if eid in ['b', 'a']:  # box or array
+        return element[1]
+    elif eid in ['l', 'c']:  # line or arc
+        (x1, y1), (x2, y2) = element[1], element[2]
         return Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
-    elif eid == 'c':
-        _, (x1, y1), (x2, y2), _, _ = element
-        return Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
-    elif eid == 't':
+    elif eid == 't':  # text
         _, text, (x, y), fs, _ = element
         zx, zy = zoom
         return Box(x, y - fs, zy/zx * fs / 1.5 * len(text), fs)
-    elif eid == 'a':
-        _, box, _ = element
-        return box
     else:
         raise ValueError(f'unrecognized element: {element!r}')
 
@@ -601,25 +594,19 @@ def get_rect(element, zoom):
 def get_asec(element, zoom):
     "Return the annular sector that contains the given graphic element"
     eid = element[0]
-    if eid == 'b':
-        _, box, _, _, _, _ = element
-        return box
-    elif eid == 'l':
-        _, (x1, y1), (x2, y2), _ = element
-        return Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
-    elif eid == 'c':
-        _, (x1, y1), (x2, y2), _, _ = element
-        return Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
-    elif eid == 't':
+    if eid in ['b', 'a']:  # box or array
+        return element[1]
+    elif eid in ['l', 'c']:  # line or arc
+        (x1, y1), (x2, y2) = element[1], element[2]
+        rect = Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
+        return circumasec(rect)
+    elif eid == 't':  # text
         _, text, point, fs, _ = element
         r, a = polar(point)
         zx, zy = zoom
         dr = zy/zx * fs / 1.5 * len(text)
         da = fs/r if r > 0 else 2*pi
         return Box(r, a - da, dr, da)
-    elif eid == 'a':
-        _, box, _ = element
-        return box
     else:
         raise ValueError(f'unrecognized element: {element!r}')
 
