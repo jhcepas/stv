@@ -24,7 +24,7 @@ const view = {
     tree: "",
     subtree: "",
     sorting: {sort: () => sort(),
-              key: '(node.size[1], node.size[0], node.name)',
+              key: '(dy, dx, name)',
               reverse: false},
     upload: () => window.location.href = "upload_tree.html",
     download: {newick: () => download_newick(),

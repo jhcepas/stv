@@ -237,9 +237,18 @@ class Trees(Resource):
         elif rule == '/trees/<string:tree_id>/sort':
             t = load_tree(tree_id)
             node_id, key_text, reverse = request.json
+            try:
+                code = compile(key_text, '<string>', 'eval')
+            except SyntaxError as e:
+                raise InvalidUsage(f'compiling expression: {e}')
             def key(node):
-                safer_eval(key_text, {'node', node})
-            rooting.sort(t[node_id], None, reverse)  # TODO: None -> key
+                return safer_eval(code, {
+                    'node': node, 'name': node.name, 'is_leaf': node.is_leaf,
+                    'length': node.length, 'dist': node.length, 'd': node.length,
+                    'size': node.size, 'dx': node.size[0], 'dy': node.size[1],
+                    'children': node.children, 'ch': node.children,
+                    'len': len, 'sum': sum, 'abs': abs})
+            rooting.sort(t[node_id], key, reverse)
             return {'message': 'ok'}
         elif rule == '/trees/<string:tree_id>/root_at':
             t = load_tree(tree_id)
