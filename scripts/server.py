@@ -208,9 +208,8 @@ class Trees(Resource):
             MAX_MB = 2
             return get_newick(tree_id, MAX_MB)
         elif rule == '/trees/<string:tree_id>/search':
-            MAX_NODES = 200
-            nodes = search_nodes(tree_id, request.args.copy(), MAX_NODES)
-            return {'message': 'ok', 'max': MAX_NODES, 'nodes': nodes}
+            nodes = search_nodes(tree_id, request.args.copy())
+            return {'message': 'ok', 'nodes': nodes}
         elif rule == '/trees/<string:tree_id>/draw':
             drawer = get_drawer(tree_id, request.args.copy())
             return list(drawer.draw())
@@ -400,13 +399,14 @@ def get_newick(tree_id, max_mb):
     return newick
 
 
-def search_nodes(tree_id, args, nmax):
+def search_nodes(tree_id, args):
     "Return a list of nodes that match the search in args"
     # A "node" here means a tuple of (node_id, box).
     if 'text' not in args:
         raise InvalidUsage('missing search text')
 
     f = get_search_function(args.pop('text').strip())
+    nmax = float(args.pop('nmax'))
 
     drawer = get_drawer(tree_id, args)
 

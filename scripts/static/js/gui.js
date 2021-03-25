@@ -40,6 +40,7 @@ const view = {
     min_size: 6,
 
     // searches
+    search_nmax: 10000,
     search: () => search(),
     searches: {},  // will contain the searches done and their results
 

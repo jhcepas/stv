@@ -83,6 +83,7 @@ function add_menu_representation(dgui, drawers) {
 function add_menu_searches(dgui) {
     const folder_searches = dgui.addFolder("searches");
 
+    folder_searches.add(view, "search_nmax").name("max results");
     folder_searches.add(view, "search").name("new search");
 }
 

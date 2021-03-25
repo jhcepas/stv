@@ -22,7 +22,8 @@ async function search() {
 
             search_text = text;  // to be used when checking the result later on
 
-            let qs = `text=${encodeURIComponent(text)}&drawer=${view.drawer}`;
+            let qs = `text=${encodeURIComponent(text)}&drawer=${view.drawer}` +
+                     `&nmax=${view.search_nmax}`;
             if (view.is_circular)
                 qs += `&rmin=${view.rmin}` +
                       `&amin=${view.angle.min}&amax=${view.angle.max}`;
@@ -35,7 +36,7 @@ async function search() {
         const res = result.value;  // shortcut
 
         if (res.message === 'ok') {
-            show_search_results(search_text, res.nodes, res.max);
+            show_search_results(search_text, res.nodes, view.search_nmax);
 
             if (res.nodes.length > 0) {
                 const colors = ["#FF0", "#F0F", "#0FF", "#F00", "#0F0", "#00F"];
@@ -43,7 +44,7 @@ async function search() {
 
                 view.searches[search_text] = {
                     nodes: res.nodes,
-                    max: res.max,
+                    max: view.search_nmax,
                     color: colors[nsearches % colors.length],
                 };
 
