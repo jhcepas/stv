@@ -27,6 +27,7 @@ function create_datgui(trees, drawers) {
     dgui.add(view, "minimap_show").name("minimap").onChange(show_minimap);
 
     dgui.add(view, "share_view").name("share view");
+    dgui.add(view, "show_help").name("help");
 
     return dgui;
 }
@@ -95,7 +96,6 @@ function add_menu_info(dgui) {
     folder_info.add(view.pos, "cx").step(0.001).listen();
     folder_info.add(view.pos, "cy").step(0.001).listen();
     folder_info.add(view, "show_tree_info").name("show details");
-    folder_info.add(view, "show_help").name("help");
 }
 
 

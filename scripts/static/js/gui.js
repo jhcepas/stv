@@ -48,7 +48,6 @@ const view = {
     nodes: {boxes: {}, n: 0},  // will contain the visible nodeboxes
     pos: {cx: 0, cy: 0},  // in-tree current pointer position
     show_tree_info: () => show_tree_info(),
-    show_help: () => show_help(),
 
     // view
     reset_view: () => reset_view(),
@@ -70,8 +69,9 @@ const view = {
     font_size_max: 15,
     text_padding: 10,
 
-    // share current tree view
+    // help and sharing
     share_view: () => share_view(),
+    show_help: () => show_help(),
 
     // minimap
     minimap_show: true,
