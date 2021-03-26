@@ -36,7 +36,7 @@ function show_login_or_upload() {
         div_login.style.display = "";
         div_info.innerHTML = `
             <a href="#" onclick="guest_login();
-                                 return false;">Log in as guest</a>;`;
+                                 return false;">Log in as guest</a>`;
     }
 }
 window.show_login_or_upload = show_login_or_upload;
