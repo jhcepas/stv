@@ -1,14 +1,24 @@
-h1 {
-    text-align: center;
-    color: blue;
+body {
+    width: 800px;
+    margin: 0 auto;
 }
 
-#div_info {
-    text-align: center;
+h1 {
+    font-size: 2em;
+    font-family: Helvetica, sans-serif;
+    font-weight: 200;
+}
+
+h1, p {
+    color: #333;
 }
 
 div {
-    margin: 2rem 2rem;
+    margin: 0.5rem 0.2rem;
+}
+
+#div_info {
+    text-align: right;
 }
 
 input, label, textarea {

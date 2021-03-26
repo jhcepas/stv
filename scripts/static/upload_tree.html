@@ -1,16 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Upload Tree</title>
+  <title>Tree Viewer</title>
   <link rel="icon" type="image/png" href="icon.png">
   <link rel="stylesheet" href="upload_tree.css">
-  <script defer src="/static/js/upload_tree.js"></script>
+  <script type="module" src="/static/js/upload_tree.js"></script>
 </head>
 
 <body>
-<h1>Upload Tree</h1>
 
-<div id="div_info"></div>
+<a href="http://etetoolkit.org"><img src="/static/logo.jpg"></a>
+
+<h1>Tree Viewer</h1>
+
+<p>This is an online tool for exploring trees. It is mainly used to explore
+phylogenetic trees, but it can be used for any tree as long as it is expressed
+in <a href="https://en.wikipedia.org/wiki/Newick_format">Newick format</a>.
+</p>
+
+<p>After loading the tree, it opens an interactive representation. You can use
+the generated url as a permanent link to your data, that you can use for
+sharing your images.</p>
 
 <div id="div_login">
   <div>
@@ -24,41 +34,55 @@
   </div>
 
   <div>
-  <button id="button_login">Login</button>
+  <button id="button_login">Log in</button>
+  <button id="button_guest">Access as guest</button>
   </div>
 </div>
 
 <div id="div_upload">
   <div>
-  <label for="input_name">Name (1 to 128 characters)</label><br>
-  <input type="text" id="input_name" required
-    placeholder="Tree name" minlength="1" maxlength="128" size="20">
-  </div>
-
-  <div>
-  <label for="input_description">Description</label><br>
-  <textarea id="input_description" rows="4" cols="50"
-    placeholder="Description of the tree (can be empty)"></textarea>
+  <input type="radio" id="radio_string" name="newick" value="string">
+  <label for="radio_string">You can paste your tree (or
+    <a href="#" onclick="load_example(); return false;">load an
+    example</a>):</label><br>
+  <textarea id="input_newick_string" rows="8" cols="80"
+    placeholder="Newick representation of the tree" disabled></textarea>
   </div>
 
   <div>
   <input type="radio" id="radio_file" name="newick" value="file">
-  <label for="radio_file">Newick file</label><br>
+  <label for="radio_file">Or upload a file: </label>
   <input id="input_newick_file" type="file"
     accept=".tree,.newick,.nw,.tre,.txt,.gz" disabled>
   </div>
 
   <div>
-  <input type="radio" id="radio_string" name="newick" value="string">
-  <label for="radio_string">Newick string</label><br>
-  <textarea id="input_newick_string" rows="4" cols="50"
-    placeholder="Newick representation of the tree" disabled></textarea>
+  <input type="checkbox" id="check_metadata" name="metadata">
+  <label for="check_metadata">Add metadata</label>
   </div>
 
+  <div id="div_metadata">
+    <div>
+    <label for="input_name">Name (1 to 128 characters)</label><br>
+    <input type="text" id="input_name"
+      placeholder="Tree name" minlength="1" maxlength="128" size="20">
+    </div>
+
+    <div>
+    <label for="input_description">Description</label><br>
+    <textarea id="input_description" rows="4" cols="60"
+      placeholder="Description of the tree (can be empty)"></textarea>
+    </div>
+  </div>
+
+  <p></p>
+
   <div>
-  <button id="button_upload">Upload</button>
+  <button id="button_upload">View tree</button>
   </div>
 </div>
+
+<div id="div_info"></div>
 
 </body>
 </html>
