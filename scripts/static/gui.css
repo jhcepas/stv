@@ -35,6 +35,7 @@
 .outline {
     fill-opacity: 0.1;
     fill: #A50;
+    stroke: #000;
     stroke-width: 0.2;
 }
 
