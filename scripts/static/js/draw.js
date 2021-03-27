@@ -58,7 +58,7 @@ function save_nodeboxes(items) {
     view.nodes.n = 0;
     items.forEach(item => {
         if (is_nodebox(item)) {
-            const [shape, box, type, name, properties, node_id] = item;
+            const [shape, box, name, properties, node_id] = item;
             view.nodes.boxes[node_id] = box;
             view.nodes.n += 1;
         }
@@ -66,7 +66,7 @@ function save_nodeboxes(items) {
 }
 
 function is_nodebox(item) {
-    return item[0] === 'b' && item[2] === "node";
+    return item[0] === "box" && item[4].length > 0;
 }
 
 
