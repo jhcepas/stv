@@ -404,8 +404,10 @@ def get_newick(tree_id, max_mb):
 def search_nodes(tree_id, args):
     "Return a list of nodes that match the search in args"
     # A "node" here means a tuple of (node_id, box).
-    if 'text' not in args:
-        raise InvalidUsage('missing search text')
+    required = ['text', 'nmax']
+    missing = [x for x in required if x not in args]
+    if missing:
+        raise InvalidUsage('missing required arguments: ' + ', '.join(missing))
 
     f = get_search_function(args.pop('text').strip())
     nmax = float(args.pop('nmax'))
