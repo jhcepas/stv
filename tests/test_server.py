@@ -285,6 +285,8 @@ def test_get_unknown_tree():
 
 
 def test_get_known_tree():
+    valid_elements = ['box', 'cone', 'line', 'arc', 'text']
+
     trees = [x['id'] for x in get('trees')]
 
     newicks_checked = False
@@ -301,9 +303,7 @@ def test_get_known_tree():
 
 
         elements = get(f'trees/{tid}/draw')
-        assert all(x[0] in ['b', 'l', 'c', 't'] for x in elements)
-        assert all(x[2] in ['node', 'outline'] for x in elements if x[0] == 'b')
-
+        assert all(x[0] in valid_elements for x in elements)
         assert set(get(f'trees/{tid}/size').keys()) == {'width', 'height'}
 
     assert newicks_checked  # make sure we checked at least one!
@@ -345,16 +345,17 @@ def test_drawer_arguments():
 
 def test_search():
     valid_requests = [
-        'text=A',
-        'text=B&x=1&y=-1&w=1&h=1&drawer=Simple&min_size=8&aligned&zx=3&zy=6',
-        'text=%s' % quote('/r (A|B)'),
-        'text=%s' % quote('/e is_leaf or d > 1')]
+        'text=A&nmax=4',
+        'text=B&nmax=2&x=1&y=-1&w=1&h=1&drawer=Simple&min_size=8&aligned&zx=3&zy=6',
+        'text=%s&nmax=10' % quote('/r (A|B)'),
+        'text=%s&nmax=10' % quote('/e is_leaf or d > 1')]
 
     invalid_requests_and_error = [
-        ('', 'missing search text'),
-        ('text=/', 'invalid command'),
-        ('text=%s' % quote('/e open("/etc/passwd")'), 'invalid use of'),
-        ('text=%s' % quote('/e __import__("os").execv("/bin/echo", ["0wN3d"])'),
+        ('', 'missing required arguments: text, nmax'),
+        ('text=A', 'missing required arguments: nmax'),
+        ('text=/&nmax=10', 'invalid command'),
+        ('text=%s&nmax=10' % quote('/e open("/etc/passwd")'), 'invalid use of'),
+        ('text=%s&nmax=10' % quote('/e __import__("os").execv("/bin/echo", ["0wN3d"])'),
          'invalid use of')]
 
     for qs in valid_requests:
