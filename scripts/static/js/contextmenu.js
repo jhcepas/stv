@@ -7,15 +7,28 @@ import { update } from "./draw.js";
 export { on_box_contextmenu };
 
 
-function on_box_contextmenu(event, box, name, properties, node_id) {
+function on_box_contextmenu(event, box, name, properties, node_id=[]) {
     event.preventDefault();
 
     div_contextmenu.innerHTML = "";
 
-    if (node_id) {
-        add_node_options(box, name, properties, node_id);
+    if (box) {
+        const name_text = ": " + (name.length < 20 ? name :
+                                  (name.slice(0, 8) + "..." + name.slice(-8)));
+
+        add_label("Node" + (name.length > 0 ? name_text : ""));
+
+        add_button("🔍 Zoom into node", () => zoom_into_box(box));
+
+        if (node_id.length > 0) {
+            add_node_options(box, name, properties, node_id);
+        }
+
         add_element("hr");
     }
+
+    add_label("Tree");
+
     add_tree_options();
 
     const s = div_contextmenu.style;
@@ -26,12 +39,6 @@ function on_box_contextmenu(event, box, name, properties, node_id) {
 
 
 function add_node_options(box, name, properties, node_id) {
-    const name_text = ": " +
-        (name.length < 15 ? name : (name.slice(0, 5) + "..." + name.slice(-5)));
-
-    add_label("Node" + (name.length > 0 ? name_text : ""));
-
-    add_button("🔍 Zoom into node", () => zoom_into_box(box));
     add_button("📌 Go to subtree at node", () => {
         view.subtree += (view.subtree ? "," : "") + node_id;
         on_tree_change();
@@ -54,34 +61,30 @@ function add_node_options(box, name, properties, node_id) {
             update();
         }, "Set this node as the root of the tree. Changes the tree structure.");
     }
-    if (node_id) {
-        add_button("⬆️ Move node up ⚠️", async () => {
-            await api_put("move", [node_id, -1]);
-            draw_minimap();
-            update();
-        }, "Move the current node one step above its current position. " +
-            "Changes the tree structure.");
-        add_button("⬇️ Move node down ⚠️", async () => {
-            await api_put("move", [node_id, +1]);
-            draw_minimap();
-            update();
-        }, "Move the current node one step below its current position. " +
-            "Changes the tree structure.");
-        add_button("🔃 Sort from node ⚠️", () => sort(node_id),
-            "Sort branches below this node according to the current sorting " +
-            "function. Changes the tree structure.");
-        add_button("✂️ Remove node ⚠️", async () => {
-            await api_put("remove", node_id);
-            draw_minimap();
-            update();
-        }, "Prune this branch from the tree. Changes the tree structure.");
-    }
+    add_button("⬆️ Move node up ⚠️", async () => {
+        await api_put("move", [node_id, -1]);
+        draw_minimap();
+        update();
+    }, "Move the current node one step above its current position. " +
+        "Changes the tree structure.");
+    add_button("⬇️ Move node down ⚠️", async () => {
+        await api_put("move", [node_id, +1]);
+        draw_minimap();
+        update();
+    }, "Move the current node one step below its current position. " +
+        "Changes the tree structure.");
+    add_button("🔃 Sort from node ⚠️", () => sort(node_id),
+        "Sort branches below this node according to the current sorting " +
+        "function. Changes the tree structure.");
+    add_button("✂️ Remove node ⚠️", async () => {
+        await api_put("remove", node_id);
+        draw_minimap();
+        update();
+    }, "Prune this branch from the tree. Changes the tree structure.");
 }
 
 
 function add_tree_options() {
-    add_label("Tree");
-
     add_button("🔭 Reset view", reset_view, "Fit tree to the window.");
     if (view.subtree) {
         add_button("⬅️ Go back to main tree", () => {
