@@ -9,6 +9,7 @@ import sys
 from os.path import abspath, dirname, basename
 sys.path.insert(0, f'{abspath(dirname(__file__))}/..')
 
+from datetime import datetime
 from collections import namedtuple
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter as fmt
 
@@ -72,8 +73,8 @@ def update_database(connection, tdata):
 
     name = tdata.name if tdata.name != '-' else 'Tree %d' % tree_id
 
-    c.execute('INSERT INTO trees VALUES (?, ?, ?, ?)',
-        [tree_id, name, tdata.description, tdata.newick])
+    c.execute('INSERT INTO trees VALUES (?, ?, ?, ?, ?)',
+        [tree_id, name, tdata.description, datetime.now(), tdata.newick])
 
     c.execute('INSERT INTO user_owns_trees VALUES (?, ?)',
         [tdata.owner, tree_id])

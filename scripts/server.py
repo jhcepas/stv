@@ -26,6 +26,7 @@ REST call examples:
 #   id: int
 #   name: str
 #   description: str
+#   birth: datetime
 #   newick: str
 #   owner: int (user id)
 #   readers: list of ints (user ids)
@@ -39,6 +40,7 @@ sys.path.insert(0, '..')
 import re
 from math import pi
 from functools import partial
+from datetime import datetime
 from contextlib import contextmanager
 import gzip
 
@@ -495,6 +497,8 @@ def add_tree():
     except tree.NewickError as e:
         raise InvalidUsage(f'malformed tree - {e}')
 
+    data['birth'] = datetime.now()  # add creation time
+
     tid = None  # will be filled later if it all works
     with shared_connection([dbget0, dbexe]) as [get0, exe]:
         cols, vals = zip(*data.items())
@@ -619,7 +623,7 @@ def get_tree(tree_id):
     tid, subtree = get_tid(tree_id)
 
     with shared_connection([dbget, dbget0]) as [get, get0]:
-        trees = get('id,name,description', 'trees where id=?', tid)
+        trees = get('id,name,description,birth', 'trees where id=?', tid)
         if len(trees) == 0:
             raise InvalidUsage(f'unknown tree id {tid}', 404)
 

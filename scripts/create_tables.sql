@@ -12,6 +12,7 @@ create table trees (
     id integer primary key autoincrement,
     name text unique not null,
     description text,
+    birth datetime,
     newick text);
 
 drop table if exists user_owns_trees;
