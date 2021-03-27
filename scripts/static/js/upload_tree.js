@@ -159,8 +159,11 @@ async function get_newick() {
 
         return input_newick_file.files[0];
     }
-    else {
+    else if (!input_newick_string.disabled) {
         return input_newick_string.value.trim();
+    }
+    else {
+        throw new Error("You need to supply a newick string or select a file");
     }
 }
 
