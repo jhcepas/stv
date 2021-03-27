@@ -152,13 +152,15 @@ class Drawer:
 
     def get_outline(self):
         "Yield the outline representation"
-        graphics = list(self.draw_collapsed())
+        graphics = [draw_cone(self.outline)]
+
+        graphics += self.draw_collapsed()
         self.collapsed = []
 
         ndx = drawn_size(graphics, self.get_box).dx
         self.node_dxs[-1].append(ndx)
 
-        box = draw_box(self.flush_outline(ndx), 'outline', '(collapsed)')
+        box = draw_box(self.flush_outline(ndx), '(collapsed)')
         self.boxes.append(box)
 
         yield from graphics
@@ -265,7 +267,7 @@ class DrawerRect(Drawer):
         yield draw_line(p1, p2)
 
     def draw_nodebox(self, node, node_id, box):
-        yield draw_box(box, 'node', node.name, node.properties, node_id)
+        yield draw_box(box, node.name, node.properties, node_id)
 
 
 
@@ -331,7 +333,7 @@ class DrawerCirc(Drawer):
         r, a, dr, da = box
         a1, a2 = clip_angles(a, a + da)
         if a1 < a2:
-            yield draw_box(Box(r, a1, dr, a2 - a1), 'node',
+            yield draw_box(Box(r, a1, dr, a2 - a1),
                            node.name, node.properties, node_id)
 
 
@@ -437,7 +439,7 @@ class DrawerCollapsed(DrawerLeafNames):
         x, y, dx, dy = self.outline
 
         texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
-        p = ((0 if self.aligned else x), y + dy/1.1)
+        p = ((0 if self.aligned else x + dx), y + dy/1.1)
         fs = dy/1.2
         yield from draw_texts(texts, p, fs, 'name')
 
@@ -455,8 +457,8 @@ class DrawerCircCollapsed(DrawerCircLeafNames):
             return
 
         texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
-        p = (r, a + da/1.1)
-        fs = r * da/1.2
+        p = (r + dr, a + da/1.1)
+        fs = (r + dr) * da/1.2
 
         # TODO: mix the code below properly with draw_texts().
         r, a = p
@@ -526,8 +528,7 @@ class DrawerAlignHeatMap(DrawerFull):
         else:
             if not names:
                 return
-            x, y, dx, dy = self.outline
-            p = (x, y + dy/1.1)
+            p = (x + dx, y + dy/1.1)
             fs = dy/1.2
             yield from draw_texts(texts, p, fs, 'name')
 
@@ -551,20 +552,23 @@ def draw_texts(texts, point, fs, text_type):
 
 # Basic drawing elements.
 
-def draw_box(box, box_type='', name='', properties=None, node_id=None):
-    return ['b', box, box_type, name, properties or {}, node_id or []]
+def draw_box(box, name='', properties=None, node_id=None):
+    return ['box', box, name, properties or {}, node_id or []]
+
+def draw_cone(box):
+    return ['cone', box]
 
 def draw_line(p1, p2, line_type=''):
-    return ['l', p1, p2, line_type]
+    return ['line', p1, p2, line_type]
 
 def draw_arc(p1, p2, large=False, arc_type=''):
-    return ['c', p1, p2, int(large), arc_type]
+    return ['arc', p1, p2, int(large), arc_type]
 
 def draw_text(text, point, fs, text_type=''):
-    return ['t', text, point, fs, text_type]
+    return ['text', text, point, fs, text_type]
 
 def draw_array(box, a):
-    return ['a', box, a]
+    return ['array', box, a]
 
 
 # Box-related functions.
@@ -578,12 +582,12 @@ def make_box(point, size):
 def get_rect(element, zoom):
     "Return the rectangle that contains the given graphic element"
     eid = element[0]
-    if eid in ['b', 'a']:  # box or array
+    if eid in ['box', 'cone', 'array']:
         return element[1]
-    elif eid in ['l', 'c']:  # line or arc
+    elif eid in ['line', 'arc']:
         (x1, y1), (x2, y2) = element[1], element[2]
         return Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
-    elif eid == 't':  # text
+    elif eid == 'text':
         _, text, (x, y), fs, _ = element
         zx, zy = zoom
         return Box(x, y - fs, zy/zx * fs / 1.5 * len(text), fs)
@@ -594,13 +598,13 @@ def get_rect(element, zoom):
 def get_asec(element, zoom):
     "Return the annular sector that contains the given graphic element"
     eid = element[0]
-    if eid in ['b', 'a']:  # box or array
+    if eid in ['box', 'cone', 'array']:
         return element[1]
-    elif eid in ['l', 'c']:  # line or arc
+    elif eid in ['line', 'arc']:
         (x1, y1), (x2, y2) = element[1], element[2]
         rect = Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
         return circumasec(rect)
-    elif eid == 't':  # text
+    elif eid == 'text':
         _, text, point, fs, _ = element
         r, a = polar(point)
         zx, zy = zoom

@@ -80,20 +80,12 @@ function create_svg_element(name, attrs) {
 }
 
 
-// Return a box (rectangle, annular sector, or their collapsed versions).
-function create_box(box, tl, zx, zy, type) {
-    if (view.is_circular) {
-        if (type === "outline")  // for collapsed nodes
-            return create_circ_cone(box, tl, zx, type);
-        else
-            return create_asec(box, tl, zx, type);
-    }
-    else {
-        if (type === "outline")  // for collapsed nodes
-            return create_rect_cone(box, tl, zx, zy, type);
-        else
-            return create_rect(box, tl, zx, zy, type);
-    }
+// Return a box (rectangle or annular sector).
+function create_box(box, tl, zx, zy) {
+    if (view.is_circular)
+        return create_asec(box, tl, zx, "node");
+    else
+        return create_rect(box, tl, zx, zy, "node");
 }
 
 
@@ -133,12 +125,21 @@ function cartesian_shifted(r, a, tl, z) {
 }
 
 
+// Return a cone (collapsed version of a box).
+function create_cone(box, tl, zx, zy) {
+    if (view.is_circular)
+        return create_circ_cone(box, tl, zx);
+    else
+        return create_rect_cone(box, tl, zx, zy);
+}
+
+
 // Return a svg horizontal cone.
-function create_rect_cone(box, tl, zx=1, zy=1, type="") {
+function create_rect_cone(box, tl, zx=1, zy=1) {
     const [x, y, w, h] = transform(box, tl, zx, zy);
 
     return create_svg_element("path", {
-        "class": "box " + type,
+        "class": "outline",
         "d": `M ${x} ${y + h/2}
               L ${x + w} ${y}
               L ${x + w} ${y + h}
@@ -154,7 +155,7 @@ function transform(box, tl, zx, zy) {
 
 
 // Return a svg cone in the direction of an annular sector.
-function create_circ_cone(box, tl, z=1, type="") {
+function create_circ_cone(box, tl, z=1) {
     const [r, a, dr, da] = box;
     const large = da > Math.PI ? 1 : 0;
     const p0 = cartesian_shifted(r, a + da/2, tl, z),
@@ -162,7 +163,7 @@ function create_circ_cone(box, tl, z=1, type="") {
           p11 = cartesian_shifted(r + dr, a + da, tl, z);
 
     return create_svg_element("path", {
-        "class": "box " + type,
+        "class": "outline",
         "d": `M ${p0.x} ${p0.y}
               L ${p10.x} ${p10.y}
               A ${z * (r + dr)} ${z * (r + dr)} 0 ${large} 1 ${p11.x} ${p11.y}
@@ -249,10 +250,10 @@ function draw_item(g, item, tl, zoom) {
 
     const [zx, zy] = [zoom.x, zoom.y];  // shortcut
 
-    if (item[0] === 'b') {  // box (rectangle or annular sector)
-        const [ , box, type, name, properties, node_id] = item;
+    if (item[0] === "box") {
+        const [ , box, name, properties, node_id] = item;
 
-        const b = create_box(box, tl, zx, zy, type);
+        const b = create_box(box, tl, zx, zy);
 
         g.appendChild(b);
 
@@ -266,17 +267,22 @@ function draw_item(g, item, tl, zoom) {
         if (name.length > 0 || Object.entries(properties).length > 0)
             b.appendChild(create_tooltip(name, properties));
     }
-    else if (item[0] === 'l') {  // line
+    else if (item[0] === "cone") {
+        const [ , box] = item;
+
+        g.appendChild(create_cone(box, tl, zx, zy));
+    }
+    else if (item[0] === "line") {
         const [ , p1, p2, type] = item;
 
         g.appendChild(create_line(p1, p2, tl, zx, zy, type));
     }
-    else if (item[0] === 'c') {  // arc (part of a circle)
+    else if (item[0] === "arc") {
         const [ , p1, p2, large, type] = item;
 
         g.appendChild(create_arc(p1, p2, large, tl, zx, type));
     }
-    else if (item[0] === 't') {  // text
+    else if (item[0] === "text") {
         const [ , text, point, fs, type] = item;
         const font_size = font_adjust(type, zy * fs);
 
@@ -293,7 +299,7 @@ function draw_item(g, item, tl, zoom) {
                 ((angle < -90 || angle > 90) ? flip(t) : ""));
         }
     }
-    else if (item[0] === 'a') {  // array
+    else if (item[0] === "array") {
         const [ , box, a] = item;
         const [x0, y0, dx0, dy0] = box;
         const dx = dx0 / a.length / zx;
