@@ -89,7 +89,8 @@ button_login.addEventListener("click", async () => {
         show_login_or_upload();
     }
     catch (ex) {
-        div_info.innerHTML = ex.message;
+        Swal.fire({html: ex.message, icon: "warning", timer: 5000,
+                   toast: true, position: "top-end"});
     }
 });
 
@@ -131,7 +132,8 @@ button_upload.addEventListener("click", async () => {
         window.location.href = `gui.html?tree=${name}`;
     }
     catch (ex) {
-        div_info.innerHTML = ex.message;
+        Swal.fire({html: ex.message, icon: "warning",
+                   toast: true, position: "top-end"});
     }
 });
 
@@ -167,9 +169,10 @@ async function get_newick() {
 
 async function assert(condition, message, response=undefined) {
     if (!condition) {
-        const response_error = response ?
-            `(${response.status} - ${await get_error(response)})` : "";
-        throw new Error(message + "<br>" + response_error);
+        const response_error = response ? `<br><br>
+            <b>Response status:</b> ${response.status}<br>
+            <b>Message:</b> ${await get_error(response)}` : "";
+        throw new Error(message + response_error);
     }
 }
 
