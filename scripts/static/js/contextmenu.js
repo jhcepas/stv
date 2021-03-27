@@ -3,6 +3,7 @@
 import { view, api_put, on_tree_change, reset_view, sort } from "./gui.js";
 import { draw_minimap } from "./minimap.js";
 import { update } from "./draw.js";
+import { download_newick } from "./download.js";
 
 export { on_box_contextmenu };
 
@@ -47,6 +48,8 @@ function add_node_options(box, name, properties, node_id) {
         Swal.fire({text: `${node_id}`, position: "bottom",
                    showConfirmButton: false});
     });
+    add_button("📥 Download newick from node", () => download_newick(node_id),
+               "Download subtree starting at this node as a newick file.");
     if ("taxid" in properties) {
         const taxid = properties["taxid"];
         add_button("📖 Show in taxonomy browser", () => {
