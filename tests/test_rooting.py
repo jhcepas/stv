@@ -154,3 +154,10 @@ def test_remove():
           ├─d
           └─e
     """)
+
+    rooting.remove(t['d'])
+    assert str(t) == strip("""
+        a
+        └─b
+          └─e
+    """)
