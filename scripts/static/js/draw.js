@@ -72,6 +72,95 @@ function is_nodebox(item) {
 
 // Drawing.
 
+// Append a svg to the given element, with all the items in the list drawn.
+function draw(element, items, tl, zoom) {
+    const svg = create_svg_element("svg", {
+        "width": element.offsetWidth,
+        "height": element.offsetHeight,
+    });
+
+    if (element.children.length > 0)
+        element.children[0].replaceWith(svg);
+    else
+        element.appendChild(svg);
+
+    const g = create_svg_element("g", {});
+
+    svg.appendChild(g);
+
+    items.forEach(item => draw_item(g, item, tl, zoom));
+}
+
+
+// Append to g the graphical (svg) element corresponding to a drawer item.
+function draw_item(g, item, tl, zoom) {
+    // item looks like ["line", ...] for a line, etc.
+
+    const [zx, zy] = [zoom.x, zoom.y];  // shortcut
+
+    if (item[0] === "box") {
+        const [ , box, name, properties, node_id] = item;
+
+        const b = create_box(box, tl, zx, zy);
+
+        g.appendChild(b);
+
+        b.addEventListener("click", event =>
+            on_box_click(event, box, node_id));
+        b.addEventListener("contextmenu", event =>
+            on_box_contextmenu(event, box, name, properties, node_id));
+        b.addEventListener("wheel", event =>
+            on_box_wheel(event, box), {passive: false});
+
+        if (name.length > 0 || Object.entries(properties).length > 0)
+            b.appendChild(create_tooltip(name, properties));
+    }
+    else if (item[0] === "cone") {
+        const [ , box] = item;
+
+        g.appendChild(create_cone(box, tl, zx, zy));
+    }
+    else if (item[0] === "line") {
+        const [ , p1, p2, type] = item;
+
+        g.appendChild(create_line(p1, p2, tl, zx, zy, type));
+    }
+    else if (item[0] === "arc") {
+        const [ , p1, p2, large, type] = item;
+
+        g.appendChild(create_arc(p1, p2, large, tl, zx, type));
+    }
+    else if (item[0] === "text") {
+        const [ , text, point, fs, type] = item;
+        const font_size = font_adjust(type, zy * fs);
+
+        const t = create_text(text, font_size, point, tl, zx, zy, type);
+
+        g.appendChild(t);
+
+        if (view.is_circular) {
+            const [x, y] = point;
+            const angle = Math.atan2(y, x) * 180 / Math.PI;
+
+            t.setAttributeNS(null, "transform",
+                `rotate(${angle}, ${zx * (x - tl.x)}, ${zy * (y - tl.y)})` +
+                ((angle < -90 || angle > 90) ? flip(t) : ""));
+        }
+    }
+    else if (item[0] === "array") {
+        const [ , box, a] = item;
+        const [x0, y0, dx0, dy0] = box;
+        const dx = dx0 / a.length / zx;
+
+        for (let i = 0, x = 0; i < a.length; i++, x+=dx) {
+            const r = create_rect([x, y0, dx, dy0], tl, zx, zy, "array");
+            r.style.stroke = `hsl(${a[i]}, 100%, 50%)`;
+            g.appendChild(r);
+        }
+    }
+}
+
+
 function create_svg_element(name, attrs) {
     const element = document.createElementNS("http://www.w3.org/2000/svg", name);
     for (const [attr, value] of Object.entries(attrs))
@@ -172,6 +261,17 @@ function create_circ_cone(box, tl, z=1) {
 }
 
 
+// Create an element that, appended to a svg element (normally a box), will
+// make it show a tooltip showing nicely the contents of name and properties.
+function create_tooltip(name, properties) {
+    const title = create_svg_element("title", {});
+    const text = name + "\n" +
+        Object.entries(properties).map(x => x[0] + ": " + x[1]).join("\n");
+    title.appendChild(document.createTextNode(text));
+    return title;
+}
+
+
 function create_line(p1, p2, tl, zx, zy, type) {
     const [x1, y1] = [zx * (p1[0] - tl.x), zy * (p1[1] - tl.y)],
           [x2, y2] = [zx * (p2[0] - tl.x), zy * (p2[1] - tl.y)];
@@ -221,104 +321,6 @@ function create_text(text, fs, point, tl, zx, zy, type) {
 function flip(text) {
     const bbox = text.getBBox();  // NOTE: text must be already in the DOM
     return ` rotate(180, ${bbox.x + bbox.width/2}, ${bbox.y + bbox.height/2})`;
-}
-
-
-// Append a svg to the given element, with all the items in the list drawn.
-function draw(element, items, tl, zoom) {
-    const svg = create_svg_element("svg", {
-        "width": element.offsetWidth,
-        "height": element.offsetHeight,
-    });
-
-    if (element.children.length > 0)
-        element.children[0].replaceWith(svg);
-    else
-        element.appendChild(svg);
-
-    const g = create_svg_element("g", {});
-
-    svg.appendChild(g);
-
-    items.forEach(item => draw_item(g, item, tl, zoom));
-}
-
-
-// Append to g the graphical (svg) element corresponding to a drawer item.
-function draw_item(g, item, tl, zoom) {
-    // item looks like ['l', ...] for a line, etc.
-
-    const [zx, zy] = [zoom.x, zoom.y];  // shortcut
-
-    if (item[0] === "box") {
-        const [ , box, name, properties, node_id] = item;
-
-        const b = create_box(box, tl, zx, zy);
-
-        g.appendChild(b);
-
-        b.addEventListener("click", event =>
-            on_box_click(event, box, node_id));
-        b.addEventListener("contextmenu", event =>
-            on_box_contextmenu(event, box, name, properties, node_id));
-        b.addEventListener("wheel", event =>
-            on_box_wheel(event, box), {passive: false});
-
-        if (name.length > 0 || Object.entries(properties).length > 0)
-            b.appendChild(create_tooltip(name, properties));
-    }
-    else if (item[0] === "cone") {
-        const [ , box] = item;
-
-        g.appendChild(create_cone(box, tl, zx, zy));
-    }
-    else if (item[0] === "line") {
-        const [ , p1, p2, type] = item;
-
-        g.appendChild(create_line(p1, p2, tl, zx, zy, type));
-    }
-    else if (item[0] === "arc") {
-        const [ , p1, p2, large, type] = item;
-
-        g.appendChild(create_arc(p1, p2, large, tl, zx, type));
-    }
-    else if (item[0] === "text") {
-        const [ , text, point, fs, type] = item;
-        const font_size = font_adjust(type, zy * fs);
-
-        const t = create_text(text, font_size, point, tl, zx, zy, type);
-
-        g.appendChild(t);
-
-        if (view.is_circular) {
-            const [x, y] = point;
-            const angle = Math.atan2(y, x) * 180 / Math.PI;
-
-            t.setAttributeNS(null, "transform",
-                `rotate(${angle}, ${zx * (x - tl.x)}, ${zy * (y - tl.y)})` +
-                ((angle < -90 || angle > 90) ? flip(t) : ""));
-        }
-    }
-    else if (item[0] === "array") {
-        const [ , box, a] = item;
-        const [x0, y0, dx0, dy0] = box;
-        const dx = dx0 / a.length / zx;
-
-        for (let i = 0, x = 0; i < a.length; i++, x+=dx) {
-            const r = create_rect([x, y0, dx, dy0], tl, zx, zy, "array");
-            r.style.stroke = `hsl(${a[i]}, 100%, 50%)`;
-            g.appendChild(r);
-        }
-    }
-}
-
-
-function create_tooltip(name, properties) {
-    const title = create_svg_element("title", {});
-    const text = name + "\n" +
-        Object.entries(properties).map(x => x[0] + ": " + x[1]).join("\n");
-    title.appendChild(document.createTextNode(text));
-    return title;
 }
 
 
