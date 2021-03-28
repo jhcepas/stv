@@ -12,7 +12,9 @@ const dragging = {p0: {x: 0, y: 0}, element: undefined, moved: false};
 
 
 function drag_start(point, element) {
-    div_tree.style.cursor = div_visible_rect.style.cursor = "grabbing";
+    div_tree.style.cursor = "grabbing";
+    div_visible_rect.style.cursor = "grabbing";
+    div_aligned.style.cursor = "ew-resize";
     dragging.p0 = point;
     dragging.element = element;
 }
@@ -24,6 +26,7 @@ function drag_stop() {
 
     div_tree.style.cursor = "auto";
     div_visible_rect.style.cursor = "grab";
+    div_aligned.style.cursor = "auto";
 
     if (dragging.moved) {
         update_tree();
@@ -35,7 +38,13 @@ function drag_stop() {
 
 
 function drag_move(point, movement) {
-    if (dragging.element) {
+    if (dragging.element === div_aligned) {
+        view.align_bar += 100 * movement.x / div_tree.offsetWidth;
+        view.align_bar = Math.min(Math.max(view.align_bar, 1), 99);  // clip
+        datgui.updateDisplay();  // update the info box on the top-right
+        div_aligned.style.width = `${100 - view.align_bar}%`;
+    }
+    else if (dragging.element) {
         dragging.moved = true;
 
         const [scale_x, scale_y] = get_drag_scale();

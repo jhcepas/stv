@@ -106,8 +106,12 @@ function on_mousedown(event) {
         drag_start(point, div_visible_rect);
     else if (div_minimap.contains(event.target))
         move_minimap_view(point);
+    else if (div_aligned.contains(event.target))
+        drag_start(point, div_aligned);
     else if (div_tree.contains(event.target))
         drag_start(point, div_tree);
+    // NOTE: div_tree contains div_minimap, which also contains div_visible,
+    // so the order in which to do the contains() tests matters.
 }
 
 
