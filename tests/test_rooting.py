@@ -29,35 +29,39 @@ def strip(text):
         for line in text.splitlines() if line.strip())
 
 
-def test_unroot():
+def test_sort():
     t = load_sample_tree()
 
-    t = rooting.unroot(t)
-    assert str(t) == strip("""
-        :0
-        ├─b
-        │ ├─d
-        │ └─e
+    t2 = tree.copy(t)
+    rooting.sort(t2)
+    assert str(t2) == str(t)
+
+    rooting.sort(t2, reverse=True)
+    assert str(t2) == strip("""
+        a
         ├─c
+        │ ├─g
+        │ └─f
+        └─b
+          ├─e
+          └─d
+    """)
+
+    t3 = tree.loads('((f,g)b,c,d,((j,k)h,i)e)a;')
+    rooting.sort(t3, key=lambda node: len(node.children))
+    assert str(t3) == strip("""
+        a
+        ├─c
+        ├─d
+        ├─b
         │ ├─f
         │ └─g
-        └─a
-    """)
-
-
-def test_reroot():
-    t = load_sample_tree()
-
-    t = rooting.reroot(  rooting.unroot(t) )
-    assert str(t) == strip("""
-        a
-        ├─b
-        │ ├─d
-        │ └─e
-        └─c
-          ├─f
-          └─g
-    """)
+        └─e
+          ├─i
+          └─h
+            ├─j
+            └─k
+""")
 
 
 def test_root_at():
@@ -123,3 +127,30 @@ def test_get_root_id():
         node = t[node_name]
         assert rooting.get_root_id(node) == (t, node_id)
         assert node == t[node_id]
+
+
+def test_move():
+    t = load_sample_tree()
+
+    rooting.move(t['b'])
+    assert str(t) == strip("""
+        a
+        ├─c
+        │ ├─f
+        │ └─g
+        └─b
+          ├─d
+          └─e
+    """)
+
+
+def test_remove():
+    t = load_sample_tree()
+
+    rooting.remove(t['c'])
+    assert str(t) == strip("""
+        a
+        └─b
+          ├─d
+          └─e
+    """)
