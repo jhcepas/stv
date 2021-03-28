@@ -1,13 +1,12 @@
 """
-Test the functionality of rooting.py. To run with pytest.
+Test the functionality of gardening.py. To run with pytest.
 """
 
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, f'{abspath(dirname(__file__))}/..')
 
-from ete import tree
-from ete import rooting
+from ete import tree, gardening
 
 
 def load_sample_tree():
@@ -33,10 +32,10 @@ def test_sort():
     t = load_sample_tree()
 
     t2 = tree.copy(t)
-    rooting.sort(t2)
+    gardening.sort(t2)
     assert str(t2) == str(t)
 
-    rooting.sort(t2, reverse=True)
+    gardening.sort(t2, reverse=True)
     assert str(t2) == strip("""
         a
         ├─c
@@ -48,7 +47,7 @@ def test_sort():
     """)
 
     t3 = tree.loads('((f,g)b,c,d,((j,k)h,i)e)a;')
-    rooting.sort(t3, key=lambda node: len(node.children))
+    gardening.sort(t3, key=lambda node: len(node.children))
     assert str(t3) == strip("""
         a
         ├─c
@@ -67,7 +66,7 @@ def test_sort():
 def test_root_at():
     t = load_sample_tree()
 
-    t = rooting.root_at(t[0,1])
+    t = gardening.root_at(t[0,1])
     assert str(t) == strip("""
         e
         └─b
@@ -79,7 +78,7 @@ def test_root_at():
     """)
 
 
-    t = rooting.root_at(t['d'])
+    t = gardening.root_at(t['d'])
     assert str(t) == strip("""
         d
         └─b
@@ -90,7 +89,7 @@ def test_root_at():
           └─e
     """)
 
-    t = rooting.root_at(t['c'])
+    t = gardening.root_at(t['c'])
     assert str(t) == strip("""
         c
         ├─f
@@ -101,7 +100,7 @@ def test_root_at():
             └─d
     """)
 
-    t = rooting.root_at(t['a'])
+    t = gardening.root_at(t['a'])
     assert str(t) == strip("""
         a
         ├─b
@@ -125,14 +124,14 @@ def test_get_root_id():
             ('f', [1,0]),
             ('g', [1,1])]:
         node = t[node_name]
-        assert rooting.get_root_id(node) == (t, node_id)
+        assert gardening.get_root_id(node) == (t, node_id)
         assert node == t[node_id]
 
 
 def test_move():
     t = load_sample_tree()
 
-    rooting.move(t['b'])
+    gardening.move(t['b'])
     assert str(t) == strip("""
         a
         ├─c
@@ -147,7 +146,7 @@ def test_move():
 def test_remove():
     t = load_sample_tree()
 
-    rooting.remove(t['c'])
+    gardening.remove(t['c'])
     assert str(t) == strip("""
         a
         └─b
@@ -155,7 +154,7 @@ def test_remove():
           └─e
     """)
 
-    rooting.remove(t['d'])
+    gardening.remove(t['d'])
     assert str(t) == strip("""
         a
         └─b

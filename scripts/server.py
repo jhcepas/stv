@@ -54,7 +54,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer as JSONSigSerializer
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from ete import tree, draw
-from ete import rooting
+from ete import gardening
 
 
 db = None  # call initialize() to fill these up
@@ -249,7 +249,7 @@ class Trees(Resource):
                     'size': node.size, 'dx': node.size[0], 'dy': node.size[1],
                     'children': node.children, 'ch': node.children,
                     'len': len, 'sum': sum, 'abs': abs})
-            rooting.sort(t[node_id], key, reverse)
+            gardening.sort(t[node_id], key, reverse)
             return {'message': 'ok'}
         elif rule == '/trees/<string:tree_id>/root_at':
             t = load_tree(tree_id)
@@ -257,13 +257,13 @@ class Trees(Resource):
             if subtree:
                 raise InvalidUsage('operation not allowed with subtree')
             node_id = request.json
-            app.trees[tid] = rooting.root_at(t[node_id])
+            app.trees[tid] = gardening.root_at(t[node_id])
             return {'message': 'ok'}
         elif rule == '/trees/<string:tree_id>/move':
             try:
                 t = load_tree(tree_id)
                 node_id, shift = request.json
-                rooting.move(t[node_id], shift)
+                gardening.move(t[node_id], shift)
                 return {'message': 'ok'}
             except AssertionError as e:
                 raise InvalidUsage(f'cannot move ${node_id}: {e}')
@@ -271,7 +271,7 @@ class Trees(Resource):
             try:
                 t = load_tree(tree_id)
                 node_id = request.json
-                rooting.remove(t[node_id])
+                gardening.remove(t[node_id])
                 return {'message': 'ok'}
             except AssertionError as e:
                 raise InvalidUsage(f'cannot remove ${node_id}: {e}')

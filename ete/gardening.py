@@ -1,6 +1,10 @@
 """
-Unrooting, rooting and rerooting.
+Tree-related operations.
+
+Sorting, changing the root to a node, moving branches, removing (prunning)...
 """
+
+# "Arboriculture" may be more precise than "gardening", but it's a mouthful!
 
 from .tree import Tree, update_metrics, update_branch_height
 
