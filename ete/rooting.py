@@ -5,33 +5,13 @@ Unrooting, rooting and rerooting.
 from .tree import Tree, update_metrics, update_branch_height
 
 
-def unroot(root):
-    "Return an unrooted version of tree"
-    if root.length == 0:
-        return root  # tree is already unrooted
-
-    root_nodes = root.children
-    root_nodes.append(root)
-    root.children = []
-    update_metrics(root)
-
-    return Tree(':0', root_nodes)
-
-
-def reroot(tree):
-    "Return the original version of an unrooted tree"
-    if tree.length != 0:
-        return tree  # tree is already rooted
-
-    assert tree.children, 'not coming from an unrooted tree'
-
-    root = tree.children.pop()
-    root.children = tree.children
-    for node in root.children:
-        node.parent = root
-    update_metrics(root)
-
-    return root
+def sort(tree, key=None, reverse=False):
+    "Sort the tree in-place"
+    key = key or (lambda node: (node.size[1], node.size[0], node.name))
+    for node in tree.children:
+        sort(node, key, reverse)
+    tree.children.sort(key=key, reverse=reverse)
+    update_branch_height(tree)
 
 
 def root_at(node):
@@ -62,28 +42,6 @@ def get_root_id(node):
     return current_root, positions[::-1]
 
 
-def remove(node):
-    "Remove the given node from its tree"
-    assert node.parent, 'cannot remove the root'
-
-    parent = node.parent
-    parent.children.remove(node)
-
-    while parent:
-        update_metrics(parent)
-        parent = parent.parent
-
-
-def sort(tree, key=None, reverse=False):
-    "Sort the tree in-place"
-    key = key or (lambda node: (node.size[1], node.size[0], node.name))
-    children = tree.children
-    children.sort(key=key, reverse=reverse)
-    for node in children:
-        sort(node, key, reverse)
-    update_branch_height(tree)
-
-
 def move(node, shift=1):
     "Change the position of the current node with respect to its parent"
     assert node.parent, 'cannot move the root'
@@ -94,3 +52,15 @@ def move(node, shift=1):
     siblings[pos_old], siblings[pos_new] = siblings[pos_new], siblings[pos_old]
 
     update_branch_height(node.parent)
+
+
+def remove(node):
+    "Remove the given node from its tree"
+    assert node.parent, 'cannot remove the root'
+
+    parent = node.parent
+    parent.children.remove(node)
+
+    while parent:
+        update_metrics(parent)
+        parent = parent.parent
