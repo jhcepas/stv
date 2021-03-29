@@ -45,43 +45,27 @@ function zoom_into_box(box, border=0.10) {
 window.zoom_into_box = zoom_into_box;  // exposed so it can be called in onclick
 
 
-// Zoom by a factor qz maintaining the given point on the screen.
+// Zoom maintaining the given point on the screen.
 function zoom_around(point, zoom_in, do_zoom_x=true, do_zoom_y=true) {
     const qz = (zoom_in ? 1.25 : 0.8);  // zoom change (quotient)
 
-    if (view.is_circular)
-        zoom_circular(point, qz, do_zoom_x, do_zoom_y);
-    else
-        zoom_rectangular(point, qz, do_zoom_x, do_zoom_y);
-}
-
-
-function zoom_circular(point, qz, do_zoom_x, do_zoom_y) {
-    if (do_zoom_x) {  // all together
-        const do_zoom = (do_zoom_x || do_zoom_y);
-        zoom_rectangular(point, qz, do_zoom, do_zoom);
+    if (view.is_circular) {
+        if (do_zoom_x) {
+            const do_zoom = (do_zoom_x || do_zoom_y);  // all together
+            zoom_xy(point, qz, do_zoom, do_zoom);
+        }
+        else if (do_zoom_y) {
+            zoom_angular(point, qz);
+        }
     }
-    else {  // zoom by changing the angle
-        const x = view.tl.x + point.x / view.zoom.x,
-              y = view.tl.y + point.y / view.zoom.y;
-        const angle = Math.atan2(y, x) * 180 / Math.PI;
-
-        view.angle.min = angle + qz * (view.angle.min - angle);
-        view.angle.max = angle + qz * (view.angle.max - angle);
-
-        if (zooming.timeout)
-            window.clearTimeout(zooming.timeout);
-
-        zooming.timeout = window.setTimeout(() => {
-            zooming.timeout = undefined;
-            draw_minimap();
-            update();
-        }, 200);  // 200 ms until we actually update (if not cancelled before!)
+    else {
+        zoom_xy(point, qz, do_zoom_x, do_zoom_y);
     }
 }
 
 
-function zoom_rectangular(point, qz, do_zoom_x, do_zoom_y) {
+// Zoom around given point changing the x and y zoom by a factor qz.
+function zoom_xy(point, qz, do_zoom_x, do_zoom_y) {
     if (do_zoom_x) {
         const zoom_new = qz * view.zoom.x;
         view.tl.x += (1 / view.zoom.x - 1 / zoom_new) * point.x;
@@ -101,28 +85,27 @@ function zoom_rectangular(point, qz, do_zoom_x, do_zoom_y) {
 }
 
 
-// Perform zoom by scaling the svg, and really update it only after a timeout.
-function smooth_zoom(point) {
+// Zoom (around given point and by a factor qz) by changing the angular limits.
+function zoom_angular(point, qz) {
+    const x = view.tl.x + point.x / view.zoom.x,
+          y = view.tl.y + point.y / view.zoom.y;
+    const angle = Math.atan2(y, x) * 180 / Math.PI;
+
+    view.angle.min = angle + qz * (view.angle.min - angle);
+    view.angle.max = angle + qz * (view.angle.max - angle);
+
     if (zooming.timeout)
         window.clearTimeout(zooming.timeout);
 
-    const g = div_tree.children[0].children[0];
-    g.setAttribute("transform",
-        `scale(${zooming.qz.x}, ${zooming.qz.y}) ` +
-        `translate(${(1 / zooming.qz.x - 1) * point.x}
-                   ${(1 / zooming.qz.y - 1) * point.y})`);
-
-    if (view.minimap_show)
-        update_minimap_visible_rect();
-
     zooming.timeout = window.setTimeout(() => {
-        zooming.qz.x = zooming.qz.y = 1;
         zooming.timeout = undefined;
+        draw_minimap();
         update();
-    }, 400);  // 400 ms until we actually update (if not cancelled before!)
+    }, 200);  // 200 ms until we actually update (if not cancelled before!)
 }
 
 
+// Zoom adaptatively so that the given box tends to occupy the full screen.
 function zoom_towards_box(box, point, zoom_in, do_zoom_x, do_zoom_y) {
     const [dx, dy] = [box[2], box[3]];
 
@@ -154,4 +137,26 @@ function zoom_towards_box(box, point, zoom_in, do_zoom_x, do_zoom_y) {
 
     if (do_zoom_x || do_zoom_y)
         smooth_zoom(point);
+}
+
+
+// Zoom by scaling the svg, and really update it only after a timeout.
+function smooth_zoom(point) {
+    if (zooming.timeout)
+        window.clearTimeout(zooming.timeout);
+
+    const g = div_tree.children[0].children[0];
+    g.setAttribute("transform",
+        `scale(${zooming.qz.x}, ${zooming.qz.y}) ` +
+        `translate(${(1 / zooming.qz.x - 1) * point.x}
+                   ${(1 / zooming.qz.y - 1) * point.y})`);
+
+    if (view.minimap_show)
+        update_minimap_visible_rect();
+
+    zooming.timeout = window.setTimeout(() => {
+        zooming.qz.x = zooming.qz.y = 1;
+        zooming.timeout = undefined;
+        update();
+    }, 400);  // 400 ms until we actually update (if not cancelled before!)
 }
