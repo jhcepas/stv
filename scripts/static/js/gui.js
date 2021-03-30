@@ -104,13 +104,33 @@ async function main() {
 async function api(endpoint) {
     const response = await fetch(endpoint);
 
-    if (response.status !== 200)
-        Swal.fire("Access failed", `Error code: ${response.status}`);
-    else
-        return await response.json();
+    if (response.status !== 200) {
+        Swal.fire({
+            title: "Request failed :(",
+            html: `${response.status} - ${await get_error(response)}`,
+            icon: "error",
+        });
+        return undefined;
+    }
+
+    return await response.json();
 }
 
 
+// Return the most descriptive error message extracted from the response.
+async function get_error(response) {
+    try {
+        const data = await response.json();
+        return data.message;
+    }
+    catch (error) {
+        return response.statusText;
+    }
+}
+
+
+// NOTE: The next two functions are just used to bypass the authorization that is
+// currently needed in the api to make changes to a tree (by using a PUT request).
 function get_login_info() {
     return JSON.parse(localStorage.getItem("login_info"));
 }
@@ -141,8 +161,14 @@ async function api_put(command, params=undefined) {
         body: JSON.stringify(params),
     });
 
-    if (response.status !== 200)
-        Swal.fire("Modification failed", `Error code: ${response.status}`);
+    if (response.status !== 200) {
+        Swal.fire({
+            title: "Tree modification failed :(",
+            html: `${response.status} - ${await get_error(response)}`,
+            icon: "error",
+        });
+        return;
+    }
 
     const commands_modifying_size = ["root_at", "remove"];
     if (commands_modifying_size.includes(command))
