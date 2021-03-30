@@ -85,9 +85,9 @@ function on_wheel(event) {
 
     const point = {x: event.pageX, y: event.pageY};
     const zoom_in = event.deltaY < 0;
-    const [do_zoom_x, do_zoom_y] = [!event.ctrlKey, !event.altKey];
+    const do_zoom = {x: !event.ctrlKey, y: !event.altKey};
 
-    zoom_around(point, zoom_in, do_zoom_x, do_zoom_y);
+    zoom_around(point, zoom_in, do_zoom);
 }
 
 

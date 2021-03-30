@@ -46,53 +46,54 @@ window.zoom_into_box = zoom_into_box;  // exposed so it can be called in onclick
 
 
 // Zoom maintaining the given point on the screen.
-function zoom_around(point, zoom_in, do_zoom_x=true, do_zoom_y=true) {
-    const qz = (zoom_in ? 1.25 : 0.8);  // zoom change (quotient)
+function zoom_around(point, zoom_in, do_zoom={x:true, y:true}) {
+    const qz = {x: (zoom_in ? 1.25 : 0.8),  // zoom change (quotient)
+                y: (zoom_in ? 1.25 : 0.8)};
 
     if (view.is_circular) {
-        if (do_zoom_x) {
-            const do_zoom = (do_zoom_x || do_zoom_y);  // all together
-            zoom_xy(point, qz, do_zoom, do_zoom);
+        if (do_zoom.x) {
+            do_zoom.y = true;  // both dimensions zoom together in circular
+            zoom_xy(point, qz, do_zoom);
         }
-        else if (do_zoom_y) {
+        else if (do_zoom.y) {
             zoom_angular(point, qz);
         }
     }
     else {
-        zoom_xy(point, qz, do_zoom_x, do_zoom_y);
+        zoom_xy(point, qz, do_zoom);
     }
 }
 
 
-// Zoom around given point changing the x and y zoom by a factor qz.
-function zoom_xy(point, qz, do_zoom_x, do_zoom_y) {
-    if (do_zoom_x) {
-        const zoom_new = qz * view.zoom.x;
+// Zoom around given point changing the x and y zoom by a factor qz.x and qz.y.
+function zoom_xy(point, qz, do_zoom) {
+    if (do_zoom.x) {
+        const zoom_new = qz.x * view.zoom.x;
         view.tl.x += (1 / view.zoom.x - 1 / zoom_new) * point.x;
         view.zoom.x = zoom_new;
-        zooming.qz.x *= qz;
+        zooming.qz.x *= qz.x;
     }
 
-    if (do_zoom_y) {
-        const zoom_new = qz * view.zoom.y;
+    if (do_zoom.y) {
+        const zoom_new = qz.y * view.zoom.y;
         view.tl.y += (1 / view.zoom.y - 1 / zoom_new) * point.y;
         view.zoom.y = zoom_new;
-        zooming.qz.y *= qz;
+        zooming.qz.y *= qz.y;
     }
 
-    if (do_zoom_x || do_zoom_y)
+    if (do_zoom.x || do_zoom.y)
         smooth_zoom(point);
 }
 
 
-// Zoom (around given point and by a factor qz) by changing the angular limits.
+// Zoom (around given point and by a factor qz.y) by changing the angular limits.
 function zoom_angular(point, qz) {
     const x = view.tl.x + point.x / view.zoom.x,
           y = view.tl.y + point.y / view.zoom.y;
     const angle = Math.atan2(y, x) * 180 / Math.PI;
 
-    view.angle.min = angle + qz * (view.angle.min - angle);
-    view.angle.max = angle + qz * (view.angle.max - angle);
+    view.angle.min = angle + qz.y * (view.angle.min - angle);
+    view.angle.max = angle + qz.y * (view.angle.max - angle);
 
     if (zooming.timeout)
         window.clearTimeout(zooming.timeout);
@@ -106,37 +107,22 @@ function zoom_angular(point, qz) {
 
 
 // Zoom adaptatively so that the given box tends to occupy the full screen.
-function zoom_towards_box(box, point, zoom_in, do_zoom_x, do_zoom_y) {
-    const [dx, dy] = [box[2], box[3]];
-
-    let qz;
+function zoom_towards_box(box, point, zoom_in, do_zoom) {
+    let qx, qy;
     if (zoom_in) {
-        const qx = div_tree.offsetWidth / (dx * view.zoom.x) - 1,
-              qy = div_tree.offsetHeight / (dy * view.zoom.y) - 1;
-        qz = {x: 1 + 0.1 * Math.atan(qx),
-              y: 1 + 0.1 * Math.atan(qy)};
+        const [dx, dy] = [box[2], box[3]];
+        qx = 0.8 * div_tree.offsetWidth / (dx * view.zoom.x) - 1;
+        qy = 0.8 * div_tree.offsetHeight / (dy * view.zoom.y) - 1;
     }
     else {
-        qz = {x: 0.8,
-              y: 0.8};
+        const [dx, dy] = [3 * view.tree_size.width, 3 * view.tree_size.height];
+        qx = div_tree.offsetWidth / (dx * view.zoom.x) - 1,
+        qy = div_tree.offsetHeight / (dy * view.zoom.y) - 1;
     }
+    const qz = {x: 1 + 0.2 * Math.atan(qx),
+                y: 1 + 0.2 * Math.atan(qy)};
 
-    if (do_zoom_x) {
-        const zoom_new = qz.x * view.zoom.x;
-        view.tl.x += (1 / view.zoom.x - 1 / zoom_new) * point.x;
-        view.zoom.x = zoom_new;
-        zooming.qz.x *= qz.x;
-    }
-
-    if (do_zoom_y) {
-        const zoom_new = qz.y * view.zoom.y;
-        view.tl.y += (1 / view.zoom.y - 1 / zoom_new) * point.y;
-        view.zoom.y = zoom_new;
-        zooming.qz.y *= qz.y;
-    }
-
-    if (do_zoom_x || do_zoom_y)
-        smooth_zoom(point);
+    zoom_xy(point, qz, do_zoom);
 }
 
 

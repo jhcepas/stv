@@ -22,6 +22,7 @@ document.addEventListener("DOMContentLoaded", main);
 const view = {
     // tree
     tree: "",
+    tree_size: {width: 0, height: 0},
     subtree: "",
     sorting: {sort: () => sort(),
               key: '(dy, dx, name)',
@@ -91,9 +92,9 @@ async function main() {
 
     init_events();
 
-    set_query_string_values();
+    await set_query_string_values();
 
-    await reset_zoom(view.zoom.x === 0, view.zoom.y === 0);
+    reset_zoom(view.zoom.x === 0, view.zoom.y === 0);
     draw_minimap();
     update();
 }
@@ -142,6 +143,10 @@ async function api_put(command, params=undefined) {
 
     if (response.status !== 200)
         Swal.fire("Modification failed", `Error code: ${response.status}`);
+
+    const commands_modifying_size = ["root_at", "remove"];
+    if (commands_modifying_size.includes(command))
+        view.tree_size = await api(`/trees/${get_tid()}/size`);
 }
 
 
@@ -150,7 +155,9 @@ async function api_put(command, params=undefined) {
 async function init_trees() {
     const trees_info = await api("/trees");
     trees_info.forEach(t => trees[t.name] = t.id);
+
     view.tree = Object.keys(trees)[0];
+    view.tree_size = await api(`/trees/${get_tid()}/size`);
 }
 
 
@@ -163,7 +170,8 @@ function get_tid() {
 async function on_tree_change() {
     div_tree.style.cursor = "wait";
     remove_searches();
-    await reset_zoom();
+    view.tree_size = await api(`/trees/${get_tid()}/size`);
+    reset_zoom();
     reset_position();
     draw_minimap();
     update();
@@ -171,7 +179,7 @@ async function on_tree_change() {
 
 
 // What happens when the user selects a new drawer in the datgui menu.
-async function on_drawer_change() {
+function on_drawer_change() {
     const has_aligned = view.drawer.startsWith("Align");
     div_aligned.style.display = has_aligned ? "initial" : "none";
 
@@ -180,7 +188,7 @@ async function on_drawer_change() {
     view.is_circular = view.drawer.startsWith("Circ");
 
     if (reset_draw) {
-        await reset_zoom();
+        reset_zoom();
         reset_position();
         draw_minimap();
     }
@@ -189,8 +197,8 @@ async function on_drawer_change() {
 }
 
 
-async function reset_view() {
-    await reset_zoom();
+function reset_view() {
+    reset_zoom();
     reset_position();
     if (!view.minimap_uptodate)
         draw_minimap();
@@ -199,7 +207,7 @@ async function reset_view() {
 
 
 // Set values that have been given with the query string.
-function set_query_string_values() {
+async function set_query_string_values() {
     const unknown_params = [];
     const params = new URLSearchParams(location.search);
 
@@ -230,6 +238,8 @@ function set_query_string_values() {
     const has_aligned = view.drawer.startsWith("Align");
     div_aligned.style.display = has_aligned ? "initial" : "none";
 
+    view.tree_size = await api(`/trees/${get_tid()}/size`);
+
     if (unknown_params.length != 0)
         Swal.fire(
             "Oops!",
@@ -250,11 +260,11 @@ function show_minimap(show) {
 
 
 // Set the zoom so the full tree fits comfortably on the screen.
-async function reset_zoom(reset_zx=true, reset_zy=true) {
+function reset_zoom(reset_zx=true, reset_zy=true) {
     if (!(reset_zx || reset_zy))
         return;
 
-    const size = await api(`/trees/${get_tid()}/size`);
+    const size = view.tree_size;
 
     if (view.is_circular) {
         const min_w_h = Math.min(div_tree.offsetWidth, div_tree.offsetHeight);
@@ -430,12 +440,12 @@ function on_box_wheel(event, box) {
 
     const point = {x: event.pageX, y: event.pageY};
     const zoom_in = event.deltaY < 0;
-    const [do_zoom_x, do_zoom_y] = [!event.ctrlKey, !event.altKey];
+    const do_zoom = {x: !event.ctrlKey, y: !event.altKey};
 
     if (view.is_circular || !view.smart_zoom)
-        zoom_around(point, zoom_in, do_zoom_x, do_zoom_y);
+        zoom_around(point, zoom_in, do_zoom);
     else
-        zoom_towards_box(box, point, zoom_in, do_zoom_x, do_zoom_y);
+        zoom_towards_box(box, point, zoom_in, do_zoom);
 }
 
 

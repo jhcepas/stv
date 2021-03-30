@@ -13,7 +13,7 @@ async function draw_minimap() {
         return;
     }
 
-    const size = await api(`/trees/${get_tid()}/size`);
+    const size = view.tree_size;
     const mbw = 3;  // border-width from .minimap css
     if (view.is_circular) {
         if (div_minimap.offsetWidth < div_minimap.offsetHeight)
