@@ -43,7 +43,6 @@
     opacity: 0.05;
 }
 
-
 .search {
     opacity: 0.3;
 }
@@ -69,11 +68,9 @@
     border-left: dashed;
 }
 
-
 .dotted {
     stroke-dasharray: 4;
 }
-
 
 .minimap {
     position: absolute;
@@ -103,7 +100,6 @@
     z-index: 3;
 }
 
-
 .contextmenu {
     position: absolute;
     z-index: 4;
@@ -111,7 +107,6 @@
     border: 1px solid #AAA;
     background-color: white;
 }
-
 
 .ctx_button {
     width: 100%;
@@ -122,12 +117,10 @@
     background-color: white;
 }
 
-
 .ctx_button:hover {
     background-color: #88F;
     color: white;
 }
-
 
 .ctx_label {
     padding: 3px 10px;
@@ -137,13 +130,11 @@
     font-size: 0.8em;
 }
 
-
 hr {
     border: 0;
     height: 1px;
     background-color: #333;
 }
-
 
 kbd {  /* from https://developer.mozilla.org/en-US/docs/Web/HTML/Element/kbd */
     background-color: #eee;
