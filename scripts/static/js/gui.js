@@ -95,6 +95,7 @@ async function main() {
     await set_query_string_values();
 
     reset_zoom(view.zoom.x === 0, view.zoom.y === 0);
+    reset_position();
     draw_minimap();
     update();
 }
@@ -298,9 +299,9 @@ function reset_zoom(reset_zx=true, reset_zy=true) {
     }
     else {
         if (reset_zx)
-            view.zoom.x = 0.5 * div_tree.offsetWidth / size.width;
+            view.zoom.x = 0.6 * div_tree.offsetWidth / size.width;
         if (reset_zy)
-            view.zoom.y = div_tree.offsetHeight / size.height;
+            view.zoom.y = 0.9 * div_tree.offsetHeight / size.height;
     }
 }
 
@@ -316,8 +317,8 @@ function reset_position() {
         view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
     }
     else {
-        view.tl.x = 0;
-        view.tl.y = 0;
+        view.tl.x = -0.10 * div_tree.offsetWidth / view.zoom.x;
+        view.tl.y = -0.05 * div_tree.offsetHeight / view.zoom.y;
     }
 }
 
