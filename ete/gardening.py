@@ -22,17 +22,17 @@ def root_at(node):
     "Return the tree of which node is part of, rerooted at the given node"
     root, node_id = get_root_id(node)
 
-    old_root = root
+    current_root = root
     for i in node_id:
-        new_root = old_root.children.pop(i)
+        new_root = current_root.children.pop(i)
         new_root.parent = None
-        new_root.children.append(old_root)
-        old_root.parent = new_root
-        update_metrics(old_root)
+        new_root.children.append(current_root)
+        current_root.parent = new_root
+        update_metrics(current_root)
         update_metrics(new_root)
-        old_root = new_root
+        current_root = new_root
 
-    return old_root
+    return current_root
 
 
 def get_root_id(node):
