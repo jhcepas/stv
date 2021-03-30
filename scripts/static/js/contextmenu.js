@@ -4,6 +4,7 @@ import { view, api_put, on_tree_change, reset_view, sort } from "./gui.js";
 import { draw_minimap } from "./minimap.js";
 import { update } from "./draw.js";
 import { download_newick } from "./download.js";
+import { zoom_into_box } from "./zoom.js";
 
 export { on_box_contextmenu };
 
