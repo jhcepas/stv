@@ -46,21 +46,6 @@ def test_draw_content_float():
         ['text', 'B', (6+200.0, 7+0.7692307692307692), 0.7142857142857143, 'name']]
 
 
-def test_draw_content_align():
-    tree_text = '((B:200,(C:250,D:300)E:350)A:100)F;'
-    t = tree.loads(tree_text)
-
-    drawer = draw.DrawerAlign(t, zoom=(10, 10), aligned=True)
-    assert list(drawer.draw_content_align(t, (0, 0))) == []
-    assert list(drawer.draw_content_align(t[0,1], (0, 0))) == []
-    assert list(drawer.draw_content_align(t[0,1,0], (0, 0))) == [
-        ['text', 'C', (0, 0.6666666666666666), 0.5, 'name']]
-    assert list(drawer.draw()) == [
-        ['text', 'B', (0, 0.6666666666666666), 0.5, 'name'],
-        ['text', 'C', (0, 1.6666666666666665), 0.5, 'name'],
-        ['text', 'D', (0, 2.6666666666666665), 0.5, 'name']]
-
-
 def test_draw_collapsed():
     tree_text = '((B:200,(C:250,D:300)E:350)A:100)F;'
     t = tree.loads(tree_text)

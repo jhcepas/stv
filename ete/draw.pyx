@@ -129,14 +129,10 @@ class Drawer:
 
     def get_content(self, node, point):
         "Yield the node content's graphic elements"
-        if self.aligned:
-            yield from self.draw_content_align(node, point)
-            return
-
         x, y = point
         dx, dy = self.content_size(node)
 
-        if self.in_viewport(Box(x, y, dx, dy)):
+        if not self.aligned and self.in_viewport(Box(x, y, dx, dy)):
             bh = self.bh(node)  # node's branching height (in the right units)
             yield from self.draw_lengthline((x, y + bh), (x + dx, y + bh))
 
@@ -152,7 +148,7 @@ class Drawer:
 
     def get_outline(self):
         "Yield the outline representation"
-        graphics = [draw_cone(self.outline)]
+        graphics = [] if self.aligned else [draw_cone(self.outline)]
 
         graphics += self.draw_collapsed()
         self.collapsed = []
@@ -214,11 +210,10 @@ class Drawer:
 
     def draw_content_float(self, node, point):
         "Yield graphic elements to draw the floated contents of the node"
-        yield from []
-
-    def draw_content_align(self, node, point):
-        "Yield graphic elements to draw the aligned contents of the node"
-        yield from []
+        if self.aligned:
+            yield from []
+        else:
+            yield from []
 
     def draw_collapsed(self):
         "Yield graphic elements to draw a collapsed node"
@@ -372,7 +367,7 @@ class DrawerLeafNames(DrawerRect):
     "With names on leaf nodes"
 
     def draw_content_float(self, node, point):
-        if node.is_leaf:
+        if not self.aligned and node.is_leaf:
             x, y = point
             dx, dy = self.content_size(node)
 
@@ -385,7 +380,7 @@ class DrawerCircLeafNames(DrawerCirc):
     "With names on leaf nodes"
 
     def draw_content_float(self, node, point):
-        if node.is_leaf:
+        if not self.aligned and node.is_leaf:
             r, a = point
             dr, da = self.content_size(node)
 
@@ -432,6 +427,9 @@ class DrawerCollapsed(DrawerLeafNames):
     "With text on collapsed nodes"
 
     def draw_collapsed(self):
+        if self.aligned:
+            return
+
         names = [n.name for n in self.collapsed if n.name]
         if not names:
             return
@@ -448,6 +446,9 @@ class DrawerCircCollapsed(DrawerCircLeafNames):
     "With text on collapsed nodes"
 
     def draw_collapsed(self):
+        if self.aligned:
+            return
+
         r, a, dr, da = self.outline
         if not (-pi <= a <= pi and -pi <= a + da <= pi):
             return
@@ -492,22 +493,21 @@ class DrawerAlign(DrawerLengths):
             x, y = point
             dx, dy = self.content_size(node)
 
-            p1 = (x + dx, y + dy/2)
-            p2 = (2 * self.tree_dx, y + dy/2)
-            yield draw_line(p1, p2, 'dotted')
-
-    def draw_content_align(self, node, point):
-        if node.is_leaf:
-            x, y = point
-            dx, dy = self.content_size(node)
-            yield draw_text(node.name, (0, y + dy/1.5), dy/2, 'name')
+            if not self.aligned:
+                p1 = (x + dx, y + dy/2)
+                p2 = (2 * self.tree_dx, y + dy/2)
+                yield draw_line(p1, p2, 'dotted')
+            else:
+                yield draw_text(node.name, (0, y + dy/1.5), dy/2, 'name')
 
 
 class DrawerAlignHeatMap(DrawerFull):
     "With an example heatmap as aligned content"
 
-    def draw_content_align(self, node, point):
-        if node.is_leaf:
+    def draw_content_float(self, node, point):
+        super().draw_content_float(node, point)
+
+        if self.aligned and node.is_leaf:
             _, y = point
             dx, dy = self.content_size(node)
             zx, zy = self.zoom
