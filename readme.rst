@@ -17,7 +17,7 @@ Prerequisites
 The tree and drawing modules only need `Python 3`_. To use the server,
 you need in addition the following python modules:
 
-* flask, flask-cors, flask-httpauth, flask-restful
+* flask, flask-cors, flask-httpauth, flask-restful, flask-compress
 * sqlalchemy
 
 .. _`Python 3`: https://www.python.org/downloads/
