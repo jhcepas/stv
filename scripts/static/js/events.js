@@ -55,12 +55,14 @@ function on_keydown(event) {
     else if (key === "+") {
         const center = {x: div_tree.offsetWidth / 2,
                         y: div_tree.offsetHeight / 2};
-        zoom_around(center, true);
+        const zoom_in = true;
+        zoom_around(center, zoom_in);
     }
     else if (key === "-") {
         const center = {x: div_tree.offsetWidth / 2,
                         y: div_tree.offsetHeight / 2};
-        zoom_around(center, false);
+        const zoom_in = false;
+        zoom_around(center, zoom_in);
     }
     else if (key === "Escape") {
         div_contextmenu.style.visibility = "hidden";
