@@ -339,7 +339,7 @@ class DrawerCirc(Drawer):
 
 def clip_angles(double a1, double a2):
     "Return the angles such that a1 to a2 extend at maximum from -pi to pi"
-    EPSILON = 1e-8  # NOTE: without it, p1 == p2 and svg arcs are not drawn
+    EPSILON = 1e-8  # without it, p1 == p2 and svg arcs are not drawn
     return max(-pi + EPSILON, a1), min(pi - EPSILON, a2)
 
 
