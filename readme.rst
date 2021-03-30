@@ -14,13 +14,27 @@ Installing
 Prerequisites
 -------------
 
-The tree and drawing modules only need `Python 3`_. To use the server,
-you need in addition the following python modules:
+The tree and drawing modules just need `Python 3`_ and `Cython`_.
+
+To use the server, you need in addition the following python modules:
 
 * flask, flask-cors, flask-httpauth, flask-restful, flask-compress
 * sqlalchemy
 
 .. _`Python 3`: https://www.python.org/downloads/
+.. _`Cython`: https://cython.org/
+
+
+Module
+======
+
+To create the modules ``tree`` and ``draw`` you need to first compile them
+with Cython::
+
+  python setup.py build_ext --inplace
+
+After that, you will only need to run that command if you ever change either
+of the source files (``ete/tree.pyx`` and ``ete/draw.pyx``).
 
 
 Server
@@ -40,18 +54,19 @@ The default sql engine that it uses is `sqlite <https://www.sqlite.org/>`_,
 with a local file named ``trees.db``. It can easily be changed to any other
 (and should for scalability purposes).
 
-Before running the backend the first time, you can initialize the database
-this way::
-
-  sqlite3 trees.db < create_tables.sql
-  sqlite3 trees.db < sample_data.sql
-
-Then you can run the backend directly with::
+You can run the backend directly with::
 
   ./server.py
 
-which will start it in debug mode. For a more serious usage, you can run it
-for example with `gunicorn <https://gunicorn.org/>`_, as in::
+which will start it in debug mode.
+
+When running the backend the first time, it will create and initialize the
+database (by using the files ``create_tables.sql`` and ``sample_data.sql``,
+and using the tool `add_tree.py` to add the trees from the ``examples``
+directory).
+
+For a more serious usage, you can run it for example with
+`gunicorn <https://gunicorn.org/>`_, as in::
 
   gunicorn server:app
 
@@ -59,31 +74,10 @@ which will listen locally, or use ``-b 0.0.0.0:5000`` to listen to exterior
 connections too.
 
 
-Example calls
--------------
-
-You can use `http <https://httpie.io/>`_ to test the backend with commands
-like::
-
-  http localhost:5000/trees/1
-
-  http -a guest:123 POST localhost:5000/trees name=test newick='(a:1,b:2)c;'
-
-  http -a guest:123 DELETE localhost:5000/users/2
-
-  http POST localhost:5000/login username=guest password=123
-
-
-To keep on going with bearer authentication, take the returned token and use
-it in the next calls like::
-
-  http localhost:5000/info Authorization:"Bearer $token"
-
-
 Tests
 -----
 
-You can also run a bunch of tests in the `tests` directory with::
+You can run a bunch of tests in the `tests` directory with::
 
   pytest-3
 
@@ -95,7 +89,7 @@ see examples of how to use ete.
 Api
 ---
 
-The REST api has the following endpoints::
+The REST api has (at least) the following endpoints::
 
   /users
   /users/<id>
@@ -137,3 +131,24 @@ properties ``id``, ``username``, ``name``, and (most importantly) ``token``
 with the values referring to the successfully logged user. The value of
 ``token`` must be used in subsequent calls, with the header
 ``Authorization: Bearer <token>``, to stay logged as the same user.
+
+
+Example calls
+~~~~~~~~~~~~~
+
+You can use `http <https://httpie.io/>`_ to test the backend with commands
+like::
+
+  http localhost:5000/trees/1
+
+  http -a guest:123 POST localhost:5000/trees name=test newick='(a:1,b:2)c;'
+
+  http -a guest:123 DELETE localhost:5000/users/2
+
+  http POST localhost:5000/login username=guest password=123
+
+
+To keep on going with bearer authentication, take the returned token and use
+it in the next calls like::
+
+  http localhost:5000/info Authorization:"Bearer $token"
