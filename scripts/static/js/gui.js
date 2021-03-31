@@ -38,7 +38,7 @@ const view = {
     is_circular: false,
     rmin: 0,
     angle: {min: -180, max: 180},
-    min_size: 6,
+    min_size: 20,
 
     // searches
     search_nmax: 10000,
