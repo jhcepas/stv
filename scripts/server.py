@@ -729,7 +729,7 @@ def initialize():
 
     @app.route('/')
     def index():
-        return redirect(url_for('static', filename='gui.html'))
+        return redirect(url_for('static', filename='upload_tree.html'))
 
     @app.route('/help')
     def description():

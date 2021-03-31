@@ -10,6 +10,8 @@
 
 <body>
 
+<div class="centered">
+
 <a href="http://etetoolkit.org"><img src="/static/logo.jpg"></a>
 
 <h1>Tree Viewer</h1>
@@ -19,7 +21,16 @@ phylogenetic trees, but it can be used for any tree as long as it is expressed
 in <a href="https://en.wikipedia.org/wiki/Newick_format">Newick format</a>.
 </p>
 
-<p>After loading the tree, it opens an interactive representation. You can use
+<p>You can explore some of the pre-loaded trees, such as the
+<a href="http://treeview.etetoolkit.org/static/gui.html?tree=bac120_r95">GTDB
+microbial phylogeny</a> (31k leaves) or the
+<a href="http://treeview.etetoolkit.org/static/gui.html?tree=ncbi">NCBI
+Taxonomy</a> (2.6M leaves).
+</p>
+
+<p>You can also add your own trees for exploration by uploading them from
+this page. After loading the tree, it opens an interactive representation.
+You can use
 the generated url as a permanent link to your data, that you can use for
 sharing your images.</p>
 
@@ -43,7 +54,7 @@ sharing your images.</p>
 <div id="div_upload">
   <div>
   <input type="radio" id="radio_string" name="newick" value="string">
-  <label for="radio_string">You can paste your tree (or
+  <label for="radio_string">To paste your tree (or
     <a href="#" onclick="load_example(); return false;">load an
     example</a>):</label><br>
   <textarea id="input_newick_string" rows="8" cols="80"
@@ -84,6 +95,27 @@ sharing your images.</p>
 </div>
 
 <div id="div_info"></div>
+
+</div>
+
+<footer>
+<div class="centered">
+
+<p>
+<img src="icon.png" alt="ETE Toolkit logo">
+Tree Explorer is part of the
+<a href="http://etetoolkit.org/">ETE Toolkit</a>.
+</p>
+
+<p>
+<img src="https://chanzuckerberg.com/wp-content/themes/czi/img/logo.svg"
+     width="50" alt="Chan Zuckerberg Initiative logo">
+Smart visualization of huge trees funded by the
+<a href="https://chanzuckerberg.com/">Chan Zuckerberg Initiative</a>.
+</p>
+
+</div>
+</footer>
 
 </body>
 </html>

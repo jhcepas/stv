@@ -15,31 +15,37 @@ async function on_load_page() {
     if (!check_metadata.checked)
         div_metadata.style.display = "none";
 
-    show_login_or_upload();
+    show_upload();
 }
 
 
 // Show the appropriate sections -- login or upload, depending on whether we
 // have already logged in.
-function show_login_or_upload() {
+function show_upload() {
     const login = get_login();
-    if (login !== null) {
-        div_login.style.display = "none";
-        div_upload.style.display = "";
-        div_info.innerHTML = `
-            Logged in as <span title="${login.name}">${login.username}</span><br>
-            <a href="#" onclick="clear_login(); show_login_or_upload();
-                                 return false;">Log out</a>`;
+
+    if (!login) {
+        guest_login();
+        return;
     }
-    else {
-        div_upload.style.display = "none";
-        div_login.style.display = "";
-        div_info.innerHTML = `
-            <a href="#" onclick="guest_login();
-                                 return false;">Log in as guest</a>`;
-    }
+
+    div_login.style.display = "none";
+    div_upload.style.display = "block";
+    div_info.innerHTML = `
+        Logged in as <span title="${login.name}">${login.username}</span><br>
+        <a href="#" onclick="clear_login(); show_login();
+                             return false;">Log out</a>`;
 }
-window.show_login_or_upload = show_login_or_upload;
+
+function show_login() {
+    clear_login();
+    div_upload.style.display = "none";
+    div_login.style.display = "block";
+    div_info.innerHTML = `
+        <a href="#" onclick="guest_login();
+                             return false;">Log in as guest</a>`;
+}
+window.show_login = show_login;
 
 
 // Login-related functions.
@@ -86,7 +92,7 @@ button_login.addEventListener("click", async () => {
 
         save_login(await response.json());
 
-        show_login_or_upload();
+        show_upload();
     }
     catch (ex) {
         Swal.fire({html: ex.message, icon: "warning", timer: 5000,
@@ -203,5 +209,5 @@ radio_string.addEventListener("click", () => {
 });
 
 check_metadata.addEventListener("change", () => {
-    div_metadata.style.display = check_metadata.checked ? "" : "none";
+    div_metadata.style.display = check_metadata.checked ? "block" : "none";
 });

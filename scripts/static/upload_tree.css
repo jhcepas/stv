@@ -1,4 +1,10 @@
 body {
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+}
+
+.centered {
     max-width: 800px;
     margin: 0 auto;
     padding: 0 1em;
@@ -24,4 +30,18 @@ div {
 
 input, label, textarea {
     margin: 0.4rem 0;
+}
+
+footer {
+    flex: 1;
+    margin: 2em 0 0 0;
+    padding: 2em 0 0 0;
+
+    background-color: #EEE;
+    font-size: 0.9em;
+}
+
+
+#div_login, #div_upload {
+    display: none;  /* do not show the divs until we know which one to show */
 }

@@ -419,9 +419,25 @@ Use the options in the menu at the top right to change the visualization.
 </table>
 
 <br>
+
+<hr>
+
 <br>
 
-Tree Explorer is part of the <a href="http://etetoolkit.org/">ETE Toolkit</a>.
+<div style="font-size: 0.8em">
+<p>
+<img src="icon.png" alt="ETE Toolkit logo">
+Tree Explorer is part of the
+<a href="http://etetoolkit.org/">ETE Toolkit</a>.
+</p>
+
+<p>
+<img src="https://chanzuckerberg.com/wp-content/themes/czi/img/logo.svg"
+     width="50" alt="Chan Zuckerberg Initiative logo">
+Smart visualization funded by
+<a href="https://chanzuckerberg.com/">CZI</a>.
+</p>
+</div>
 
 <br>
 <br>
