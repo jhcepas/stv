@@ -55,7 +55,10 @@ def move(node, shift=1):
     pos_new = (pos_old + shift) % len(siblings)
     siblings[pos_old], siblings[pos_new] = siblings[pos_new], siblings[pos_old]
 
-    update_branch_height(node.parent)
+    parent = node.parent
+    while parent:
+        update_branch_height(parent)
+        parent = parent.parent
 
 
 def remove(node):
