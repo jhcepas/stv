@@ -481,7 +481,7 @@ class DrawerCircFull(DrawerCircCollapsed, DrawerCircLengths):
     pass
 
 
-class DrawerAlign(DrawerLengths):
+class DrawerAlign(DrawerFull):
     "With aligned content"
 
     def __init__(self, *args, **kwargs):
@@ -500,12 +500,30 @@ class DrawerAlign(DrawerLengths):
             else:
                 yield draw_text(node.name, (0, y + dy/1.5), dy/2, 'name')
 
+    def draw_collapsed(self):
+        names = [first_name(node) for node in self.collapsed]
+        if all(name == '' for name in names):
+            return
+
+        x, y, dx, dy = self.outline
+
+        if not self.aligned:
+            p1 = (x + dx, y + dy/2)
+            p2 = (2 * self.tree_dx, y + dy/2)
+            yield draw_line(p1, p2, 'dotted')
+        else:
+            texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
+            p = (0, y + dy/1.1)
+            fs = dy/1.2
+            yield from draw_texts(texts, p, fs, 'name')
+
+
 
 class DrawerAlignHeatMap(DrawerFull):
     "With an example heatmap as aligned content"
 
     def draw_content_float(self, node, point):
-        super().draw_content_float(node, point)
+        yield from super().draw_content_float(node, point)
 
         if self.aligned and node.is_leaf:
             _, y = point
