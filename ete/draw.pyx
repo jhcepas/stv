@@ -430,14 +430,14 @@ class DrawerCollapsed(DrawerLeafNames):
         if self.aligned:
             return
 
-        names = [n.name for n in self.collapsed if n.name]
-        if not names:
+        names = [first_name(node) for node in self.collapsed]
+        if all(name == '' for name in names):
             return
 
         x, y, dx, dy = self.outline
 
         texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
-        p = ((0 if self.aligned else x + dx), y + dy/1.1)
+        p = (x + dx, y + dy/1.1)
         fs = dy/1.2
         yield from draw_texts(texts, p, fs, 'name')
 
@@ -453,8 +453,8 @@ class DrawerCircCollapsed(DrawerCircLeafNames):
         if not (-pi <= a <= pi and -pi <= a + da <= pi):
             return
 
-        names = [n.name for n in self.collapsed if n.name]
-        if not names:
+        names = [first_name(node) for node in self.collapsed]
+        if all(name == '' for name in names):
             return
 
         texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
@@ -534,7 +534,7 @@ class DrawerAlignHeatMap(DrawerFull):
             yield draw_array(Box(0, y + dy/8, 200, dy * 0.75), a)
 
     def draw_collapsed(self):
-        names = [n.name for n in self.collapsed if n.name]
+        names = [first_name(node) for node in self.collapsed]
         texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
 
         x, y, dx, dy = self.outline
@@ -544,7 +544,7 @@ class DrawerAlignHeatMap(DrawerFull):
             a = [random.randint(1, 360) for i in range(100)]
             yield draw_array(Box(0, y + dy/8, 200, dy * 0.75), a)
         else:
-            if not names:
+            if all(name == '' for name in names):
                 return
             p = (x + dx, y + dy/1.1)
             fs = dy/1.2
@@ -555,6 +555,11 @@ def get_drawers():
     return [DrawerSimple, DrawerLeafNames, DrawerLengths, DrawerFull,
         DrawerCircSimple, DrawerCircLeafNames, DrawerCircLengths, DrawerCircFull,
         DrawerAlign, DrawerAlignHeatMap]
+
+
+def first_name(tree):
+    "Return the name of the first node that has a name"
+    return next((node.name for node in tree if node.name), '')
 
 
 def draw_texts(texts, point, fs, text_type):
