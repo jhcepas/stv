@@ -800,7 +800,7 @@ if __name__ == '__main__':
         os.system(f'sqlite3 {db_path} < sample_data.sql')
         add('HmuY.aln2.tree')
         add('aves.tree')
-        add('bac120_r95.tree')
+        add('GTDB_bact_r95.tree')
     app.run(debug=True, use_reloader=False)
 
 # But for production it's better if we serve it with something like:
