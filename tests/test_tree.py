@@ -267,7 +267,7 @@ def test_load_dump():
 
 def test_from_example_files():
     # Read bigger trees in example files and see if we do not throw exceptions.
-    for fname in ['aves.tree', 'bac120_r95.tree', 'HmuY.aln2.tree']:
+    for fname in ['aves.tree', 'GTDB_bact_r95.tree', 'HmuY.aln2.tree']:
         tree.load(open(f'{PATH}/examples/{fname}'))
 
 

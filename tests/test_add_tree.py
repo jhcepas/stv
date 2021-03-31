@@ -33,7 +33,7 @@ def test_add_trees_to_db():
 
 def add_all(db):
     cmd = f'{PATH}/scripts/add_tree.py --db {db} --no-verify '
-    for fname in ['aves.tree', 'bac120_r95.tree', 'HmuY.aln2.tree']:
+    for fname in ['aves.tree', 'GTDB_bact_r95.tree', 'HmuY.aln2.tree']:
         exec(cmd + f'{PATH}/examples/{fname}')
         with pytest.raises(AssertionError):
             exec(cmd + f'{PATH}/examples/{fname}')
