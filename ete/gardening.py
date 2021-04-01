@@ -71,3 +71,17 @@ def remove(node):
     while parent:
         update_metrics(parent)
         parent = parent.parent
+
+
+def standardize(tree):
+    "Transform from a tree not following strict newick conventions"
+    if tree.length == -1 and not tree.name:
+        tree.length = 0
+        update_metrics(tree)
+
+    for node in tree:
+        try:
+            node.properties['support'] = float(node.name)
+            node.name = ''
+        except ValueError:
+            pass

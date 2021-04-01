@@ -61,11 +61,7 @@ def get_newick(treefile, verify=True):
         print('Verifying newick...')
         tree.loads(newick)  # discarded, but will raise exception if invalid
 
-    return unroot(newick)
-
-
-def unroot(newick):
-    return newick[:-1] + ':0;' if newick.endswith(');') else newick
+    return newick
 
 
 def update_database(connection, tdata):

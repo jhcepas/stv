@@ -329,7 +329,10 @@ def load_tree(tree_id):
         assert len(newicks) == 1
 
         t = tree.loads(newicks[0])
+        gardening.standardize(t)
+
         app.trees[tid] = t
+
         return t[subtree]
     except (AssertionError, IndexError):
         raise InvalidUsage(f'unknown tree id {tree_id}', 404)
