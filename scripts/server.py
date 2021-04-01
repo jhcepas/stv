@@ -275,6 +275,14 @@ class Trees(Resource):
                 return {'message': 'ok'}
             except AssertionError as e:
                 raise InvalidUsage(f'cannot remove ${node_id}: {e}')
+        elif rule == '/trees/<string:tree_id>/name':
+            try:
+                t = load_tree(tree_id)
+                node_id, name = request.json
+                t[node_id].name = name
+                return {'message': 'ok'}
+            except AssertionError as e:
+                raise InvalidUsage(f'cannot name ${node_id}: {e}')
         elif rule == '/trees/<string:tree_id>/search':  # TODO: make this useful
             add_search(tree_id, request.args.copy())
             return {'message': 'ok'}
@@ -784,7 +792,8 @@ def add_resources(api):
         '/trees/<string:tree_id>/sort',
         '/trees/<string:tree_id>/root_at',
         '/trees/<string:tree_id>/move',
-        '/trees/<string:tree_id>/remove')
+        '/trees/<string:tree_id>/remove',
+        '/trees/<string:tree_id>/name')
     add(Info, '/info')
     add(Id, '/id/<path:path>')
 

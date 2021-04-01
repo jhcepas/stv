@@ -58,6 +58,17 @@ function add_node_options(box, name, properties, node_id) {
             window.open(`${urlbase}/wwwtax.cgi?id=${taxid}`);
         }, `Open the NCBI Taxonomy Browser on this taxonomy ID: ${taxid}.`);
     }
+    add_button("🖊️ (Re)name node  ⚠️", async () => {
+        const result = await Swal.fire({
+            input: "text",
+            inputPlaceholder: "Enter new name",
+            preConfirm: async name => {
+                return await api_put("name", [node_id, name]);
+            },
+        });
+        if (result.isConfirmed)
+            update();
+    }, "Change the name of this node. Changes the tree structure.");
     if (!view.subtree) {
         add_button("🎯 Root on this node ⚠️", async () => {
             await api_put("root_at", node_id);
