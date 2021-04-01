@@ -1,4 +1,4 @@
-// Main file.
+// Main file for the gui.
 
 import { create_datgui } from "./menu.js";
 import { init_events } from "./events.js";
@@ -389,7 +389,7 @@ function share_view() {
     else {
         Swal.fire({
             html: "Right-click on link to copy to the clipboard:<br><br>" +
-                  `<a href="${url}">-- link to current tree view --</a>`,
+                  `(<a href="${url}">current tree view</a>)`,
         });
     }
 }

@@ -1,4 +1,4 @@
-'use strict';
+// Functions for upload_tree.html.
 
 document.addEventListener("DOMContentLoaded", on_load_page);
 
@@ -19,8 +19,7 @@ async function on_load_page() {
 }
 
 
-// Show the appropriate sections -- login or upload, depending on whether we
-// have already logged in.
+// Show the upload section and hide the login one. Login as guest first if needed.
 function show_upload() {
     const login = get_login();
 
@@ -37,6 +36,8 @@ function show_upload() {
                              return false;">Log out</a>`;
 }
 
+
+// Show the login section and hide the upload one. Remove any login first.
 function show_login() {
     clear_login();
     div_upload.style.display = "none";
