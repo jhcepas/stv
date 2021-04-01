@@ -52,8 +52,8 @@ const view = {
 
     // view
     reset_view: () => reset_view(),
-    tl: {x: 0, y: 0},  // top-left of the view (in tree rectangular coordinates)
-    zoom: {x: 0, y: 0},  // initially chosen depending on the size of the tree
+    tl: {x: null, y: null},  // top-left of the view (in tree coordinates)
+    zoom: {x: null, y: null},  // initially chosen depending on the tree size
     smart_zoom: true,
     select_text: false,
 
@@ -82,20 +82,19 @@ const view = {
 
 
 const trees = {};  // will contain trees[tree_name] = tree_id
-let datgui = undefined;
+let datgui;
 
 
 async function main() {
     await init_trees();
+
+    await set_query_string_values();
+
     const drawers = await api("/trees/drawers");
     datgui = create_datgui(Object.keys(trees), drawers);
 
     init_events();
 
-    await set_query_string_values();
-
-    reset_zoom(view.zoom.x === 0, view.zoom.y === 0);
-    reset_position();
     draw_minimap();
     update();
 }
@@ -257,21 +256,34 @@ async function set_query_string_values() {
             unknown_params.push(param);
     }
 
-    view.is_circular = view.drawer.startsWith("Circ");
-
-    if (view.is_circular)
-        view.zoom.x = view.zoom.y = Math.min(view.zoom.x, view.zoom.y);
-
-    const has_aligned = view.drawer.startsWith("Align");
-    div_aligned.style.display = has_aligned ? "initial" : "none";
-
-    view.tree_size = await api(`/trees/${get_tid()}/size`);
+    await set_consistent_values();
 
     if (unknown_params.length != 0)
         Swal.fire(
             "Oops!",
             "There were unknown parameters passed: " + unknown_params.join(", "),
             "warning");
+}
+
+async function set_consistent_values() {
+    view.tree_size = await api(`/trees/${get_tid()}/size`);
+
+    view.is_circular = view.drawer.startsWith("Circ");
+
+    if (view.is_circular) {
+        if (view.zoom.x !== null && view.zoom.y !== null)
+            view.zoom.x = view.zoom.y = Math.min(view.zoom.x, view.zoom.y);
+        else if (view.zoom.x !== null)
+            view.zoom.y = view.zoom.x;
+        else if (view.zoom.y !== null)
+            view.zoom.x = view.zoom.y;
+    }
+
+    reset_zoom(view.zoom.x === null, view.zoom.y === null);
+    reset_position(view.tl.x === null, view.tl.y === null);
+
+    const has_aligned = view.drawer.startsWith("Align");
+    div_aligned.style.display = has_aligned ? "initial" : "none";
 }
 
 
@@ -306,19 +318,23 @@ function reset_zoom(reset_zx=true, reset_zy=true) {
 }
 
 
-function reset_position() {
+function reset_position(reset_x=true, reset_y=true) {
     if (view.is_circular) {
         if (!(view.angle.min === -180 && view.angle.max === 180)) {
             view.angle.min = -180;
             view.angle.max = 180;
             view.minimap_uptodate = false;
         }
-        view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
-        view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
+        if (reset_x)
+            view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;
+        if (reset_y)
+            view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
     }
     else {
-        view.tl.x = -0.10 * div_tree.offsetWidth / view.zoom.x;
-        view.tl.y = -0.05 * div_tree.offsetHeight / view.zoom.y;
+        if (reset_x)
+            view.tl.x = -0.10 * div_tree.offsetWidth / view.zoom.x;
+        if (reset_y)
+            view.tl.y = -0.05 * div_tree.offsetHeight / view.zoom.y;
     }
 }
 
