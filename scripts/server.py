@@ -236,20 +236,8 @@ class Trees(Resource):
             modify_tree_fields(tree_id)
             return {'message': 'ok'}
         elif rule == '/trees/<string:tree_id>/sort':
-            t = load_tree(tree_id)
             node_id, key_text, reverse = request.json
-            try:
-                code = compile(key_text, '<string>', 'eval')
-            except SyntaxError as e:
-                raise InvalidUsage(f'compiling expression: {e}')
-            def key(node):
-                return safer_eval(code, {
-                    'node': node, 'name': node.name, 'is_leaf': node.is_leaf,
-                    'length': node.length, 'dist': node.length, 'd': node.length,
-                    'size': node.size, 'dx': node.size[0], 'dy': node.size[1],
-                    'children': node.children, 'ch': node.children,
-                    'len': len, 'sum': sum, 'abs': abs})
-            gardening.sort(t[node_id], key, reverse)
+            sort(tree_id, node_id, key_text, reverse)
             return {'message': 'ok'}
         elif rule == '/trees/<string:tree_id>/root_at':
             t = load_tree(tree_id)
@@ -477,6 +465,26 @@ def safer_eval(code, context):
         if name not in context:
             raise InvalidUsage('invalid use of %r during evaluation' % name)
     return eval(code, {'__builtins__': {}}, context)
+
+
+def sort(tree_id, node_id, key_text, reverse):
+    "Sort the (sub)tree corresponding to tree_id and node_id"
+    t = load_tree(tree_id)
+
+    try:
+        code = compile(key_text, '<string>', 'eval')
+    except SyntaxError as e:
+        raise InvalidUsage(f'compiling expression: {e}')
+
+    def key(node):
+        return safer_eval(code, {
+            'node': node, 'name': node.name, 'is_leaf': node.is_leaf,
+            'length': node.length, 'dist': node.length, 'd': node.length,
+            'size': node.size, 'dx': node.size[0], 'dy': node.size[1],
+            'children': node.children, 'ch': node.children,
+            'len': len, 'sum': sum, 'abs': abs})
+
+    gardening.sort(t[node_id], key, reverse)
 
 
 def add_tree():
