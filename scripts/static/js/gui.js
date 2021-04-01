@@ -54,7 +54,6 @@ const view = {
     reset_view: () => reset_view(),
     tl: {x: null, y: null},  // top-left of the view (in tree coordinates)
     zoom: {x: null, y: null},  // initially chosen depending on the tree size
-    smart_zoom: true,
     select_text: false,
 
     // style
@@ -70,14 +69,16 @@ const view = {
     font_size_max: 15,
     text_padding: 10,
 
-    // help and sharing
-    share_view: () => share_view(),
-    show_help: () => show_help(),
-
     // minimap
     minimap_show: true,
     minimap_uptodate: false,
     minimap_zoom: {x: 1, y: 1},
+
+    smart_zoom: true,
+
+    share_view: () => share_view(),
+
+    show_help: () => show_help(),
 };
 
 

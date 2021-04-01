@@ -26,6 +26,7 @@ function create_datgui(trees, drawers) {
 
     dgui.add(view, "minimap_show").name("minimap").onChange(show_minimap);
 
+    dgui.add(view, "smart_zoom").name("smart zoom");
     dgui.add(view, "share_view").name("share view");
     dgui.add(view, "show_help").name("help");
 
@@ -111,8 +112,6 @@ function add_menu_view(dgui) {
     const folder_zoom = folder_view.addFolder("zoom");
     folder_zoom.add(view.zoom, "x").step(0.001).onChange(update);
     folder_zoom.add(view.zoom, "y").step(0.001).onChange(update);
-
-    folder_view.add(view, "smart_zoom").name("smart zoom");
 
     folder_view.add(view, "select_text").name("select text").onChange(() => {
         style("font").userSelect = (view.select_text ? "text" : "none");
