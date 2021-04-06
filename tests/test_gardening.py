@@ -6,11 +6,12 @@ import sys
 from os.path import abspath, dirname
 sys.path.insert(0, f'{abspath(dirname(__file__))}/..')
 
-from ete import tree, gardening
+from ete.tree import Tree
+from ete import gardening
 
 
 def load_sample_tree():
-    return tree.loads('((d,e)b,(f,g)c)a;')
+    return Tree('((d,e)b,(f,g)c)a;')
     # a
     # ├─b
     # │ ├─d
@@ -31,7 +32,7 @@ def strip(text):
 def test_sort():
     t = load_sample_tree()
 
-    t2 = tree.copy(t)
+    t2 = t.copy()
     gardening.sort(t2)
     assert str(t2) == str(t)
 
@@ -46,7 +47,7 @@ def test_sort():
           └─d
     """)
 
-    t3 = tree.loads('((f,g)b,c,d,((j,k)h,i)e)a;')
+    t3 = Tree('((f,g)b,c,d,((j,k)h,i)e)a;')
     gardening.sort(t3, key=lambda node: len(node.children))
     assert str(t3) == strip("""
         a

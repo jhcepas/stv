@@ -53,7 +53,7 @@ import sqlalchemy
 from itsdangerous import TimedJSONWebSignatureSerializer as JSONSigSerializer
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from ete import tree, draw
+from ete import tree, newick as nw, draw
 from ete import gardening
 
 
@@ -325,10 +325,10 @@ def load_tree(tree_id):
         if tid in app.trees:
             return app.trees[tid][subtree]
 
-        newicks = dbget0('newick', 'trees where id=?', tid)
+        newicks = dbget0('newick', 'trees WHERE id=?', tid)
         assert len(newicks) == 1
 
-        t = tree.loads(newicks[0])
+        t = nw.loads(newicks[0])
         gardening.standardize(t)
 
         app.trees[tid] = t
@@ -382,9 +382,9 @@ def get_newick(tree_id, max_mb):
         tid, subtree = get_tid(tree_id)
 
         if subtree and tid in app.trees:
-            newick = tree.dumps(app.trees[tid][subtree])
+            newick = nw.dumps(app.trees[tid][subtree])
         else:
-            newicks = dbget0('newick', 'trees where id=?', tid)
+            newicks = dbget0('newick', 'trees WHERE id=?', tid)
             assert len(newicks) == 1
             newick = newicks[0]
     except (AssertionError, IndexError) as e:
@@ -507,12 +507,12 @@ def add_tree():
     if g.user_id not in [owner, admin_id]:
         raise InvalidUsage('owner set different from current user')
 
-    if dbcount('trees where name=?', data['name']) != 0:
+    if dbcount('trees WHERE name=?', data['name']) != 0:
         raise InvalidUsage('existing tree name %r' % data['name'])
 
     try:
-        tree.loads(data['newick'])  # load it to validate
-    except tree.NewickError as e:
+        nw.loads(data['newick'])  # load it to validate
+    except nw.NewickError as e:
         raise InvalidUsage(f'malformed tree - {e}')
 
     data['birth'] = datetime.now()  # add creation time

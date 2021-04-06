@@ -12,7 +12,7 @@ from tempfile import TemporaryFile
 
 import pytest
 
-from ete import tree
+from ete import tree, newick as nw
 
 
 good_trees = """\
@@ -108,7 +108,7 @@ def test_repr():
 
     # See if we recover trees from their representations (playing with eval).
     for tree_text in good_trees:
-        t = tree.loads(tree_text)
+        t = tree.Tree(tree_text)
         tr = eval(repr(t), {'Tree': tree.Tree})  # tree recovered from its repr
         assert t.name == tr.name and t.length == tr.length
         assert t.properties == tr.properties
@@ -129,7 +129,7 @@ node3
 
 def test_iter():
     for tree_text in good_trees:
-        t = tree.loads(tree_text)
+        t = tree.Tree(tree_text)
         visited_nodes = set()
         visited_leaves = set()
         for node in t:
@@ -142,169 +142,23 @@ def test_iter():
         assert len(visited_leaves) == t.size[1]
 
 
-def test_loads():
-    # See if we read good trees without throwing exceptions.
-    for tree_text in good_trees:
-        t = tree.loads(tree_text)
-
-    # Do more exhaustive tests on a single tree.
-    t = tree.loads('(b:2,c:3,(e:4[&&NHX:k1=v1:k2=v2],),)a;')
-    assert t.content == 'a' and len(t.children) == 4
-    node_b = t.children[0]
-    assert node_b.content == 'b:2' and not node_b.children
-    node_c = t.children[1]
-    assert node_c.content == 'c:3' and not node_c.children
-    node_d = t.children[2]
-    assert node_d.content == '' and len(node_d.children) == 2
-    node_e = node_d.children[0]
-    assert node_e.content == 'e:4[&&NHX:k1=v1:k2=v2]' and not node_e.children
-    node_f = node_d.children[1]
-    assert node_f.content == '' and not node_f.children
-    node_g = t.children[3]
-    assert node_g.content == '' and not node_g.children
-
-
-def test_read_nodes():
-    # See if we read good lists of nodes without throwing exceptions.
-    for tree_text in good_trees:
-        last_parenthesis = tree_text.rfind(')')
-        if last_parenthesis != -1:
-            nodes_text = tree_text[:last_parenthesis+1]
-            nodes, _ = tree.read_nodes(nodes_text)
-
-    # Do more exhaustive tests on a single list of nodes.
-    nodes, pos = tree.read_nodes('(b:2,c:3,(e:4[&&NHX:k1=v1:k2=v2],),)a;', 9)
-    assert pos == 9 + len('(e:4[&&NHX:k1=v1:k2=v2],)')
-    assert len(nodes) == 2
-    assert nodes[0].content == 'e:4[&&NHX:k1=v1:k2=v2]' and not nodes[0].children
-    assert nodes[1].content == '' and not nodes[1].children
-
-
-def test_read_content():
-    tree_text = '(a:11[&&NHX:x=foo:y=bar],b:22,,()c,(d[&&NHX:z=foo]));'
-    t = tree.loads(tree_text)
-    assert (t.name == '' and t.length == -1 and t.properties == {} and
-            t.content == '')
-    t1 = t.children[0]
-    assert (t1.name == 'a' and t1.length == 11 and
-            t1.properties == {'x': 'foo', 'y': 'bar'} and
-            t1.content == 'a:11[&&NHX:x=foo:y=bar]' and t1.children == [])
-    t2 = t.children[1]
-    assert (t2.name == 'b' and t2.length == 22 and t2.properties == {} and
-            t2.content == 'b:22' and t2.children == [])
-    td = t.children[-1].children[-1]
-    assert (td.name == 'd' and td.length == -1 and
-            td.properties == {'z': 'foo'} and td.content == 'd[&&NHX:z=foo]')
-
-
-def test_read_quoted_name():
-    assert tree.read_quoted_name("'one two'", 0) == ('one two', 9)
-    assert tree.read_quoted_name("'one ''or'' two'", 0) == ("one 'or' two", 16)
-    assert tree.read_quoted_name("pre-quote 'start end' post-quote", 10) == \
-        ('start end', 21)
-    with pytest.raises(tree.NewickError):
-        tree.read_quoted_name('i do not start with quote', 0)
-    with pytest.raises(tree.NewickError):
-        tree.read_quoted_name("'i end without a quote", 0)
-
-
-def test_is_valid():
-    # Good trees should be read without throwing any exception.
-    for tree_text in good_trees:
-        tree.loads(tree_text)
-
-    # Bad trees should all throw exceptions.
-    for tree_text in bad_trees:
-        with pytest.raises(tree.NewickError):
-            tree.loads(tree_text)
-
-
-def test_read_fields():
-    for tree_text in good_contents:
-        fields = tree.read_fields(tree_text)
-        assert len(fields) == 3
-
-    for tree_text in good_trees:
-        t = tree.loads(tree_text)
-        for node in t:
-            content = node.content
-            fields = tree.read_fields(content)
-            assert len(fields) == 3
-
-
-def test_quote():
-    assert tree.quote(' ') == "' '"
-    assert tree.quote("'") == "''''"
-    quoting_unneeded = ['nothing_special', '1234']
-    for text in quoting_unneeded:
-        assert tree.quote(text) == text
-    quoting_needed = ['i am special', 'one\ntwo', 'this (or that)']
-    for text in quoting_needed:
-        assert tree.quote(text) != text
-        assert tree.quote(text).strip("'") == text
-
-
-def test_dumps():
-    for tree_text in good_trees:
-        if ' ' in tree_text:
-            continue  # representation of whitespaces may change and it's ok
-        t = tree.loads(tree_text)
-        t_text = tree.dumps(t)
-        assert t_text == tree_text
-        assert tree.dumps(tree.Tree(tree_text)) == tree_text
-        # NOTE: we could relax this, it is asking a bit too much really
-
-
-def test_load_dump():
-    for tree_text in good_trees:
-        with TemporaryFile(mode='w+t') as fp:
-            t1 = tree.loads(tree_text)
-            tree.dump(t1, fp)
-            fp.seek(0)
-            t2 = tree.load(fp)
-            assert repr(t1) == repr(t2)
-
-
-def test_from_example_files():
-    # Read bigger trees in example files and see if we do not throw exceptions.
-    for fname in ['aves.tree', 'GTDB_bact_r95.tree', 'HmuY.aln2.tree']:
-        tree.load(open(f'{PATH}/examples/{fname}'))
-
-
 def test_tree_size():
-    assert tree.loads('(a:4)c:2;').size == (6, 1)
-    assert tree.loads('(a:4,b:5)c:2;').size == (7, 2)
+    assert tree.Tree('(a:4)c:2;').size == (6, 1)
+    assert tree.Tree('(a:4,b:5)c:2;').size == (7, 2)
 
 
 def test_copy():
     for tree_text in good_trees:
-        t1 = tree.loads(tree_text)
-        t2 = tree.copy(t1)
+        t1 = tree.Tree(tree_text)
+        t2 = t1.copy()
         assert sum(1 for n in t1) == sum(1 for n in t2)  # same number of nodes
         for n1, n2 in zip(t1, t2):
             assert n1 != n2  # they are not the same python object
             assert n1.content == n2.content  # but they do look identical
 
 
-def test_length_format():
-    t = tree.loads('(a:0.000001,b:1.3e34)c:234.34;')
-
-    assert tree.dumps(t) == '(a:1e-06,b:1.3e+34)c:234.34;'
-
-    tree.LENGTH_FORMAT = '%f'
-    assert tree.dumps(t) == \
-        '(a:0.000001,b:12999999999999999868938755134980096.000000)c:234.340000;'
-
-    tree.LENGTH_FORMAT = '%.2f'
-    assert tree.dumps(t) == \
-        '(a:0.00,b:12999999999999999868938755134980096.00)c:234.34;'
-
-    tree.LENGTH_FORMAT = '%E'
-    assert tree.dumps(t) == '(a:1.000000E-06,b:1.300000E+34)c:2.343400E+02;'
-
-
 def test_getitem():
-    t = tree.loads('((d:8,e:7)b:6,(f:5,g:4)c:3)a:2;')
+    t = tree.Tree('((d:8,e:7)b:6,(f:5,g:4)c:3)a:2;')
     assert t['a'] == t
     assert t['f'] == t.children[1].children[0]
     assert t['z'] is None
@@ -323,7 +177,7 @@ def test_getitem():
 
 
 def test_walk():
-    t = tree.loads('((d,e)b,(f,g)c)a;')
+    t = tree.Tree('((d,e)b,(f,g)c)a;')
     # For reference, this is what t looks like (using print(t)):
     # a
     # ├─b
@@ -368,7 +222,7 @@ def test_walk():
 
 
 def test_parent():
-    t = tree.loads('((d:8,e:7)b:6,(f:5,g:4)c:3)a:2;')
+    t = tree.Tree('((d:8,e:7)b:6,(f:5,g:4)c:3)a:2;')
     # a
     # ├─b
     # │ ├─d
@@ -383,8 +237,155 @@ def test_parent():
     assert parents == ['a', 'b', 'b', 'a', 'c', 'c']
 
     for tree_text in good_trees:
-        t = tree.loads(tree_text)
+        t = tree.Tree(tree_text)
         assert t.parent is None
         for node in t:
             if node != t:
                 assert node.parent.children.count(node) == 1
+
+
+# Newick-related.
+
+def test_loads():
+    # See if we read good trees without throwing exceptions.
+    for tree_text in good_trees:
+        t = nw.loads(tree_text)
+
+    # Do more exhaustive tests on a single tree.
+    t = nw.loads('(b:2,c:3,(e:4[&&NHX:k1=v1:k2=v2],),)a;')
+    assert t.content == 'a' and len(t.children) == 4
+    node_b = t.children[0]
+    assert node_b.content == 'b:2' and not node_b.children
+    node_c = t.children[1]
+    assert node_c.content == 'c:3' and not node_c.children
+    node_d = t.children[2]
+    assert node_d.content == '' and len(node_d.children) == 2
+    node_e = node_d.children[0]
+    assert node_e.content == 'e:4[&&NHX:k1=v1:k2=v2]' and not node_e.children
+    node_f = node_d.children[1]
+    assert node_f.content == '' and not node_f.children
+    node_g = t.children[3]
+    assert node_g.content == '' and not node_g.children
+
+
+def test_read_nodes():
+    # See if we read good lists of nodes without throwing exceptions.
+    for tree_text in good_trees:
+        last_parenthesis = tree_text.rfind(')')
+        if last_parenthesis != -1:
+            nodes_text = tree_text[:last_parenthesis+1]
+            nodes, _ = nw.read_nodes(nodes_text)
+
+    # Do more exhaustive tests on a single list of nodes.
+    nodes, pos = nw.read_nodes('(b:2,c:3,(e:4[&&NHX:k1=v1:k2=v2],),)a;', 9)
+    assert pos == 9 + len('(e:4[&&NHX:k1=v1:k2=v2],)')
+    assert len(nodes) == 2
+    assert nodes[0].content == 'e:4[&&NHX:k1=v1:k2=v2]' and not nodes[0].children
+    assert nodes[1].content == '' and not nodes[1].children
+
+
+def test_read_content():
+    tree_text = '(a:11[&&NHX:x=foo:y=bar],b:22,,()c,(d[&&NHX:z=foo]));'
+    t = nw.loads(tree_text)
+    assert (t.name == '' and t.length == -1 and t.properties == {} and
+            t.content == '')
+    t1 = t.children[0]
+    assert (t1.name == 'a' and t1.length == 11 and
+            t1.properties == {'x': 'foo', 'y': 'bar'} and
+            t1.content == 'a:11[&&NHX:x=foo:y=bar]' and t1.children == [])
+    t2 = t.children[1]
+    assert (t2.name == 'b' and t2.length == 22 and t2.properties == {} and
+            t2.content == 'b:22' and t2.children == [])
+    td = t.children[-1].children[-1]
+    assert (td.name == 'd' and td.length == -1 and
+            td.properties == {'z': 'foo'} and td.content == 'd[&&NHX:z=foo]')
+
+
+def test_read_quoted_name():
+    assert nw.read_quoted_name("'one two'", 0) == ('one two', 9)
+    assert nw.read_quoted_name("'one ''or'' two'", 0) == ("one 'or' two", 16)
+    assert nw.read_quoted_name("pre-quote 'start end' post-quote", 10) == \
+        ('start end', 21)
+    with pytest.raises(nw.NewickError):
+        nw.read_quoted_name('i do not start with quote', 0)
+    with pytest.raises(nw.NewickError):
+        nw.read_quoted_name("'i end without a quote", 0)
+
+
+def test_is_valid():
+    # Good trees should be read without throwing any exception.
+    for tree_text in good_trees:
+        nw.loads(tree_text)
+
+    # Bad trees should all throw exceptions.
+    for tree_text in bad_trees:
+        with pytest.raises(nw.NewickError):
+            nw.loads(tree_text)
+
+
+def test_get_content_fields():
+    for tree_text in good_contents:
+        fields = nw.get_content_fields(tree_text)
+        assert len(fields) == 3
+
+    for tree_text in good_trees:
+        t = nw.loads(tree_text)
+        for node in t:
+            content = node.content
+            fields = nw.get_content_fields(content)
+            assert len(fields) == 3
+
+
+def test_quote():
+    assert nw.quote(' ') == "' '"
+    assert nw.quote("'") == "''''"
+    quoting_unneeded = ['nothing_special', '1234']
+    for text in quoting_unneeded:
+        assert nw.quote(text) == text
+    quoting_needed = ['i am special', 'one\ntwo', 'this (or that)']
+    for text in quoting_needed:
+        assert nw.quote(text) != text
+        assert nw.quote(text).strip("'") == text
+
+
+def test_dumps():
+    for tree_text in good_trees:
+        if ' ' in tree_text:
+            continue  # representation of whitespaces may change and that's okay
+        t = nw.loads(tree_text)
+        t_text = nw.dumps(t)
+        assert t_text == tree_text
+        # NOTE: we could relax this, it is asking a bit too much really
+
+
+def test_load_dump():
+    for tree_text in good_trees:
+        with TemporaryFile(mode='w+t') as fp:
+            t1 = nw.loads(tree_text)
+            nw.dump(t1, fp)
+            fp.seek(0)
+            t2 = nw.load(fp)
+            assert repr(t1) == repr(t2)
+
+
+def test_from_example_files():
+    # Read bigger trees in example files and see if we do not throw exceptions.
+    for fname in ['aves.tree', 'GTDB_bact_r95.tree', 'HmuY.aln2.tree']:
+        nw.load(open(f'{PATH}/examples/{fname}'))
+
+
+def test_length_format():
+    t = nw.loads('(a:0.000001,b:1.3e34)c:234.34;')
+
+    assert nw.dumps(t) == '(a:1e-06,b:1.3e+34)c:234.34;'
+
+    nw.LENGTH_FORMAT = '%f'
+    assert nw.dumps(t) == \
+        '(a:0.000001,b:12999999999999999868938755134980096.000000)c:234.340000;'
+
+    nw.LENGTH_FORMAT = '%.2f'
+    assert nw.dumps(t) == \
+        '(a:0.00,b:12999999999999999868938755134980096.00)c:234.34;'
+
+    nw.LENGTH_FORMAT = '%E'
+    assert nw.dumps(t) == '(a:1.000000E-06,b:1.300000E+34)c:2.343400E+02;'

@@ -36,7 +36,7 @@ def test_draw_content_inline():
 
 def test_draw_content_float():
     tree_text = '((B:200,(C:250,D:300)E:350)A:100)F;'
-    t = tree.loads(tree_text)
+    t = tree.Tree(tree_text)
 
     drawer = draw.DrawerFull(t, zoom=(10, 10))
     assert list(drawer.draw_content_float(t, (0, 0))) == []
@@ -48,7 +48,7 @@ def test_draw_content_float():
 
 def test_draw_collapsed():
     tree_text = '((B:200,(C:250,D:300)E:350)A:100)F;'
-    t = tree.loads(tree_text)
+    t = tree.Tree(tree_text)
 
     drawer = draw.DrawerCollapsed(t, zoom=(10, 10))
     assert not any(e[0] == 'b' and e[2] == 'outline' for e in drawer.draw())
@@ -72,7 +72,7 @@ def test_draw_collapsed():
 
 def test_draw_tree():
     tree_text = '((B:200,(C:250,D:300)E:350)A:100)F;'
-    t = tree.loads(tree_text)
+    t = tree.Tree(tree_text)
 
     drawer = draw.DrawerFull(t, zoom=(10, 10))
     elements = list(drawer.draw())
@@ -160,7 +160,7 @@ def test_intersects():
 
 
 def test_size():
-    t = tree.loads('(a:2,b:3,c:4)d;')
+    t = tree.Tree('(a:2,b:3,c:4)d;')
     drawer = draw.DrawerFull(t, zoom=(10, 10))
     assert drawer.node_size(t) == Size(5, 3)
     assert drawer.content_size(t) == Size(1, 3)
@@ -196,7 +196,7 @@ def test_circumshapes():
 
 
 def test_in_viewport():
-    t = tree.loads('(a:2,b:3,c:4)d;')
+    t = tree.Tree('(a:2,b:3,c:4)d;')
     viewport = Box(-1, -2, 10, 20)
     drawer = draw.DrawerFull(t, viewport, zoom=(10, 10))
     assert drawer.in_viewport(Box(0, 0, 1, 1))
@@ -204,7 +204,7 @@ def test_in_viewport():
 
 
 def test_get_nodes():
-    t = tree.loads('((B:200,(C:250,D:300)E:350)A:100)F;')
+    t = tree.Tree('((B:200,(C:250,D:300)E:350)A:100)F;')
 
     drawer = draw.DrawerFull(t, zoom=(10, 10))
     drawer.get_nodes(lambda node: node.name in ['A', 'C']) == [
@@ -213,7 +213,7 @@ def test_get_nodes():
 
 
 def test_get_node_at():
-    t = tree.loads('((d:5,e:2)b:3,(f:4,g:3)c:1)a:2;')
+    t = tree.Tree('((d:5,e:2)b:3,(f:4,g:3)c:1)a:2;')
     # a:2
     # ├─b:3
     # │ ├─d:5
