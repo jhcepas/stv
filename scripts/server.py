@@ -69,7 +69,7 @@ auth = MultiAuth(auth_basic, auth_token)
 
 @auth_basic.verify_password
 def verify_password(username, password):
-    res = dbget('id,password', 'users where username=?', username)
+    res = dbget('id,password', 'users WHERE username=?', username)
     if len(res) == 1:
         g.user_id = res[0]['id']
         return check_password_hash(res[0]['password'], password)
@@ -103,7 +103,7 @@ class Login(Resource):
         username = data['username']
         fields = 'id,name,password'
 
-        res = dbget(fields, 'users where username=?', username)
+        res = dbget(fields, 'users WHERE username=?', username)
         if len(res) == 0:
             raise InvalidUsage('bad user/password', 401)
         r0 = res[0]
@@ -142,11 +142,11 @@ class Users(Resource):
         cols, vals = zip(*data.items())
         try:
             qs = '(%s)' % ','.join('?' * len(vals))
-            dbexe('insert into users %r values %s' % (tuple(cols), qs), vals)
+            dbexe('INSERT INTO users %r VALUES %s' % (tuple(cols), qs), vals)
         except sqlalchemy.exc.IntegrityError as e:
             raise InvalidUsage(f'database exception adding user: {e}')
 
-        uid = dbget0('id', 'users where username=?', data['username'])
+        uid = dbget0('id', 'users WHERE username=?', data['username'])
         return {'message': 'ok', 'id': uid}, 201
 
     @auth.login_required
@@ -164,7 +164,7 @@ class Users(Resource):
 
         cols, vals = zip(*data.items())
         qs = ','.join('%s=?' % x for x in cols)
-        res = dbexe('update users set %s where id=%d' % (qs, user_id), vals)
+        res = dbexe('UPDATE users SET %s WHERE id=%d' % (qs, user_id), vals)
 
         if res.rowcount != 1:
             raise InvalidUsage(f'unknown user id {user_id}', 409)
@@ -179,16 +179,16 @@ class Users(Resource):
             raise InvalidUsage('no permission to delete', 403)
 
         with shared_connection([dbget0, dbexe]) as [get0, exe]:
-            res = exe('delete from users where id=?', user_id)
+            res = exe('DELETE FROM users WHERE id=?', user_id)
             if res.rowcount != 1:
                 raise InvalidUsage(f'unknown user id {user_id}', 404)
 
-            for tid in get0('id_tree', 'user_owns_trees where id_user=?', user_id):
+            for tid in get0('id_tree', 'user_owns_trees WHERE id_user=?', user_id):
                 del_tree(tid)
             # NOTE: we could instead move them to a list of orphaned trees.
 
-            exe('delete from user_owns_trees where id_user=?', user_id)
-            exe('delete from user_reads_trees where id_user=?', user_id)
+            exe('DELETE FROM user_owns_trees WHERE id_user=?', user_id)
+            exe('DELETE FROM user_reads_trees WHERE id_user=?', user_id)
 
         return {'message': 'ok'}
 
@@ -278,7 +278,7 @@ class Trees(Resource):
         try:
             tid = int(tree_id)
 
-            assert dbcount('trees where id=?', tid) == 1, 'unknown tree'
+            assert dbcount('trees WHERE id=?', tid) == 1, 'unknown tree'
 
             admin_id = 1
             assert g.user_id in [get_owner(tid), admin_id], 'no permission'
@@ -303,12 +303,12 @@ class Id(Resource):
 
         name = path.split('/', 1)[-1]
         if path.startswith('users/'):
-            uids = dbget0('id', 'users where username=?', name)
+            uids = dbget0('id', 'users WHERE username=?', name)
             if len(uids) != 1:
                 raise InvalidUsage('unknown username %r' % name)
             return {'id': uids[0]}
         elif path.startswith('trees/'):
-            pids = dbget0('id', 'trees where name=?', name)
+            pids = dbget0('id', 'trees WHERE name=?', name)
             if len(pids) != 1:
                 raise InvalidUsage('unknown tree name %r' % name)
             return {'id': pids[0]}
@@ -522,13 +522,13 @@ def add_tree():
         cols, vals = zip(*data.items())
         try:
             qs = '(%s)' % ','.join('?' * len(vals))
-            exe('insert into trees %r values %s' % (tuple(cols), qs), vals)
+            exe('INSERT INTO trees %r VALUES %s' % (tuple(cols), qs), vals)
         except sqlalchemy.exc.IntegrityError as e:
             raise InvalidUsage(f'database exception adding tree: {e}')
 
-        tid = get0('id', 'trees where name=?', data['name'])[0]
+        tid = get0('id', 'trees WHERE name=?', data['name'])[0]
 
-        exe('insert into user_owns_trees values (%d, %d)' % (owner, tid))
+        exe('INSERT INTO user_owns_trees VALUES (%d, %d)' % (owner, tid))
 
     return tid
 
@@ -550,7 +550,7 @@ def modify_tree_fields(tree_id):
     try:
         tid = int(tree_id)
 
-        assert dbcount('trees where id=?', tid) == 1, 'invalid id'
+        assert dbcount('trees WHERE id=?', tid) == 1, 'invalid id'
 
         admin_id = 1
         assert g.user_id in [get_owner(tid), admin_id], 'no permission'
@@ -565,7 +565,7 @@ def modify_tree_fields(tree_id):
 
         cols, vals = zip(*data.items())
         qs = ','.join('%s=?' % x for x in cols)
-        res = dbexe('update trees set %s where id=%d' % (qs, tid), vals)
+        res = dbexe('UPDATE trees SET %s WHERE id=%d' % (qs, tid), vals)
 
         assert res.rowcount == 1, f'unknown tree'
     except (ValueError, AssertionError) as e:
@@ -582,13 +582,13 @@ def dbexe(command, *args, conn=None):
 
 def dbcount(where, *args, conn=None):
     "Return the number of rows from the given table (and given conditions)"
-    res = dbexe('select count(*) from %s' % where, *args, conn=conn)
+    res = dbexe('SELECT COUNT(*) FROM %s' % where, *args, conn=conn)
     return res.fetchone()[0]
 
 
 def dbget(what, where, *args, conn=None):
     "Return result of the query 'select what from where' as a list of dicts"
-    res = dbexe('select %s from %s' % (what, where), *args, conn=conn)
+    res = dbexe('SELECT %s FROM %s' % (what, where), *args, conn=conn)
     return [dict(zip(what.split(','), x)) for x in res.fetchall()]
 
 
@@ -610,16 +610,16 @@ def shared_connection(functions):
 def get_user(uid):
     "Return all the fields of a given user as a dict"
     with shared_connection([dbget, dbget0]) as [get, get0]:
-        users = get('id,username,name', 'users where id=?', uid)
+        users = get('id,username,name', 'users WHERE id=?', uid)
         if len(users) == 0:
             raise InvalidUsage(f'unknown user id {uid}', 404)
 
         user = users[0]
 
         user['trees_owner'] = get0('id_tree',
-                                   'user_owns_trees where id_user=?', uid)
+                                   'user_owns_trees WHERE id_user=?', uid)
         user['trees_reader'] = get0('id_tree',
-                                    'user_reads_trees where id_user=?', uid)
+                                    'user_reads_trees WHERE id_user=?', uid)
 
     return strip(user)
 
@@ -641,14 +641,14 @@ def get_tree(tree_id):
     tid, subtree = get_tid(tree_id)
 
     with shared_connection([dbget, dbget0]) as [get, get0]:
-        trees = get('id,name,description,birth', 'trees where id=?', tid)
+        trees = get('id,name,description,birth', 'trees WHERE id=?', tid)
         if len(trees) == 0:
             raise InvalidUsage(f'unknown tree id {tid}', 404)
 
         tree = trees[0]
 
-        tree['owner'] = get0('id_user', 'user_owns_trees where id_tree=?', tid)[0]
-        tree['readers'] = get0('id_user', 'user_reads_trees where id_tree=?', tid)
+        tree['owner'] = get0('id_user', 'user_owns_trees WHERE id_tree=?', tid)[0]
+        tree['readers'] = get0('id_user', 'user_reads_trees WHERE id_tree=?', tid)
         tree['subtree'] = subtree
 
     return strip(tree)
@@ -656,15 +656,15 @@ def get_tree(tree_id):
 
 def get_owner(tid):
     "Return owner id of the given tree"
-    return dbget0('id_user', 'user_owns_trees where id_tree=?', tid)
+    return dbget0('id_user', 'user_owns_trees WHERE id_tree=?', tid)
 
 
 def del_tree(tid):
     "Delete a tree and everywhere where it appears referenced"
     exe = db.connect().execute
-    exe('delete from trees where id=?', tid)
-    exe('delete from user_owns_trees where id_tree=?', tid)
-    exe('delete from user_reads_trees where id_tree=?', tid)
+    exe('DELETE FROM trees WHERE id=?', tid)
+    exe('DELETE FROM user_owns_trees WHERE id_tree=?', tid)
+    exe('DELETE FROM user_reads_trees WHERE id_tree=?', tid)
     if tid in app.trees:
         del app.trees[tid]
 
@@ -684,14 +684,14 @@ def add_readers(tid, uids):
         return
     uids_str = '(%s)' % ','.join('%d' % x for x in uids)  # -> '(u1, u2, ...)'
 
-    if dbcount('users where id in %s' % uids_str) != len(uids):
+    if dbcount('users WHERE id IN %s' % uids_str) != len(uids):
         raise InvalidUsage(f'nonexisting user in {uids_str}')
     if dbcount('user_reads_trees '
-        'where id_tree=%d and id_user in %s' % (tid, uids_str)) != 0:
+        'WHERE id_tree=%d AND id_user IN %s' % (tid, uids_str)) != 0:
         raise InvalidUsage('tried to add an existing reader')
 
     values = ','.join('(%d, %d)' % (uid, tid) for uid in uids)
-    dbexe('insert into user_reads_trees (id_user, id_tree) values %s' % values)
+    dbexe('INSERT INTO user_reads_trees (id_user, id_tree) VALUES %s' % values)
 
 
 def del_readers(tid, uids):
@@ -701,11 +701,11 @@ def del_readers(tid, uids):
     uids_str = '(%s)' % ','.join('%d' % x for x in uids)  # -> '(u1, u2, ...)'
 
     if dbcount('user_reads_trees '
-        'where id_tree=%d and id_user in %s' % (tid, uids_str)) != len(uids):
+        'WHERE id_tree=%d AND id_user IN %s' % (tid, uids_str)) != len(uids):
         raise InvalidUsage(f'nonexisting user in {uids_str}')
 
-    dbexe('delete from user_reads_trees where '
-        'id_user in %s and id_tree=?' % uids_str, tid)
+    dbexe('DELETE FROM user_reads_trees WHERE '
+        'id_user IN %s AND id_tree=?' % uids_str, tid)
 
 
 def get_fields(required=None, valid_extra=None):
