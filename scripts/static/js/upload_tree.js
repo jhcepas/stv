@@ -142,27 +142,7 @@ button_upload.addEventListener("click", async () => {
 
         await assert(response.status === 201, "Upload failed", response);
 
-        const names = Object.keys((await response.json())["ids"]);
-        if (names.length === 1) {
-            window.location.href = `gui.html?tree=${names[0]}`;
-        }
-        else if (names.length > 1) {
-            const result = await Swal.fire({
-                title: "Multiple Trees",
-                text: "Added the trees: " + names.join(", "),
-                icon: "info",
-                confirmButtonText: "Go to the first one",
-                showCancelButton: true,
-            });
-            if (result.isConfirmed)
-                window.location.href = `gui.html?tree=${names[0]}`;
-        }
-        else {
-            Swal.fire({
-                html: "Could not find any tree in file.",
-                icon: "warning",
-            });
-        }
+        show_uploaded_trees(await response.json());
     }
     catch (ex) {
         Swal.fire({html: ex.message, icon: "warning",
@@ -190,6 +170,28 @@ async function get_trees_file() {
         `(${size_MB.toFixed(1)} MB, the maximum is 10 MB)`);
 
     return input_trees_file.files[0];
+}
+
+
+// Show the different added trees and allow to go explore them.
+function show_uploaded_trees(resp) {
+    const names = Object.keys(resp["ids"]).map(encodeURIComponent);
+
+    const link = name => `<a href="gui.html?tree=${name}">${name}</a>`;
+
+    if (names.length >= 1)
+        Swal.fire({
+            title: "Uploading Successful",
+            html: "Added the trees: " + names.map(link).join(", "),
+            icon: "success",
+            confirmButtonText: "Explore" + (names.length > 1 ? " the first" : ""),
+            showCancelButton: true,
+        }).then(result => {
+            if (result.isConfirmed)
+                window.location.href = `gui.html?tree=${names[0]}`;
+        });
+    else
+        Swal.fire({html: "Could not find any tree in file.", icon: "warning"});
 }
 
 
