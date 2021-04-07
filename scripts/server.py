@@ -54,7 +54,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer as JSONSigSerializer
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from ete import tree, newick as nw, draw
-from ete import gardening
+from ete import gardening, nexus
 
 
 db = None  # call initialize() to fill these up
@@ -224,8 +224,8 @@ class Trees(Resource):
     @auth.login_required
     def post(self):
         "Add tree"
-        tid = add_tree()
-        return {'message': 'ok', 'id': tid}, 201
+        ids = add_trees_from_request()
+        return {'message': 'ok', 'ids': ids}, 201
 
     @auth.login_required
     def put(self, tree_id):
@@ -490,19 +490,50 @@ def sort(tree_id, node_id, key_text, reverse):
     gardening.sort(t[node_id], key, reverse)
 
 
-def add_tree():
-    "Add a tree to the database (with data from the request) and return its id"
+def add_trees_from_request():
+    "Add trees to the database and return a dict of {name: id}"
     if request.form:
-        form = request.form
-        data = {'name': form['name'],
-                'description': form['description']}
-        data['newick'] = form['newick'] if 'newick' in form else get_newick_file()
+        trees = get_trees_from_form()
+        owner = g.user_id
     else:
         data = get_fields(required=['name', 'newick'],
                           valid_extra=['description', 'owner'])
+        trees = [data]
+        owner = data.pop('owner', g.user_id)
 
-    owner = data.pop('owner', g.user_id)
+    return {data['name']: add_tree(data, owner) for data in trees}
 
+
+def get_trees_from_form():
+    "Return list of dicts with tree info read from a form in the request"
+    form = request.form
+    if 'trees' in request.files:
+        text = get_file_contents(request.files['trees'])
+        try:
+            trees = nexus.get_trees(text)
+            return [{'name': name, 'newick': newick}
+                        for name,newick in trees.items()]
+        except nexus.NexusError:
+            return [{'name': form['name'], 'newick': text,
+                     'description': form.get('description', '')}]
+    else:
+        return [{'name': form['name'], 'newick': form['newick'],
+                 'description': form.get('description', '')}]
+
+
+def get_file_contents(fp):
+    "Return the contents of a file received as formdata"
+    try:
+        data = fp.stream.read()
+        if fp.filename.endswith('.gz'):
+            data = gzip.decompress(data)
+        return data.decode('utf-8').strip()
+    except (gzip.BadGzipFile, UnicodeDecodeError) as e:
+        raise InvalidUsage(f'when reading {fp.filename}: {e}')
+
+
+def add_tree(data, owner):
+    "Add tree to the database (with given data and owner) and return its id"
     admin_id = 1
     if g.user_id not in [owner, admin_id]:
         raise InvalidUsage('owner set different from current user')
@@ -531,18 +562,6 @@ def add_tree():
         exe('INSERT INTO user_owns_trees VALUES (%d, %d)' % (owner, tid))
 
     return tid
-
-
-def get_newick_file():
-    "Return the contents of a newick file received as formdata"
-    try:
-        f = request.files['newick']
-        data = f.stream.read()
-        if f.filename.endswith('.gz'):
-            data = gzip.decompress(data)
-        return data.decode('utf-8').strip()
-    except (gzip.BadGzipFile, UnicodeDecodeError) as e:
-        raise InvalidUsage(f'when reading {f.filename}: {e}')
 
 
 def modify_tree_fields(tree_id):

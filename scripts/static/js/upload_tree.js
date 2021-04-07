@@ -123,10 +123,16 @@ button_upload.addEventListener("click", async () => {
             [input_name.value, input_description.value] :
             [hash(Date.now().toString()), ""];
 
+        await assert(!input_trees_file.disabled || !input_newick_string.disabled,
+                     "You need to supply a newick string or select a file");
+
         const data = new FormData();
         data.append("name", name);
         data.append("description", description);
-        data.append("newick", await get_newick());
+        if (!input_newick_string.disabled)
+            data.append("newick", input_newick_string.value.trim());
+        else
+            data.append("trees", await get_trees_file());
 
         const response = await fetch("/trees", {
             method: "POST",
@@ -136,7 +142,27 @@ button_upload.addEventListener("click", async () => {
 
         await assert(response.status === 201, "Upload failed", response);
 
-        window.location.href = `gui.html?tree=${name}`;
+        const names = Object.keys((await response.json())["ids"]);
+        if (names.length === 1) {
+            window.location.href = `gui.html?tree=${names[0]}`;
+        }
+        else if (names.length > 1) {
+            const result = await Swal.fire({
+                title: "Multiple Trees",
+                text: "Added the trees: " + names.join(", "),
+                icon: "info",
+                confirmButtonText: "Go to the first one",
+                showCancelButton: true,
+            });
+            if (result.isConfirmed)
+                window.location.href = `gui.html?tree=${names[0]}`;
+        }
+        else {
+            Swal.fire({
+                html: "Could not find any tree in file.",
+                icon: "warning",
+            });
+        }
     }
     catch (ex) {
         Swal.fire({html: ex.message, icon: "warning",
@@ -154,24 +180,16 @@ function hash(str) {
 }
 
 
-// Return the object (string or file) containing the tree as a newick.
-async function get_newick() {
-    if (!input_newick_file.disabled) {
-        await assert(input_newick_file.files.length > 0, "Missing newick file");
+// Return the file containing the tree(s) as a newick or nexus.
+async function get_trees_file() {
+    await assert(input_trees_file.files.length > 0, "Missing file");
 
-        const size_MB = input_newick_file.files[0].size / 1e6;
-        await assert (size_MB < 10,
-            `Sorry, the file is too big<br>` +
-            `(${size_MB.toFixed(1)} MB, the maximum is 10 MB)`);
+    const size_MB = input_trees_file.files[0].size / 1e6;
+    await assert (size_MB < 10,
+        `Sorry, the file is too big<br>` +
+        `(${size_MB.toFixed(1)} MB, the maximum is 10 MB)`);
 
-        return input_newick_file.files[0];
-    }
-    else if (!input_newick_string.disabled) {
-        return input_newick_string.value.trim();
-    }
-    else {
-        throw new Error("You need to supply a newick string or select a file");
-    }
+    return input_trees_file.files[0];
 }
 
 
@@ -200,13 +218,13 @@ async function get_error(response) {
 // Radio buttons and checkboxes.
 
 radio_file.addEventListener("click", () => {
-    input_newick_file.disabled = false;
+    input_trees_file.disabled = false;
     input_newick_string.disabled = true;
 });
 
 radio_string.addEventListener("click", () => {
     input_newick_string.disabled = false;
-    input_newick_file.disabled = true;
+    input_trees_file.disabled = true;
 });
 
 check_metadata.addEventListener("change", () => {

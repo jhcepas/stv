@@ -131,16 +131,15 @@ def test_unauthorized():
 
 
 def test_auth_basic():
-    put('trees/1', data=jdumps({'name': 'Auth tested tree'}))
+    put('trees/1', data=jdumps({'description': 'Changed in a test.'}))
     # If we are not authenticated, that request will raise an error.
 
 
 def test_auth_bearer():
-    data = jdumps({'username': 'admin',
-                    'password': 'abc'})
+    data = jdumps({'username': 'admin', 'password': 'abc'})
     res = post('login', data=data)
     auth_txt = 'Bearer ' + res['token']
-    r = req.Request(urlbase + 'users', headers={'Authorization': auth_txt})
+    r = req.Request(urlbase + 'info', headers={'Authorization': auth_txt})
     req.urlopen(r)
 
     # If we are not authenticated, the request will raise an error.
@@ -157,10 +156,11 @@ def test_get_users():
 def test_get_trees():
     res = get('trees')
     assert type(res) == list
-    keys = 'id name description owner readers'.split()
-    assert all(x in res[0] for x in keys)
-    assert res[0]['id'] == 1
-    assert res[0]['owner'] == 1
+    keys = 'id name description birth owner readers'.split()
+    sample_tree = next(t for t in res if t['name'] == 'Sample Tree')
+    assert all(x in sample_tree for x in keys)
+    assert sample_tree['id'] == 1
+    assert sample_tree['owner'] == 1
 
 
 def test_add_del_user():
