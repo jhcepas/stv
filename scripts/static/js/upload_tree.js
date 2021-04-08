@@ -175,9 +175,10 @@ async function get_trees_file() {
 
 // Show the different added trees and allow to go explore them.
 function show_uploaded_trees(resp) {
-    const names = Object.keys(resp["ids"]).map(encodeURIComponent);
+    const names = Object.keys(resp["ids"]);
 
-    const link = name => `<a href="gui.html?tree=${name}">${name}</a>`;
+    const link = name => `<a href="gui.html?` +
+        `tree=${encodeURIComponent(name)}">${escape(name)}</a>`;
 
     if (names.length >= 1)
         Swal.fire({
@@ -188,10 +189,19 @@ function show_uploaded_trees(resp) {
             showCancelButton: true,
         }).then(result => {
             if (result.isConfirmed)
-                window.location.href = `gui.html?tree=${names[0]}`;
+                window.location.href =
+                    "gui.html?tree=" + encodeURIComponent(names[0]);
         });
     else
         Swal.fire({html: "Could not find any tree in file.", icon: "warning"});
+}
+
+
+// Return the original text with the given replacements made.
+function escape(text, replacements=[
+        "& &amp;", "< &lt;", "> &gt;", '" &quot;', "' &#039;"]) {
+    const pairs = replacements.map(pair => pair.split(" "));
+    return pairs.reduce((t, [a, b]) => t.replace(new RegExp(a, "g"), b), text);
 }
 
 
