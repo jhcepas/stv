@@ -60,6 +60,7 @@ class Drawer:
         self.collapsed = []  # nodes that are collapsed together
         self.boxes = []  # node and collapsed boxes (will be filled in postorder)
         self.node_dxs = [[]]  # lists of nodes dx (to find the max)
+        self.node_bdy_dys = [[]]  # lists of nodes branching dys and total dys
 
         point = self.xmin, self.ymin
         for it in self.tree.walk():
@@ -78,17 +79,17 @@ class Drawer:
 
     def on_first_visit(self, point, it, graphics):
         "Update list of graphics to draw and return new position"
-        node = it.node  # shortcut
-        box_node = make_box(point, self.node_size(node))
+        box_node = make_box(point, self.node_size(it.node))
         x, y = point
 
         if not self.in_viewport(box_node):
+            self.node_bdy_dys[-1].append( (0, box_node.dy) )
             it.descend = False  # skip children
             return x, y + box_node.dy
 
         if self.is_small(box_node):
             self.node_dxs[-1].append(box_node.dx)
-            self.collapsed.append(node)
+            self.collapsed.append(it.node)
             self.outline = stack(self.outline, box_node)
             it.descend = False  # skip children
             return x, y + box_node.dy
@@ -96,22 +97,17 @@ class Drawer:
         if self.outline:
             graphics += self.get_outline()
 
-        graphics += self.get_content(node, point)
+        self.node_bdy_dys.append([])
 
-        dx, dy = self.content_size(node)
-
-        if node.is_leaf:
-            ndx = drawn_size(graphics, self.get_box).dx
-            self.node_dxs[-1].append(ndx)
-            self.boxes += self.draw_nodebox(node, it.node_id, Box(x, y, ndx, dy))
-            return x, y + dy
+        dx, dy = self.content_size(it.node)
+        if it.node.is_leaf:
+            return self.on_last_visit((x + dx, y + dy), it, graphics)
         else:
             self.node_dxs.append([])
             return x + dx, y
 
     def on_last_visit(self, point, it, graphics):
         "Update list of graphics to draw and return new position"
-        # Last time we visit this node (who is internal and visible).
         if self.outline:
             graphics += self.get_outline()
 
@@ -119,7 +115,11 @@ class Drawer:
         dx, dy = self.content_size(it.node)
         x_before, y_before = x_after - dx, y_after - dy
 
-        ndx = dx + max(self.node_dxs.pop() or [0])
+        content_graphics = list(self.draw_content(it.node, (x_before, y_before)))
+        graphics += content_graphics
+
+        ndx = (drawn_size(content_graphics, self.get_box).dx if it.node.is_leaf
+                else (dx + max(self.node_dxs.pop() or [0])))
         self.node_dxs[-1].append(ndx)
 
         box = Box(x_before, y_before, ndx, dy)
@@ -127,23 +127,32 @@ class Drawer:
 
         return x_before, y_after
 
-    def get_content(self, node, point):
+    def draw_content(self, node, point):
         "Yield the node content's graphic elements"
         x, y = point
         dx, dy = self.content_size(node)
 
+        # Find branching dy of first child (bdy0), last (bdy1), and self (bdy).
+        bdy_dys = self.node_bdy_dys.pop()  # bdy_dys[i] == (bdy, dy)
+        bdy0 = bdy1 = dy / 2  # branching dys of the first and last children
+        if bdy_dys:
+            bdy0 = bdy_dys[0][0]
+            bdy1 = sum(bdy_dy[1] for bdy_dy in bdy_dys[:-1]) + bdy_dys[-1][0]
+        bdy = (bdy0 + bdy1) / 2  # this node's branching dy
+        self.node_bdy_dys[-1].append( (bdy, dy) )
+
+        # Draw line spanning content, line to children, and inline content.
         if not self.aligned and self.in_viewport(Box(x, y, dx, dy)):
-            bh = self.bh(node)  # node's branching height (in the right units)
-            yield from self.draw_lengthline((x, y + bh), (x + dx, y + bh))
+            if dx > 0:
+                yield from self.draw_lengthline((x, y + bdy), (x + dx, y + bdy))
 
-            if len(node.children) > 1:
-                c0, c1 = node.children[0], node.children[-1]
-                bh0, bh1 = self.bh(c0), dy - self.node_size(c1).dy + self.bh(c1)
-                yield from self.draw_childrenline((x + dx, y + bh0),
-                                                  (x + dx, y + bh1))
+            if bdy0 != bdy1:
+                yield from self.draw_childrenline((x + dx, y + bdy0),
+                                                  (x + dx, y + bdy1))
 
-            yield from self.draw_content_inline(node, point)
+            yield from self.draw_content_inline(node, point, bdy)
 
+        # Draw things that may be floating (typically to the right for leaves).
         yield from self.draw_content_float(node, point)
 
     def get_outline(self):
@@ -152,6 +161,8 @@ class Drawer:
 
         graphics += self.draw_collapsed()
         self.collapsed = []
+
+        self.node_bdy_dys[-1].append( (self.outline.dy / 2, self.outline.dy) )
 
         ndx = drawn_size(graphics, self.get_box).dx
         self.node_dxs[-1].append(ndx)
@@ -204,7 +215,7 @@ class Drawer:
 
     # These are the functions that the user would supply to decide how to
     # represent a node.
-    def draw_content_inline(self, node, point):
+    def draw_content_inline(self, node, point, bdy):
         "Yield graphic elements to draw the inline contents of the node"
         yield from []
 
@@ -245,10 +256,6 @@ class DrawerRect(Drawer):
 
     def is_small(self, box):
         return box.dy * self.zoom[1] < self.MIN_SIZE
-
-    def bh(self, node):
-        "Return branching height of the node (where its horizontal line is)"
-        return node.bh
 
     def get_box(self, element):
         return get_rect(element, self.zoom)
@@ -304,10 +311,6 @@ class DrawerCirc(Drawer):
 
     def is_small(self, box):
         return (box.x + box.dx) * box.dy * self.zoom[0] < self.MIN_SIZE
-
-    def bh(self, node):
-        "Return branching height of the node (where its radial line is)"
-        return node.bh * self.y2a  # in the right angular units
 
     def get_box(self, element):
         return get_asec(element, self.zoom)
@@ -393,15 +396,15 @@ class DrawerCircLeafNames(DrawerCirc):
 class DrawerLengths(DrawerRect):
     "With labels on the lengths"
 
-    def draw_content_inline(self, node, point):
+    def draw_content_inline(self, node, point, bdy):
         if node.length >= 0:
             x, y = point
             dx, dy = self.content_size(node)
             zx, zy = self.zoom
 
             text = '%.2g' % node.length
-            p = (x, y + node.bh)
-            fs = min(node.bh, zx/zy * 1.5 * dx / len(text))
+            p = (x, y + bdy)
+            fs = min(bdy, zx/zy * 1.5 * dx / len(text))
             if fs * zy > self.MIN_SIZE:
                 yield draw_text(text, p, fs, 'length')
 
@@ -409,7 +412,7 @@ class DrawerLengths(DrawerRect):
 class DrawerCircLengths(DrawerCirc):
     "With labels on the lengths"
 
-    def draw_content_inline(self, node, point):
+    def draw_content_inline(self, node, point, bda):
         if node.length >= 0:
             r, a = point
             dr, da = self.content_size(node)
@@ -417,8 +420,8 @@ class DrawerCircLengths(DrawerCirc):
 
             if is_good_angle_interval(a, a + da):
                 text = '%.2g' % node.length
-                p = cartesian((r, a + self.bh(node)))
-                fs = min((r + dr) * self.bh(node), zx/zy * 1.5 * dr / len(text))
+                p = cartesian((r, a + bda))
+                fs = min((r + dr) * bda, zx/zy * 1.5 * dr / len(text))
                 if fs * zy > self.MIN_SIZE:
                     yield draw_text(text, p, fs, 'length')
 

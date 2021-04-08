@@ -6,7 +6,7 @@ Sorting, changing the root to a node, moving branches, removing (prunning)...
 
 # "Arboriculture" may be more precise than "gardening", but it's a mouthful!
 
-from ete.tree import Tree, update_metrics, update_branch_height
+from ete.tree import Tree, update_metrics
 
 
 def sort(tree, key=None, reverse=False):
@@ -15,7 +15,6 @@ def sort(tree, key=None, reverse=False):
     for node in tree.children:
         sort(node, key, reverse)
     tree.children.sort(key=key, reverse=reverse)
-    update_branch_height(tree)
 
 
 def root_at(node):
@@ -54,11 +53,6 @@ def move(node, shift=1):
     pos_old = siblings.index(node)
     pos_new = (pos_old + shift) % len(siblings)
     siblings[pos_old], siblings[pos_new] = siblings[pos_new], siblings[pos_old]
-
-    parent = node.parent
-    while parent:
-        update_branch_height(parent)
-        parent = parent.parent
 
 
 def remove(node):
