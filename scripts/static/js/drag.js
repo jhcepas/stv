@@ -14,7 +14,6 @@ const dragging = {p0: {x: 0, y: 0}, element: undefined, moved: false};
 function drag_start(point, element) {
     div_tree.style.cursor = "grabbing";
     div_visible_rect.style.cursor = "grabbing";
-    div_aligned.style.cursor = "ew-resize";
     dragging.p0 = point;
     dragging.element = element;
 }
@@ -26,7 +25,6 @@ function drag_stop() {
 
     div_tree.style.cursor = "auto";
     div_visible_rect.style.cursor = "grab";
-    div_aligned.style.cursor = "auto";
 
     if (dragging.moved) {
         update_tree();

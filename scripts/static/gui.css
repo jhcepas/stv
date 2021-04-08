@@ -58,14 +58,14 @@
 
 .aligned {
     display: none;
-    padding: 0 1%;
+    cursor: ew-resize;
     position: absolute;
     right: 0px;
     width: 20%;
     height: 100%;
     background: white;
     overflow: hidden;
-    border-left: dashed;
+    border-left: 1px dashed;
 }
 
 .dotted {

@@ -116,6 +116,7 @@ function add_menu_view(dgui) {
     folder_view.add(view, "select_text").name("select text").onChange(() => {
         style("font").userSelect = (view.select_text ? "text" : "none");
         div_tree.style.cursor = (view.select_text ? "text" : "auto");
+        div_aligned.style.cursor = (view.select_text ? "text" : "ew-resize");
         set_boxes_clickable(!view.select_text);
     });
 }
