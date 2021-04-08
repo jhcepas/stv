@@ -68,6 +68,7 @@ const view = {
     font_size: 10,
     font_size_max: 15,
     text_padding: 10,
+    array: {padding: 0.0},
 
     // minimap
     minimap_show: true,

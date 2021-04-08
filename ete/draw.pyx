@@ -534,7 +534,7 @@ class DrawerAlignHeatMap(DrawerFull):
             zx, zy = self.zoom
             random.seed(node.name)
             a = [random.randint(1, 360) for i in range(100)]
-            yield draw_array(Box(0, y + dy/8, 200, dy * 0.75), a)
+            yield draw_array(Box(0, y, 200, dy), a)
 
     def draw_collapsed(self):
         names = [first_name(node) for node in self.collapsed]
@@ -545,7 +545,7 @@ class DrawerAlignHeatMap(DrawerFull):
             zx, zy = self.zoom
             random.seed(str(texts))
             a = [random.randint(1, 360) for i in range(100)]
-            yield draw_array(Box(0, y + dy/8, 200, dy * 0.75), a)
+            yield draw_array(Box(0, y, 200, dy), a)
         else:
             if all(name == '' for name in names):
                 return

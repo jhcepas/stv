@@ -180,6 +180,11 @@ function add_menu_style(dgui) {
         return folder_text.add(view, "font_size", 0.1, 50).name("font size")
             .onChange(() => style("font").fontSize = `${view.font_size}px`);
     }
+
+    const folder_array = folder_style.addFolder("array");
+
+    folder_array.add(view.array, "padding", 0, 1).step(0.01).onChange(
+        update);
 }
 
 

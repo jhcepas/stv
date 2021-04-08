@@ -152,14 +152,22 @@ function draw_item(g, item, tl, zoom) {
         const [x0, y0, dx0, dy0] = box;
         const dx = dx0 / a.length / zx;
 
+        const [y, dy] = pad(y0, dy0, view.array.padding);
+
         for (let i = 0, x = 0; i < a.length; i++, x+=dx) {
-            const r = create_rect([x, y0, dx, dy0], tl, zx, zy, "array");
+            const r = create_rect([x, y, dx, dy], tl, zx, zy, "array");
             r.style.stroke = `hsl(${a[i]}, 100%, 50%)`;
             g.appendChild(r);
         }
     }
 }
 
+
+// Transform the interval [y0, y0+dy0] into one padded with the given fraction.
+function pad(y0, dy0, fraction) {
+    const dy = dy0 * (1 - fraction);
+    return [y0 + (dy0 - dy)/2, dy]
+}
 
 function create_svg_element(name, attrs) {
     const element = document.createElementNS("http://www.w3.org/2000/svg", name);
