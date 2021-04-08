@@ -198,7 +198,7 @@ class Trees(Resource):
     #   tree have access to it, we would need to add  @auth.login_required
     #   and check that g.user_id is a reader (or the owner, or admin).
     def get(self, tree_id=None):
-        "Return info about the tree (or all trees if no id given)"
+        "Return data from the tree (or info about all trees if no id given)"
         rule = request.url_rule.rule  # shortcut
         if rule == '/trees':
             return [get_tree(pid) for pid in dbget0('id', 'trees')]
@@ -218,12 +218,10 @@ class Trees(Resource):
         elif rule == '/trees/<string:tree_id>/size':
             width, height = load_tree(tree_id).size
             return {'width': width, 'height': height}
-        else:
-            raise InvalidUsage('unknown tree in GET request')
 
     @auth.login_required
     def post(self):
-        "Add tree"
+        "Add tree(s)"
         ids = add_trees_from_request()
         return {'message': 'ok', 'ids': ids}, 201
 
