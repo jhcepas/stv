@@ -46,11 +46,14 @@ class Drawer:
         self.zoom = zoom
         self.aligned = aligned
 
-        if not viewport or not aligned:
-            self.viewport = viewport
-        else:
+        if viewport:
             x, y, dx, dy = viewport
-            self.viewport = Box(0, y, self.tree.size[0], dy)
+            if not aligned:  # normal case
+                self.viewport = Box(x, y, dx, dy)
+            else:  # drawing for the aligned panel, so consider full tree width
+                self.viewport = Box(0, y, self.tree.size[0], dy)
+        else:
+            self.viewport = None
 
         self.xmin, self.xmax, self.ymin, self.ymax = limits or (0, 0, 0, 0)
 
@@ -487,19 +490,16 @@ class DrawerCircFull(DrawerCircCollapsed, DrawerCircLengths):
 class DrawerAlign(DrawerFull):
     "With aligned content"
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.tree_dx = self.tree.size[0]
-
     def draw_content_float(self, node, point):
         if node.is_leaf:
             x, y = point
             dx, dy = self.content_size(node)
 
             if not self.aligned:
-                p1 = (x + dx, y + dy/2)
-                p2 = (2 * self.tree_dx, y + dy/2)
-                yield draw_line(p1, p2, 'dotted')
+                if self.viewport:
+                    p1 = (x + dx, y + dy/2)
+                    p2 = (self.viewport.x + self.viewport.dx, y + dy/2)
+                    yield draw_line(p1, p2, 'dotted')
             else:
                 yield draw_text(node.name, (0, y + dy/1.5), dy/2, 'name')
 
@@ -511,9 +511,10 @@ class DrawerAlign(DrawerFull):
         x, y, dx, dy = self.outline
 
         if not self.aligned:
-            p1 = (x + dx, y + dy/2)
-            p2 = (2 * self.tree_dx, y + dy/2)
-            yield draw_line(p1, p2, 'dotted')
+            if self.viewport:
+                p1 = (x + dx, y + dy/2)
+                p2 = (self.viewport.x + self.viewport.dx, y + dy/2)
+                yield draw_line(p1, p2, 'dotted')
         else:
             texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
             p = (0, y + dy/1.1)
