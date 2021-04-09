@@ -33,10 +33,11 @@ function on_box_contextmenu(event, box, name, properties, node_id=[]) {
 
     add_tree_options();
 
-    const s = div_contextmenu.style;
-    s.left = event.pageX + "px";
-    s.top = event.pageY + "px";
-    s.visibility = "visible";
+    const x_max = div_tree.offsetWidth - div_contextmenu.offsetWidth,
+          y_max = div_tree.offsetHeight - div_contextmenu.offsetHeight;
+    div_contextmenu.style.left = Math.min(event.pageX, x_max) + "px";
+    div_contextmenu.style.top = Math.min(event.pageY, y_max) + "px";
+    div_contextmenu.style.visibility = "visible";
 }
 
 
