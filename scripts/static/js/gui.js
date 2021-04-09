@@ -135,11 +135,20 @@ function get_tid() {
 
 // Perform an action on a tree (among the available in the API as PUT calls).
 async function tree_command(command, params=undefined) {
-    await api_put(`/trees/${get_tid()}/${command}`, params);
+    try {
+        await api_put(`/trees/${get_tid()}/${command}`, params);
 
-    const commands_modifying_size = ["root_at", "remove"];
-    if (commands_modifying_size.includes(command))
-        view.tree_size = await api(`/trees/${get_tid()}/size`);
+        const commands_modifying_size = ["root_at", "remove"];
+        if (commands_modifying_size.includes(command))
+            view.tree_size = await api(`/trees/${get_tid()}/size`);
+    }
+    catch (ex) {
+        Swal.fire({
+            title: "Command Error",
+            html: `When running <tt>${command}</tt>:<br><br>${ex.message}`,
+            icon: "error",
+        });
+    }
 }
 
 
