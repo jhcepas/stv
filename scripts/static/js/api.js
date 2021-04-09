@@ -1,7 +1,6 @@
 // Functions related to the interaction with the server, including html cleanup
 // and error handling.
 
-
 export { escape_html, hash, assert, api, api_post, api_put, api_login,
          storage_get, storage_set, storage_remove, is_valid_token };
 
