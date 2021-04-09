@@ -126,7 +126,7 @@ function show_uploaded_trees(resp) {
     if (names.length >= 1)
         Swal.fire({
             title: "Uploading Successful",
-            html: "Added the trees: " + names.map(link).join(", "),
+            html: "Added trees: " + names.map(link).join(", "),
             icon: "success",
             confirmButtonText: "Explore" + (names.length > 1 ? " the first" : ""),
             showCancelButton: true,
