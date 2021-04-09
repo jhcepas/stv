@@ -60,7 +60,7 @@ class Drawer:
         self.collapsed = []  # nodes that are collapsed together
         self.boxes = []  # node and collapsed boxes (will be filled in postorder)
         self.node_dxs = [[]]  # lists of nodes dx (to find the max)
-        self.node_bdy_dys = [[]]  # lists of nodes branching dys and total dys
+        self.bdy_dys = [[]]  # lists of branching dys and total dys
 
         point = self.xmin, self.ymin
         for it in self.tree.walk():
@@ -83,7 +83,7 @@ class Drawer:
         x, y = point
 
         if not self.in_viewport(box_node):
-            self.node_bdy_dys[-1].append( (0, box_node.dy) )
+            self.bdy_dys[-1].append( (box_node.dy / 2, box_node.dy) )
             it.descend = False  # skip children
             return x, y + box_node.dy
 
@@ -97,7 +97,7 @@ class Drawer:
         if self.outline:
             graphics += self.get_outline()
 
-        self.node_bdy_dys.append([])
+        self.bdy_dys.append([])
 
         dx, dy = self.content_size(it.node)
         if it.node.is_leaf:
@@ -133,13 +133,13 @@ class Drawer:
         dx, dy = self.content_size(node)
 
         # Find branching dy of first child (bdy0), last (bdy1), and self (bdy).
-        bdy_dys = self.node_bdy_dys.pop()  # bdy_dys[i] == (bdy, dy)
+        bdy_dys = self.bdy_dys.pop()  # bdy_dys[i] == (bdy, dy)
         bdy0 = bdy1 = dy / 2  # branching dys of the first and last children
         if bdy_dys:
             bdy0 = bdy_dys[0][0]
             bdy1 = sum(bdy_dy[1] for bdy_dy in bdy_dys[:-1]) + bdy_dys[-1][0]
         bdy = (bdy0 + bdy1) / 2  # this node's branching dy
-        self.node_bdy_dys[-1].append( (bdy, dy) )
+        self.bdy_dys[-1].append( (bdy, dy) )
 
         # Draw line spanning content, line to children, and inline content.
         if not self.aligned and self.in_viewport(Box(x, y, dx, dy)):
@@ -162,7 +162,7 @@ class Drawer:
         graphics += self.draw_collapsed()
         self.collapsed = []
 
-        self.node_bdy_dys[-1].append( (self.outline.dy / 2, self.outline.dy) )
+        self.bdy_dys[-1].append( (self.outline.dy / 2, self.outline.dy) )
 
         ndx = drawn_size(graphics, self.get_box).dx
         self.node_dxs[-1].append(ndx)
