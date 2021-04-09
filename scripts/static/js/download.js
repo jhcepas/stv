@@ -1,6 +1,7 @@
 // Download-related functions.
 
-import { api, view, get_tid } from "./gui.js";
+import { view, get_tid } from "./gui.js";
+import { api } from "./api.js";
 
 export { download_newick, download_image, download_svg };
 

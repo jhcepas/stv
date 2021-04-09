@@ -1,6 +1,6 @@
 // Functions related to the context menu (right-click menu).
 
-import { view, api_put, on_tree_change, reset_view, sort } from "./gui.js";
+import { view, tree_command, on_tree_change, reset_view, sort } from "./gui.js";
 import { draw_minimap } from "./minimap.js";
 import { update } from "./draw.js";
 import { download_newick } from "./download.js";
@@ -58,12 +58,19 @@ function add_node_options(box, name, properties, node_id) {
             window.open(`${urlbase}/wwwtax.cgi?id=${taxid}`);
         }, `Open the NCBI Taxonomy Browser on this taxonomy ID: ${taxid}.`);
     }
+
+    if (view.allow_modifications)
+        add_node_modifying_options(box, name, properties, node_id);
+}
+
+
+function add_node_modifying_options(box, name, properties, node_id) {
     add_button("🖊️ (Re)name node  ⚠️", async () => {
         const result = await Swal.fire({
             input: "text",
             inputPlaceholder: "Enter new name",
             preConfirm: async name => {
-                return await api_put("name", [node_id, name]);
+                return await tree_command("name", [node_id, name]);
             },
         });
         if (result.isConfirmed)
@@ -71,19 +78,19 @@ function add_node_options(box, name, properties, node_id) {
     }, "Change the name of this node. Changes the tree structure.");
     if (!view.subtree) {
         add_button("🎯 Root on this node ⚠️", async () => {
-            await api_put("root_at", node_id);
+            await tree_command("root_at", node_id);
             draw_minimap();
             update();
         }, "Set this node as the root of the tree. Changes the tree structure.");
     }
     add_button("⬆️ Move node up ⚠️", async () => {
-        await api_put("move", [node_id, -1]);
+        await tree_command("move", [node_id, -1]);
         draw_minimap();
         update();
     }, "Move the current node one step above its current position. " +
         "Changes the tree structure.");
     add_button("⬇️ Move node down ⚠️", async () => {
-        await api_put("move", [node_id, +1]);
+        await tree_command("move", [node_id, +1]);
         draw_minimap();
         update();
     }, "Move the current node one step below its current position. " +
@@ -92,7 +99,7 @@ function add_node_options(box, name, properties, node_id) {
         "Sort branches below this node according to the current sorting " +
         "function. Changes the tree structure.");
     add_button("✂️ Remove node ⚠️", async () => {
-        await api_put("remove", node_id);
+        await tree_command("remove", node_id);
         draw_minimap();
         update();
     }, "Prune this branch from the tree. Changes the tree structure.");
@@ -107,9 +114,12 @@ function add_tree_options() {
             on_tree_change();
         }, "Exit view on current subtree.");
     }
-    add_button("🔃 Sort tree ⚠️", () => sort(),
-        "Sort all branches according to the current sorting function. " +
-        "Changes the tree structure.");
+
+    if (view.allow_modifications) {
+        add_button("🔃 Sort tree ⚠️", () => sort(),
+            "Sort all branches according to the current sorting function. " +
+            "Changes the tree structure.");
+    }
 }
 
 

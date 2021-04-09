@@ -1,5 +1,9 @@
 // Functions for upload_tree.html.
 
+import { escape_html, hash, assert, storage_get, storage_set, storage_remove,
+         api_login, is_valid_token } from "./api.js";
+
+
 document.addEventListener("DOMContentLoaded", on_load_page);
 
 
@@ -51,16 +55,9 @@ window.show_login = show_login;
 
 // Login-related functions.
 
-async function is_valid_token(token) {
-    const response = await fetch("/info", {
-        headers: {"Authorization": `Bearer ${token}`},
-    });
-    return response.status === 200;  // status will be 401 for unauthorized
-}
-
-const get_login = () => JSON.parse(localStorage.getItem("login"));
-const save_login = data => localStorage.setItem("login", JSON.stringify(data));
-const clear_login = () => localStorage.removeItem("login");
+const get_login = () => storage_get("login");
+const save_login = data => storage_set("login", data);
+const clear_login = () => storage_remove("login");
 window.clear_login = clear_login;
 
 
@@ -80,19 +77,9 @@ div_login.addEventListener("keyup", event => {
 
 // When the login button is pressed, fetch credentials from /login.
 button_login.addEventListener("click", async () => {
-    const [username, password] = [input_username.value, input_password.value];
-
     try {
-        const response = await fetch("/login", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({username, password}),
-        });
-
-        await assert(response.status === 200, "Login failed", response);
-
-        save_login(await response.json());
-
+        const login = await api_login(input_username.value, input_password.value);
+        save_login(login);
         show_upload();
     }
     catch (ex) {
@@ -151,15 +138,6 @@ button_upload.addEventListener("click", async () => {
 });
 
 
-// Return a ~64-bit hash. Inspired by https://stackoverflow.com/questions/7616461
-function hash(str) {
-    const acc = (h, char) => ((h << 5) - h + char.charCodeAt(0)) | 0;
-    const hash32 = s => (s.split("").reduce(acc, 0) - (1 << 31)).toString(36);
-    const h32 = hash32(str);
-    return h32 + hash32(h32 + str);
-}
-
-
 // Return the file containing the tree(s) as a newick or nexus.
 async function get_trees_file() {
     await assert(input_trees_file.files.length > 0, "Missing file");
@@ -178,7 +156,7 @@ function show_uploaded_trees(resp) {
     const names = Object.keys(resp["ids"]);
 
     const link = name => `<a href="gui.html?` +
-        `tree=${encodeURIComponent(name)}">${escape(name)}</a>`;
+        `tree=${encodeURIComponent(name)}">${escape_html(name)}</a>`;
 
     if (names.length >= 1)
         Swal.fire({
@@ -194,36 +172,6 @@ function show_uploaded_trees(resp) {
         });
     else
         Swal.fire({html: "Could not find any tree in file.", icon: "warning"});
-}
-
-
-// Return the original text with the given replacements made.
-function escape(text, replacements=[
-        "& &amp;", "< &lt;", "> &gt;", '" &quot;', "' &#039;"]) {
-    const pairs = replacements.map(pair => pair.split(" "));
-    return pairs.reduce((t, [a, b]) => t.replace(new RegExp(a, "g"), b), text);
-}
-
-
-// Error handling.
-
-async function assert(condition, message, response=undefined) {
-    if (!condition) {
-        const response_error = response ? `<br><br>
-            <b>Response status:</b> ${response.status}<br>
-            <b>Message:</b> ${await get_error(response)}` : "";
-        throw new Error(message + response_error);
-    }
-}
-
-async function get_error(response) {
-    try {
-        const data = await response.json();
-        return data.message;
-    }
-    catch (error) {
-        return response.statusText;
-    }
 }
 
 

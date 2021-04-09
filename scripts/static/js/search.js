@@ -1,8 +1,9 @@
 // Search-related functions.
 
-import { view, datgui, api, get_tid, on_box_click, on_box_wheel } from "./gui.js";
+import { view, datgui, get_tid, on_box_click, on_box_wheel } from "./gui.js";
 import { create_rect, create_asec } from "./draw.js";
 import { on_box_contextmenu } from "./contextmenu.js";
+import { api } from "./api.js";
 
 export { search, add_search_boxes, remove_searches };
 

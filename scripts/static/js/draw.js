@@ -1,9 +1,10 @@
 // Functions related to updating (drawing) the view.
 
-import { view, datgui, api, get_tid, on_box_click, on_box_wheel } from "./gui.js";
+import { view, datgui, get_tid, on_box_click, on_box_wheel } from "./gui.js";
 import { update_minimap_visible_rect } from "./minimap.js";
 import { add_search_boxes } from "./search.js";
 import { on_box_contextmenu } from "./contextmenu.js";
+import { api } from "./api.js";
 
 export { update, update_tree, create_rect, create_asec, draw };
 

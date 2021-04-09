@@ -7,9 +7,10 @@ import { download_newick, download_image, download_svg } from "./download.js";
 import { search, remove_searches } from "./search.js";
 import { zoom_into_box, zoom_around, zoom_towards_box } from "./zoom.js";
 import { draw_minimap, update_minimap_visible_rect } from "./minimap.js";
+import { api, api_put, escape_html } from "./api.js";
 
 export { view, datgui, on_tree_change, on_drawer_change, show_minimap,
-         api, api_put, get_tid, on_box_click, on_box_wheel, coordinates,
+         tree_command, get_tid, on_box_click, on_box_wheel, coordinates,
          reset_view, show_help, sort };
 
 
@@ -31,6 +32,7 @@ const view = {
     download: {newick: () => download_newick(),
                svg:    () => download_svg(),
                image:  () => download_image()},
+    allow_modifications: true,
 
     // representation
     drawer: "Full",
@@ -99,84 +101,10 @@ async function main() {
 
     draw_minimap();
     update();
+
+    const sample_trees = ["ncbi", "GTDB_bact_r95"];  // hardcoded for the moment
+    view.allow_modifications = !sample_trees.includes(view.tree);
 }
-
-
-// Return the data coming from an api endpoint (like "/trees/<id>/size").
-async function api(endpoint) {
-    const response = await fetch(endpoint);
-
-    if (response.status !== 200) {
-        Swal.fire({
-            title: "Request failed :(",
-            html: `${response.status} - ${await get_error(response)}`,
-            icon: "error",
-        });
-        return undefined;
-    }
-
-    return await response.json();
-}
-
-
-// Return the most descriptive error message extracted from the response.
-async function get_error(response) {
-    try {
-        const data = await response.json();
-        return data.message;
-    }
-    catch (error) {
-        return response.statusText;
-    }
-}
-
-
-// NOTE: The next two functions are just used to bypass the authorization that is
-// currently needed in the api to make changes to a tree (by using a PUT request).
-function get_login_info() {
-    return JSON.parse(localStorage.getItem("login_info"));
-}
-
-async function login_as_guest() {
-    localStorage.clear();
-
-    const [username, password] = ["guest", "123"];
-
-    const response = await fetch("/login", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({username, password}),
-    });
-
-    const data = await response.json();
-    localStorage.setItem("login_info", JSON.stringify(data));
-}
-
-async function api_put(command, params=undefined) {
-    await login_as_guest();
-    const login = get_login_info();
-
-    const response = await fetch(`/trees/${get_tid()}/${command}`, {
-        method: "PUT",
-        headers: {"Content-Type": "application/json",
-                  "Authorization": `Bearer ${login.token}`},
-        body: JSON.stringify(params),
-    });
-
-    if (response.status !== 200) {
-        Swal.fire({
-            title: "Tree modification failed :(",
-            html: `${response.status} - ${await get_error(response)}`,
-            icon: "error",
-        });
-        return;
-    }
-
-    const commands_modifying_size = ["root_at", "remove"];
-    if (commands_modifying_size.includes(command))
-        view.tree_size = await api(`/trees/${get_tid()}/size`);
-}
-
 
 
 // Fill global var trees, and view.tree with the first of the available trees.
@@ -189,8 +117,29 @@ async function init_trees() {
 }
 
 
+// Return current (sub)tree id (its id number followed by its subtree id).
 function get_tid() {
+    if (!trees[view.tree]) {
+        Swal.fire({
+            html: `Cannot find tree ${escape_html(view.tree)}<br><br>
+                   Opening a default tree.`,
+            icon: "error",
+        });
+        view.tree = Object.keys(trees)[0];
+        api(`/trees/${trees[view.tree]}/size`).then(s => view.tree_size = s);
+    }
+
     return trees[view.tree] + (view.subtree ? "," + view.subtree : "");
+}
+
+
+// Perform an action on a tree (among the available in the API as PUT calls).
+async function tree_command(command, params=undefined) {
+    await api_put(`/trees/${get_tid()}/${command}`, params);
+
+    const commands_modifying_size = ["root_at", "remove"];
+    if (commands_modifying_size.includes(command))
+        view.tree_size = await api(`/trees/${get_tid()}/size`);
 }
 
 
@@ -203,6 +152,9 @@ async function on_tree_change() {
     reset_position();
     draw_minimap();
     update();
+
+    const sample_trees = ["ncbi", "GTDB_bact_r95"];  // hardcoded for the moment
+    view.allow_modifications = !sample_trees.includes(view.tree);
 }
 
 
@@ -258,13 +210,16 @@ async function set_query_string_values() {
             unknown_params.push(param);
     }
 
-    await set_consistent_values();
+    if (unknown_params.length > 0) {
+        const pars = unknown_params.map(t => `<tt>${escape_html(t)}</tt>`);
+        Swal.fire({
+            title: "Oops!",
+            html: "Unknown parameters passed in url:<br><br>" + pars.join(", "),
+            icon: "warning",
+        });
+    }
 
-    if (unknown_params.length != 0)
-        Swal.fire(
-            "Oops!",
-            "There were unknown parameters passed: " + unknown_params.join(", "),
-            "warning");
+    await set_consistent_values();
 }
 
 async function set_consistent_values() {
@@ -363,7 +318,7 @@ async function show_tree_info() {
     const result = await Swal.fire({
         title: "Tree Information",
         icon: "info",
-        html: `${name} (<a href="/trees/${tid}">${tid}</a>)<br><br>` +
+        html: `<b>Name</b>: ${escape_html(name)}<br><br>` +
               (description ? `${description}<br><br>` : "") +
               `(<a href="${url}">current view</a>)`,
         confirmButtonText: navigator.clipboard ? "Copy view to clipboard" : "Ok",
@@ -511,7 +466,17 @@ function on_box_wheel(event, box) {
 
 
 async function sort(node_id=[]) {
-    await api_put("sort", [node_id, view.sorting.key, view.sorting.reverse]);
-    draw_minimap();
-    update();
+    if (view.allow_modifications) {
+        await tree_command("sort",
+                           [node_id, view.sorting.key, view.sorting.reverse]);
+        draw_minimap();
+        update();
+    }
+    else {
+        Swal.fire({
+            html: "Sorry, sorting is disabled for this tree. But you can try " +
+                  "it on your own uploaded trees!",
+            icon: "info",
+        });
+    }
 }

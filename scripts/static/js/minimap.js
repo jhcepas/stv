@@ -1,7 +1,8 @@
 // Minimap-related functions.
 
-import { view, api, get_tid } from "./gui.js";
+import { view, get_tid } from "./gui.js";
 import { draw, update } from "./draw.js";
+import { api } from "./api.js";
 
 export { draw_minimap, update_minimap_visible_rect, move_minimap_view };
 
