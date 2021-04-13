@@ -102,7 +102,7 @@ function zoom_angular(point, qz) {
         zooming.timeout = undefined;
         draw_minimap();
         update();
-    }, 200);  // 200 ms until we actually update (if not cancelled before!)
+    }, 50);  // 50 ms until we actually update (if not cancelled before!)
 }
 
 
@@ -144,5 +144,5 @@ function smooth_zoom(point) {
         zooming.qz.x = zooming.qz.y = 1;
         zooming.timeout = undefined;
         update();
-    }, 400);  // 400 ms until we actually update (if not cancelled before!)
+    }, 50);  // 50 ms until we actually update (if not cancelled before!)
 }

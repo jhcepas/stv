@@ -87,9 +87,12 @@ async function draw(element, items, tl, zoom) {
 
     const g = create_svg_element("g", {});
 
+    items.forEach(item => draw_item(g, item, tl, zoom));
+
     svg.appendChild(g);
 
-    items.forEach(item => draw_item(g, item, tl, zoom));
+    if (view.is_circular)
+        fix_text_orientations();
 }
 
 
@@ -137,16 +140,14 @@ function draw_item(g, item, tl, zoom) {
 
         const t = create_text(text, font_size, point, tl, zx, zy, type);
 
-        g.appendChild(t);
-
         if (view.is_circular) {
             const [x, y] = point;
             const angle = Math.atan2(y, x) * 180 / Math.PI;
-
             t.setAttributeNS(null, "transform",
-                `rotate(${angle}, ${zx * (x - tl.x)}, ${zy * (y - tl.y)})` +
-                ((angle < -90 || angle > 90) ? flip(t) : ""));
+                `rotate(${angle}, ${zx * (x - tl.x)}, ${zy * (y - tl.y)})`);
         }
+
+        g.appendChild(t);
     }
     else if (item[0] === "array") {
         const [ , box, a] = item;
@@ -324,6 +325,18 @@ function create_text(text, fs, point, tl, zx, zy, type) {
     t.appendChild(document.createTextNode(text));
 
     return t;
+}
+
+
+// Flip all the texts in circular representation that look upside-down.
+async function fix_text_orientations() {
+    const texts = Array.from(div_tree.getElementsByClassName("text"));
+    texts.forEach(t => {
+        const angle = t.transform.baseVal[0].angle;
+        if (angle < -90 || angle > 90)
+            t.setAttributeNS(null, "transform",
+                t.getAttribute("transform") + flip(t));
+    });
 }
 
 
