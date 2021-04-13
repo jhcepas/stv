@@ -47,7 +47,7 @@ window.show_login = show_login;
 
 // Login-related functions.
 
-// When the login button is pressed, fetch credentials from /login.
+// When the login button is pressed.
 button_login.addEventListener("click", async () => {
     try {
         await api_login(input_username.value, input_password.value);
