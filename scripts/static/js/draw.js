@@ -104,8 +104,6 @@ function draw_item(g, item, tl, zoom) {
 
         const b = create_box(box, tl, zx, zy);
 
-        g.appendChild(b);
-
         b.addEventListener("click", event =>
             on_box_click(event, box, node_id));
         b.addEventListener("contextmenu", event =>
@@ -115,6 +113,8 @@ function draw_item(g, item, tl, zoom) {
 
         if (name.length > 0 || Object.entries(properties).length > 0)
             b.appendChild(create_tooltip(name, properties));
+
+        g.appendChild(b);
     }
     else if (item[0] === "cone") {
         const [ , box] = item;
