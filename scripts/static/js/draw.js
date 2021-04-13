@@ -329,21 +329,42 @@ function create_text(text, fs, point, tl, zx, zy, type) {
 
 
 // Flip all the texts in circular representation that look upside-down.
+// NOTE: getBBox() is very expensive and requires text to be already in the DOM.
 async function fix_text_orientations() {
-    const texts = Array.from(div_tree.getElementsByClassName("text"));
-    texts.forEach(t => {
-        const angle = t.transform.baseVal[0].angle;
-        if (angle < -90 || angle > 90)
-            t.setAttributeNS(null, "transform",
-                t.getAttribute("transform") + flip(t));
-    });
+    const texts = Array.from(div_tree.getElementsByClassName("text"))
+        .filter(is_upside_down);
+
+    texts.sort((a, b) => get_font_size(b) - get_font_size(a));
+
+    texts.slice(0, 1000).forEach(t => flip_with_bbox(t, t.getBBox()));
+    texts.slice(1000).forEach(t => flip_with_bbox(t, get_approx_BBox(t)));
+}
+
+function is_upside_down(text) {
+    const angle = text.transform.baseVal[0].angle;
+    return angle < -90 || angle > 90;
+}
+
+function get_font_size(text) {
+    return Number(text.getAttribute('font-size').slice(0, -2));  // "px"
 }
 
 
-// Return svg transformation to flip the given text.
-function flip(text) {
-    const bbox = text.getBBox();  // NOTE: text must be already in the DOM
-    return ` rotate(180, ${bbox.x + bbox.width/2}, ${bbox.y + bbox.height/2})`;
+// Apply svg transformation to flip the given text (bounded by bbox).
+function flip_with_bbox(text, bbox) {
+    const rot180 = text.ownerSVGElement.createSVGTransform();
+    rot180.setRotate(180, bbox.x + bbox.width/2, bbox.y + bbox.height/2);
+    text.transform.baseVal.appendItem(rot180);
+}
+
+
+// Return an approximate bounding box for the given svg text.
+function get_approx_BBox(text) {
+    const height = get_font_size(text);
+    const x = Number(text.getAttribute("x"));
+    const y = Number(text.getAttribute("y")) - height;
+    const width = text.childNodes[0].length * height / 1.5;
+    return {x, y, width, height};
 }
 
 
