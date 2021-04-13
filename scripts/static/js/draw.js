@@ -170,6 +170,7 @@ function pad(y0, dy0, fraction) {
     return [y0 + (dy0 - dy)/2, dy]
 }
 
+
 function create_svg_element(name, attrs) {
     const element = document.createElementNS("http://www.w3.org/2000/svg", name);
     for (const [attr, value] of Object.entries(attrs))
@@ -274,7 +275,7 @@ function create_circ_cone(box, tl, z=1) {
 // make it show a tooltip showing nicely the contents of name and properties.
 function create_tooltip(name, properties) {
     const title = create_svg_element("title", {});
-    const text = name + "\n" +
+    const text = (name ? name : "(unnamed)") + "\n" +
         Object.entries(properties).map(x => x[0] + ": " + x[1]).join("\n");
     title.appendChild(document.createTextNode(text));
     return title;
