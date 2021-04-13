@@ -74,7 +74,7 @@ function is_nodebox(item) {
 // Drawing.
 
 // Append a svg to the given element, with all the items in the list drawn.
-function draw(element, items, tl, zoom) {
+async function draw(element, items, tl, zoom) {
     const svg = create_svg_element("svg", {
         "width": element.offsetWidth,
         "height": element.offsetHeight,
