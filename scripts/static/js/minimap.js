@@ -37,7 +37,7 @@ async function draw_minimap() {
         qs += `&drawer=CircSimple&rmin=${view.rmin}` +
               `&amin=${view.angle.min}&amax=${view.angle.max}`;
     else
-        qs += "&drawer=Simple";
+        qs += "&drawer=RectSimple";
 
     const items = await api(`/trees/${get_tid()}/draw?${qs}`);
 

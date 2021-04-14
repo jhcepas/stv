@@ -35,7 +35,7 @@ const view = {
     allow_modifications: true,
 
     // representation
-    drawer: "Full",
+    drawer: "RectFull",
     align_bar: 80,
     is_circular: false,
     rmin: 0,

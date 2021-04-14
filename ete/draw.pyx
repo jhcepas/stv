@@ -359,7 +359,7 @@ def is_good_angle_interval(a1, a2):
     return -pi <= a1 < a2 < pi + EPSILON
 
 
-class DrawerSimple(DrawerRect):
+class DrawerRectSimple(DrawerRect):
     "Skeleton of the tree"
     pass
 
@@ -369,7 +369,7 @@ class DrawerCircSimple(DrawerCirc):
     pass
 
 
-class DrawerLeafNames(DrawerRect):
+class DrawerRectLeafNames(DrawerRect):
     "With names on leaf nodes"
 
     def draw_content_float(self, node, point):
@@ -396,7 +396,7 @@ class DrawerCircLeafNames(DrawerCirc):
                 yield draw_text(node.name, p, fs, 'name')
 
 
-class DrawerLengths(DrawerRect):
+class DrawerRectLengths(DrawerRect):
     "With labels on the lengths"
 
     def draw_content_inline(self, node, point, bdy):
@@ -429,7 +429,7 @@ class DrawerCircLengths(DrawerCirc):
                     yield draw_text(text, p, fs, 'length')
 
 
-class DrawerCollapsed(DrawerLeafNames):
+class DrawerRectCollapsed(DrawerRectLeafNames):
     "With text on collapsed nodes"
 
     def draw_collapsed(self):
@@ -477,7 +477,7 @@ class DrawerCircCollapsed(DrawerCircLeafNames):
             a -= da
 
 
-class DrawerFull(DrawerCollapsed, DrawerLengths):
+class DrawerRectFull(DrawerRectCollapsed, DrawerRectLengths):
     "With names on leaf nodes and labels on the lengths"
     pass
 
@@ -487,7 +487,7 @@ class DrawerCircFull(DrawerCircCollapsed, DrawerCircLengths):
     pass
 
 
-class DrawerAlign(DrawerFull):
+class DrawerAlignNames(DrawerRectFull):
     "With aligned content"
 
     def draw_content_float(self, node, point):
@@ -523,7 +523,7 @@ class DrawerAlign(DrawerFull):
 
 
 
-class DrawerAlignHeatMap(DrawerFull):
+class DrawerAlignHeatMap(DrawerRectFull):
     "With an example heatmap as aligned content"
 
     def draw_content_float(self, node, point):
@@ -556,9 +556,10 @@ class DrawerAlignHeatMap(DrawerFull):
 
 
 def get_drawers():
-    return [DrawerSimple, DrawerLeafNames, DrawerLengths, DrawerFull,
-        DrawerCircSimple, DrawerCircLeafNames, DrawerCircLengths, DrawerCircFull,
-        DrawerAlign, DrawerAlignHeatMap]
+    return [
+        DrawerRectSimple, DrawerRectFull,
+        DrawerCircSimple, DrawerCircFull,
+        DrawerAlignNames, DrawerAlignHeatMap]
 
 
 def first_name(tree):
