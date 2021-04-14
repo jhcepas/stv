@@ -2,7 +2,7 @@
 
 import { view, datgui, get_tid, on_box_click, on_box_wheel } from "./gui.js";
 import { update_minimap_visible_rect } from "./minimap.js";
-import { add_search_boxes } from "./search.js";
+import { colorize_searches, get_search_class } from "./search.js";
 import { on_box_contextmenu } from "./contextmenu.js";
 import { api } from "./api.js";
 
@@ -33,19 +33,26 @@ async function update_tree() {
     if (view.is_circular)
         qs += `&rmin=${view.rmin}&amin=${view.angle.min}&amax=${view.angle.max}`;
 
-    const items = await api(`/trees/${get_tid()}/draw?${qs}`);
+    try {
+        const items = await api(`/trees/${get_tid()}/draw?${qs}`);
 
-    save_nodeboxes(items);
+        save_nodeboxes(items);
 
-    draw(div_tree, items, view.tl, view.zoom);
+        draw(div_tree, items, view.tl, view.zoom);
 
-    if (view.drawer.startsWith("Align")) {
-        const aitems = await api(`/trees/${get_tid()}/draw?${qs}&aligned`);
-        draw(div_aligned, aitems, {x: 0, y: view.tl.y}, view.zoom);
+        colorize_searches();
+
+        if (view.drawer.startsWith("Align")) {
+            const aitems = await api(`/trees/${get_tid()}/draw?${qs}&aligned`);
+            draw(div_aligned, aitems, {x: 0, y: view.tl.y}, view.zoom);
+        }
     }
-
-    for (let search_text in view.searches)
-        add_search_boxes(search_text);
+    catch (ex) {
+        Swal.fire({
+            html: `When drawing: ${ex.message}`,
+            icon: "error",
+        });
+    }
 
     div_tree.style.cursor = "auto";
 }
@@ -103,9 +110,9 @@ function draw_item(g, item, tl, zoom) {
     const [zx, zy] = [zoom.x, zoom.y];  // shortcut
 
     if (item[0] === "box") {
-        const [ , box, name, properties, node_id] = item;
+        const [ , box, name, properties, node_id, result_of] = item;
 
-        const b = create_box(box, tl, zx, zy);
+        const b = create_box(box, tl, zx, zy, result_of);
 
         b.addEventListener("click", event =>
             on_box_click(event, box, node_id));
@@ -125,9 +132,9 @@ function draw_item(g, item, tl, zoom) {
         g.appendChild(create_cone(box, tl, zx, zy));
     }
     else if (item[0] === "line") {
-        const [ , p1, p2, type] = item;
+        const [ , p1, p2, type, parent_of] = item;
 
-        g.appendChild(create_line(p1, p2, tl, zx, zy, type));
+        g.appendChild(create_line(p1, p2, tl, zx, zy, type, parent_of));
     }
     else if (item[0] === "arc") {
         const [ , p1, p2, large, type] = item;
@@ -181,11 +188,14 @@ function create_svg_element(name, attrs) {
 
 
 // Return a box (rectangle or annular sector).
-function create_box(box, tl, zx, zy) {
+function create_box(box, tl, zx, zy, result_of) {
+    const classes = "node " +
+        result_of.map(text => get_search_class(text, "results")).join(" ");
+
     if (view.is_circular)
-        return create_asec(box, tl, zx, "node");
+        return create_asec(box, tl, zx, classes);
     else
-        return create_rect(box, tl, zx, zy, "node");
+        return create_rect(box, tl, zx, zy, classes);
 }
 
 
@@ -283,12 +293,15 @@ function create_tooltip(name, properties) {
 }
 
 
-function create_line(p1, p2, tl, zx, zy, type) {
+function create_line(p1, p2, tl, zx, zy, type, parent_of) {
     const [x1, y1] = [zx * (p1[0] - tl.x), zy * (p1[1] - tl.y)],
           [x2, y2] = [zx * (p2[0] - tl.x), zy * (p2[1] - tl.y)];
 
+    const classes = "line " + type + " " +
+        parent_of.map(text => get_search_class(text, "parents")).join(" ");
+
     return create_svg_element("line", {
-        "class": "line " + type,
+        "class": classes,
         "x1": x1, "y1": y1,
         "x2": x2, "y2": y2,
         "stroke": view.line.color,

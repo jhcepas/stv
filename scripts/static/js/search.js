@@ -1,11 +1,10 @@
 // Search-related functions.
 
-import { view, datgui, get_tid, on_box_click, on_box_wheel } from "./gui.js";
-import { create_rect, create_asec } from "./draw.js";
-import { on_box_contextmenu } from "./contextmenu.js";
+import { view, datgui, get_tid } from "./gui.js";
+import { update_tree } from "./draw.js";
 import { api } from "./api.js";
 
-export { search, add_search_boxes, remove_searches };
+export { search, remove_searches, get_search_class, colorize_searches };
 
 
 // Search nodes and mark them as selected on the tree.
@@ -23,12 +22,7 @@ async function search() {
 
             search_text = text;  // to be used when checking the result later on
 
-            let qs = `text=${encodeURIComponent(text)}&drawer=${view.drawer}` +
-                     `&nmax=${view.search_nmax}`;
-            if (view.is_circular)
-                qs += `&rmin=${view.rmin}` +
-                      `&amin=${view.angle.min}&amax=${view.angle.max}`;
-
+            const qs = `text=${encodeURIComponent(text)}`;
             return api(`/trees/${get_tid()}/search?${qs}`);
         },
     });
@@ -37,22 +31,21 @@ async function search() {
         const res = result.value;  // shortcut
 
         if (res.message === 'ok') {
-            show_search_results(search_text, res.nodes, view.search_nmax);
+            const colors = ["#FF0", "#F0F", "#0FF", "#F00", "#0F0", "#00F"];
+            const nsearches = Object.keys(view.searches).length;
 
-            if (res.nodes.length > 0) {
-                const colors = ["#FF0", "#F0F", "#0FF", "#F00", "#0F0", "#00F"];
-                const nsearches = Object.keys(view.searches).length;
+            view.searches[search_text] = {
+                results: {n: res.nresults,
+                          opacity: 0.2,
+                          color: colors[nsearches % colors.length]},
+                parents: {n: res.nparents,
+                          color: "#000",
+                          width: 4},
+            };
 
-                view.searches[search_text] = {
-                    nodes: res.nodes,
-                    max: view.search_nmax,
-                    color: colors[nsearches % colors.length],
-                };
+            add_search_to_datgui(search_text);
 
-              add_search_boxes(search_text);
-
-              add_search_to_datgui(search_text);
-            }
+            update_tree();
         }
         else {
             Swal.fire({
@@ -66,108 +59,66 @@ async function search() {
 }
 
 
-// Show a dialog with the selection results.
-function show_search_results(search_text, nodes, max) {
-    const n = nodes.length;
-
-    const info = `Search: ${search_text}<br>` +
-                 `Found ${n} node${n > 1 ? 's' : ''}<br><br>` +
-                 (n < max ? "" : `Only showing the first ${max} matches. ` +
-                 "There may be more.<br><br>");
-
-    function link(node) {
-        const [node_id, box] = node;
-        const [x, y] = [box[0].toPrecision(4), box[1].toPrecision(4)];
-        return `<a href="#" title="Coordinates: ${x} : ${y}" ` +
-               `onclick="zoom_into_box([${box}]); return false;">` +
-               `${node_id.length > 0 ? node_id : "root"}</a>`;
-    }
-
-    if (n > 0)
-        Swal.fire({
-            position: "bottom-start",
-            html: info + nodes.map(link).join("<br>"),
-        });
-    else
-        Swal.fire({
-            position: "bottom-start",
-            text: "No nodes found for search: " + search_text,
-            icon: "warning",
-        });
-}
-
-
-// Add boxes to the tree view that represent the visible nodes matched by
-// the given search text.
-function add_search_boxes(search_text) {
-    const cname = get_search_class(search_text);
-    const color = view.searches[search_text].color;
-    const g = div_tree.children[0].children[0];
-
-    view.searches[search_text].nodes.forEach(node => {
-        const [node_id, ] = node;
-
-        if (!(node_id in view.nodes.boxes))
-            return;
-
-        const box = view.nodes.boxes[node_id];  // get a nicer surrounding box
-
-        const b = view.is_circular ?
-            create_asec(box, view.tl, view.zoom.x, "search " + cname) :
-            create_rect(box, view.tl, view.zoom.x, view.zoom.y, "search " + cname);
-
-        b.addEventListener("click", event =>
-            on_box_click(event, box, node_id));
-        b.addEventListener("contextmenu", event =>
-            on_box_contextmenu(event, box, "", {}, node_id));
-        b.addEventListener("wheel", event =>
-            on_box_wheel(event, box), {passive: false});
-
-        b.style.fill = color;
-
-        g.appendChild(b);
-    });
-}
-
-
 // Return a class name related to the results of searching for text.
-function get_search_class(text) {
-    return 'search_' + text.replace(/[^A-Za-z0-9_-]/g, '');
+function get_search_class(text, type="results") {
+    return "search_" + type + "_" + text.replace(/[^A-Za-z0-9_-]/g, '');
 }
 
 
-// Add a folder that corresponds to the given search_text to the datgui,
-// that lets you change the nodes color and remove them too.
-function add_search_to_datgui(search_text) {
-    const folder = datgui.__folders.searches.addFolder(search_text);
+// Add a folder to the datgui that corresponds to the given search text
+// and lets you change the result nodes color and so on.
+function add_search_to_datgui(text) {
+    const folder = datgui.__folders.searches.addFolder(text);
 
-    const cname = get_search_class(search_text);
+    const search = view.searches[text];
 
-    function colorize() {
-        const nodes = Array.from(div_tree.getElementsByClassName(cname));
-        nodes.forEach(e => e.style.fill = view.searches[search_text]["color"]);
-    }
-
-    view.searches[search_text].show = function() {
-        const search = view.searches[search_text];
-        show_search_results(search_text, search.nodes, search.max);
-    }
-
-    view.searches[search_text].remove = function() {
-        delete view.searches[search_text];
-        const nodes = Array.from(div_tree.getElementsByClassName(cname));
-        nodes.forEach(e => e.remove());
+    search.remove = function() {
+        delete view.searches[text];
         datgui.__folders.searches.removeFolder(folder);
+        update_tree();
     }
 
-    folder.add(view.searches[search_text], "show");
-    folder.addColor(view.searches[search_text], "color").onChange(colorize);
-    folder.add(view.searches[search_text], "remove");
+    const folder_results = folder.addFolder(`results (${search.results.n})`);
+    folder_results.add(search.results, "opacity", 0, 1).step(0.1).onChange(
+        () => colorize(text));
+    folder_results.addColor(search.results, "color").onChange(
+        () => colorize(text));
+
+    const folder_parents = folder.addFolder(`parents (${search.parents.n})`);
+    folder_parents.addColor(search.parents, "color").onChange(
+        () => colorize(text));
+    folder_parents.add(search.parents, "width", 0.1, 20).onChange(
+        () => colorize(text));
+
+    folder.add(search, "remove");
+}
+
+
+function colorize(text) {
+    const search = view.searches[text];
+
+    const cresults = get_search_class(text, "results");
+    Array.from(div_tree.getElementsByClassName(cresults)).forEach(e => {
+        e.style.opacity = search.results.opacity;
+        e.style.fill = search.results.color;
+    });
+
+    const cparents = get_search_class(text, "parents");
+    Array.from(div_tree.getElementsByClassName(cparents)).forEach(e => {
+        e.style.stroke = search.parents.color;
+        e.style.strokeWidth = search.parents.width;
+    });
+
+}
+
+
+function colorize_searches() {
+    Object.keys(view.searches).forEach(text => colorize(text));
 }
 
 
 // Empty view.searches.
 function remove_searches() {
-    const search_texts = Object.keys(view.searches);
-    search_texts.forEach(text => view.searches[text].remove());
+    const texts = Object.keys(view.searches);
+    texts.forEach(text => view.searches[text].remove());
 }

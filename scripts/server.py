@@ -210,8 +210,8 @@ class Trees(Resource):
             MAX_MB = 2
             return get_newick(tree_id, MAX_MB)
         elif rule == '/trees/<string:tree_id>/search':
-            nodes = search_nodes(tree_id, request.args.copy())
-            return {'message': 'ok', 'nodes': nodes}
+            nresults, nparents = store_search(tree_id, request.args.copy())
+            return {'message': 'ok', 'nresults': nresults, 'nparents': nparents}
         elif rule == '/trees/<string:tree_id>/draw':
             drawer = get_drawer(tree_id, request.args.copy())
             return list(drawer.draw())
@@ -367,7 +367,8 @@ def get_drawer(tree_id, args):
             (get('rmin', 0), 0,
              get('amin', -180) * pi/180, get('amax', 180) * pi/180))
 
-        return drawer_class(load_tree(tree_id), viewport, zoom, aligned, limits)
+        return drawer_class(load_tree(tree_id), viewport, zoom, aligned, limits,
+                            app.searches.get(tree_id))
     except StopIteration:
         raise InvalidUsage(f'not a valid drawer: {drawer_name}')
     except (ValueError, AssertionError) as e:
@@ -395,21 +396,29 @@ def get_newick(tree_id, max_mb):
     return newick
 
 
-def search_nodes(tree_id, args):
-    "Return a list of nodes that match the search in args"
-    # A "node" here means a tuple of (node_id, box).
-    required = ['text', 'nmax']
+def store_search(tree_id, args):
+    "Store the results and parents of a search and return their numbers"
+    required = ['text']
     missing = [x for x in required if x not in args]
     if missing:
         raise InvalidUsage('missing required arguments: ' + ', '.join(missing))
 
-    f = get_search_function(args.pop('text').strip())
-    nmax = float(args.pop('nmax'))
-
-    drawer = get_drawer(tree_id, args)
+    text = args.pop('text').strip()
+    func = get_search_function(text)
 
     try:
-        return [node for i,node in enumerate(drawer.get_nodes(f)) if i < nmax]
+        results = set(node for node in load_tree(tree_id) if func(node))
+
+        parents = set()
+        for node in results:
+            parent = node.parent
+            while parent and parent not in parents:
+                parents.add(parent)
+                parent = parent.parent
+
+        app.searches.setdefault(tree_id, {})[text] = (results, parents)
+
+        return len(results), len(parents)
     except InvalidUsage:
         raise
     except Exception as e:
@@ -755,6 +764,7 @@ def initialize():
     add_resources(api)
 
     app.trees = {}  # to keep in memory loaded trees
+    app.searches = {}  # to keep in memory the searches
 
     serializer = JSONSigSerializer(app.config['SECRET_KEY'], expires_in=3600)
 

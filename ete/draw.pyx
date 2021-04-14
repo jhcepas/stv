@@ -41,7 +41,8 @@ class Drawer:
 
     MIN_SIZE = 6  # anything that has less pixels will be outlined
 
-    def __init__(self, tree, viewport=None, zoom=(1, 1), aligned=False, limits=None):
+    def __init__(self, tree, viewport=None, zoom=(1, 1),
+                 aligned=False, limits=None, searches=None):
         self.tree = tree
         self.zoom = zoom
         self.aligned = aligned
@@ -56,6 +57,8 @@ class Drawer:
             self.viewport = None
 
         self.xmin, self.xmax, self.ymin, self.ymax = limits or (0, 0, 0, 0)
+
+        self.searches = searches or {}  # looks like {text: (results, parents)}
 
     def draw(self):
         "Yield graphic elements to draw the tree"
@@ -126,7 +129,9 @@ class Drawer:
         self.node_dxs[-1].append(ndx)
 
         box = Box(x_before, y_before, ndx, dy)
-        self.boxes += self.draw_nodebox(it.node, it.node_id, box)
+        result_of = [text for text,(results,_) in self.searches.items()
+                        if it.node in results]
+        self.boxes += self.draw_nodebox(it.node, it.node_id, box, result_of)
 
         return x_before, y_after
 
@@ -147,7 +152,10 @@ class Drawer:
         # Draw line spanning content, line to children, and inline content.
         if not self.aligned and self.in_viewport(Box(x, y, dx, dy)):
             if dx > 0:
-                yield from self.draw_lengthline((x, y + bdy), (x + dx, y + bdy))
+                parent_of = [text for text,(_,parents) in self.searches.items()
+                                if node in parents]
+                yield from self.draw_lengthline((x, y + bdy), (x + dx, y + bdy),
+                                                parent_of)
 
             if bdy0 != bdy1:
                 yield from self.draw_childrenline((x + dx, y + bdy0),
@@ -181,25 +189,7 @@ class Drawer:
         self.outline = None
         return Box(x, y, max(dx, minimum_dx), dy)
 
-    # These are functions useful for searches and for picking a node from
-    # a point inside it.
-    def get_nodes(self, func):
-        "Yield (node_id, box) of the nodes with func(node) == True"
-        x, y = self.xmin, self.ymin
-        for it in self.tree.walk():
-            node = it.node  # shortcut
-            dx, dy = self.content_size(node)
-
-            if it.first_visit and func(node):
-                yield it.node_id, make_box((x, y), self.node_size(node))
-
-            if node.is_leaf:
-                y += dy
-            elif it.first_visit:  # first time we visit this node
-                x += dx
-            else:  # last time we will visit this node
-                x -= dx
-
+    # Useful for picking a node from a point inside its graphic representation.
     def get_node_at(self, point):
         "Return the node whose content area contains the given point"
         x, y = self.xmin, self.ymin
@@ -263,24 +253,25 @@ class DrawerRect(Drawer):
     def get_box(self, element):
         return get_rect(element, self.zoom)
 
-    def draw_lengthline(self, p1, p2):
+    def draw_lengthline(self, p1, p2, parent_of):
         "Yield a line representing a length"
-        yield draw_line(p1, p2)
+        yield draw_line(p1, p2, '', parent_of)
 
     def draw_childrenline(self, p1, p2):
         "Yield a line spanning children that starts at p1 and ends at p2"
         yield draw_line(p1, p2)
 
-    def draw_nodebox(self, node, node_id, box):
-        yield draw_box(box, node.name, node.properties, node_id)
+    def draw_nodebox(self, node, node_id, box, result_of):
+        yield draw_box(box, node.name, node.properties, node_id, result_of)
 
 
 
 class DrawerCirc(Drawer):
     "Minimal functional drawer for a circular representation"
 
-    def __init__(self, tree, viewport=None, zoom=(1, 1), aligned=False, limits=None):
-        super().__init__(tree, viewport, zoom, aligned, limits)
+    def __init__(self, tree, viewport=None, zoom=(1, 1),
+                 aligned=False, limits=None, searches=None):
+        super().__init__(tree, viewport, zoom, aligned, limits, searches)
 
         if not limits:
             self.ymin, self.ymax = -pi, pi
@@ -318,10 +309,10 @@ class DrawerCirc(Drawer):
     def get_box(self, element):
         return get_asec(element, self.zoom)
 
-    def draw_lengthline(self, p1, p2):
+    def draw_lengthline(self, p1, p2, parent_of):
         "Yield a line representing a length"
         if -pi <= p1[1] < pi:  # NOTE: the angles p1[1] and p2[1] are equal
-            yield draw_line(cartesian(p1), cartesian(p2))
+            yield draw_line(cartesian(p1), cartesian(p2), '', parent_of)
 
     def draw_childrenline(self, p1, p2):
         "Yield an arc spanning children that starts at p1 and ends at p2"
@@ -330,12 +321,12 @@ class DrawerCirc(Drawer):
         if a1 < a2:
             yield draw_arc(cartesian((r1, a1)), cartesian((r2, a2)), a2 - a1 > pi)
 
-    def draw_nodebox(self, node, node_id, box):
+    def draw_nodebox(self, node, node_id, box, result_of):
         r, a, dr, da = box
         a1, a2 = clip_angles(a, a + da)
         if a1 < a2:
             yield draw_box(Box(r, a1, dr, a2 - a1),
-                           node.name, node.properties, node_id)
+                           node.name, node.properties, node_id, result_of)
 
 
 def clip_angles(double a1, double a2):
@@ -580,14 +571,14 @@ def draw_texts(texts, point, fs, text_type):
 
 # Basic drawing elements.
 
-def draw_box(box, name='', properties=None, node_id=None):
-    return ['box', box, name, properties or {}, node_id or []]
+def draw_box(box, name='', properties=None, node_id=None, result_of=None):
+    return ['box', box, name, properties or {}, node_id or [], result_of or []]
 
 def draw_cone(box):
     return ['cone', box]
 
-def draw_line(p1, p2, line_type=''):
-    return ['line', p1, p2, line_type]
+def draw_line(p1, p2, line_type='', parent_of=None):
+    return ['line', p1, p2, line_type, parent_of or []]
 
 def draw_arc(p1, p2, large=False, arc_type=''):
     return ['arc', p1, p2, int(large), arc_type]
