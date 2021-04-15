@@ -1,12 +1,12 @@
 // Functions related to the context menu (right-click menu).
 
-import { view, tree_command, on_tree_change, reset_view, sort } from "./gui.js";
+import { view, tree_command, on_tree_change, reset_view, sort, datgui } from "./gui.js";
 import { draw_minimap } from "./minimap.js";
 import { update } from "./draw.js";
 import { download_newick } from "./download.js";
 import { zoom_into_box } from "./zoom.js";
 
-export { on_box_contextmenu };
+export { on_box_contextmenu, colorize_tags };
 
 
 function on_box_contextmenu(event, box, name, properties, node_id=[]) {
@@ -59,9 +59,70 @@ function add_node_options(box, name, properties, node_id) {
             window.open(`${urlbase}/wwwtax.cgi?id=${taxid}`);
         }, `Open the NCBI Taxonomy Browser on this taxonomy ID: ${taxid}.`);
     }
+    add_button("🏷️ Tag node", async () => {
+        let tag_name;
+        const result = await Swal.fire({
+            input: "text",
+            inputPlaceholder: "Enter tag",
+            preConfirm: name => {
+                if (!name)
+                    return false;  // prevent popup from closing
+
+                tag_name = name;  // to be used when checking the result later on
+
+                if (name in view.tags) {
+                    view.tags[name].nodes.push(node_id);
+                    return;
+                }
+
+                const folder = datgui.__folders.tags.addFolder(name);
+                const colors = ["#FF0", "#F0F", "#0FF", "#F00", "#0F0", "#00F"];
+                const ntags = Object.keys(view.tags).length;
+                view.tags[name] = {
+                    nodes: [node_id],
+                    opacity: 0.4,
+                    color: colors[ntags % colors.length],
+                };
+
+                view.tags[name].remove = function() {
+                    view.tags[name].opacity = view.node.opacity;
+                    view.tags[name].color = view.node.color;
+                    colorize(name);
+                    delete view.tags[name];
+                    datgui.__folders.tags.removeFolder(folder);
+                }
+
+                folder.add(view.tags[name], "opacity", 0, 1).step(0.01).onChange(
+                    () => colorize(name));
+                folder.addColor(view.tags[name], "color").onChange(
+                    () => colorize(name));
+
+                folder.add(view.tags[name], "remove");
+            },
+        });
+        if (result.isConfirmed)
+            colorize(tag_name);
+    });
 
     if (view.allow_modifications)
         add_node_modifying_options(box, name, properties, node_id);
+}
+
+
+function colorize(name) {
+    const tags = view.tags[name];
+    tags.nodes.forEach(node_id => {
+        const node = document.getElementById(node_id);
+        if (node) {
+            node.style.opacity = tags.opacity;
+            node.style.fill = tags.color;
+        }
+    });
+}
+
+
+function colorize_tags() {
+    Object.keys(view.tags).forEach(name => colorize(name));
 }
 
 

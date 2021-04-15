@@ -46,6 +46,9 @@ const view = {
     search: () => search(),
     searches: {},  // will contain the searches done
 
+    // tags
+    tags: {},
+
     // info
     nodes: {boxes: {}, n: 0},  // will contain the visible nodeboxes
     pos: {cx: 0, cy: 0},  // in-tree current pointer position

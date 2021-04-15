@@ -18,6 +18,8 @@ function create_datgui(trees, drawers) {
 
     add_menu_searches(dgui);
 
+    dgui.addFolder("tags");
+
     add_menu_info(dgui);
 
     add_menu_view(dgui);
