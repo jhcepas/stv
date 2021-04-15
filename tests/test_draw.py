@@ -202,37 +202,3 @@ def test_in_viewport():
     drawer = draw.DrawerFull(t, viewport, zoom=(10, 10))
     assert drawer.in_viewport(Box(0, 0, 1, 1))
     assert not drawer.in_viewport(Box(30, 20, 5, 5))
-
-
-def test_get_nodes():
-    t = tree.Tree('((B:200,(C:250,D:300)E:350)A:100)F;')
-
-    drawer = draw.DrawerFull(t, zoom=(10, 10))
-    drawer.get_nodes(lambda node: node.name in ['A', 'C']) == [
-        ((0,), Box(x=1.0, y=0, dx=100.0, dy=3.0)),
-        ((0,0,0), Box(x=451.0, y=1.0, dx=250.0, dy=1.0))]
-
-
-def test_get_node_at():
-    t = tree.Tree('((d:5,e:2)b:3,(f:4,g:3)c:1)a:2;')
-    # a:2
-    # ├─b:3
-    # │ ├─d:5
-    # │ └─e:2
-    # └─c:1
-    #   ├─f:4
-    #   └─g:3
-
-    drawer = draw.DrawerFull(t)
-    for point, node in [
-            ((-1, -1), None),
-            ((0, 0), t['a']),
-            ((2, 0), t['b']),
-            ((6, 0), t['d']),
-            ((1, 2), t['a']),
-            ((2, 2), t['c']),
-            ((6, 1), t['e']),
-            ((6, 2), t['f']),
-            ((6, 3), None),
-            ((3, 3), t['g'])]:
-        assert drawer.get_node_at(point) == node

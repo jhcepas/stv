@@ -189,23 +189,6 @@ class Drawer:
         self.outline = None
         return Box(x, y, max(dx, minimum_dx), dy)
 
-    # Useful for picking a node from a point inside its graphic representation.
-    def get_node_at(self, point):
-        "Return the node whose content area contains the given point"
-        x, y = self.xmin, self.ymin
-        for it in self.tree.walk():
-            node = it.node  # shortcut
-            ndx, ndy = self.node_size(node)
-            cdx, cdy = self.content_size(node)
-            if not is_inside(point, Box(x, y, ndx, ndy)):
-                it.descend = False  # skip walking over the node's children
-                y += ndy
-            elif node.is_leaf or is_inside(point, Box(x, y, cdx, cdy)):
-                return node
-            else:
-                x += cdx
-        return None
-
     # These are the functions that the user would supply to decide how to
     # represent a node.
     def draw_content_inline(self, node, point, bdy):
@@ -669,16 +652,6 @@ def intersects(b1, b2):
     x2max, y2max = x2min + dx2, y2min + dy2
     return ((x1min <= x2max and x2min <= x1max) and
             (y1min <= y2max and y2min <= y1max))
-
-
-def is_inside(point, box):
-    "Return True if point is inside the box"
-    cdef double px, py, x, y, dx, dy
-    if box is None:
-        return True
-    px, py = point
-    x, y, dx, dy = box
-    return (x <= px < x + dx) and (y <= py < y + dy)
 
 
 def stack(b1, b2):
