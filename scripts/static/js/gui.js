@@ -394,7 +394,9 @@ Use the options in the menu at the top right to change the visualization.
 <tr><td><kbd>/</kbd></td><td style="text-align: left">&nbsp; search</td></tr>
 <tr><td><kbd>r</kbd></td><td style="text-align: left">&nbsp; reset view</td></tr>
 <tr><td><kbd>m</kbd></td><td style="text-align: left">&nbsp; toggle minimap</td></tr>
-<tr><td><kbd>+</kbd> / <kbd>&ndash;</kbd></td>
+<tr><td><kbd>⬅️</kbd> <kbd>➡️</kbd> <kbd>⬆️</kbd> <kbd>⬇️</kbd></td>
+    <td style="text-align: left">&nbsp; move the view</td></tr>
+<tr><td><kbd>+</kbd> <kbd>&ndash;</kbd></td>
     <td style="text-align: left">&nbsp; zoom in / out</td></tr>
 </tbody>
 </table>

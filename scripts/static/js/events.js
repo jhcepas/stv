@@ -56,13 +56,35 @@ function on_keydown(event) {
         const center = {x: div_tree.offsetWidth / 2,
                         y: div_tree.offsetHeight / 2};
         const zoom_in = true;
-        zoom_around(center, zoom_in);
+        const do_zoom = {x: !event.ctrlKey, y: !event.altKey};
+        zoom_around(center, zoom_in, do_zoom);
     }
     else if (key === "-") {
         const center = {x: div_tree.offsetWidth / 2,
                         y: div_tree.offsetHeight / 2};
         const zoom_in = false;
-        zoom_around(center, zoom_in);
+        const do_zoom = {x: !event.ctrlKey, y: !event.altKey};
+        zoom_around(center, zoom_in, do_zoom);
+    }
+    else if (key === "ArrowLeft") {
+        const fraction = event.shiftKey ? 0.2 : 0.04;
+        view.tl.x -= fraction * div_tree.offsetWidth / view.zoom.x;
+        update();
+    }
+    else if (key === "ArrowRight") {
+        const fraction = event.shiftKey ? 0.2 : 0.04;
+        view.tl.x += fraction * div_tree.offsetWidth / view.zoom.x;
+        update();
+    }
+    else if (key === "ArrowUp") {
+        const fraction = event.shiftKey ? 0.2 : 0.04;
+        view.tl.y -= fraction * div_tree.offsetHeight / view.zoom.y;
+        update();
+    }
+    else if (key === "ArrowDown") {
+        const fraction = event.shiftKey ? 0.2 : 0.04;
+        view.tl.y += fraction * div_tree.offsetHeight / view.zoom.y;
+        update();
     }
     else if (key === "Escape") {
         div_contextmenu.style.visibility = "hidden";
