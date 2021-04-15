@@ -59,7 +59,7 @@ const view = {
 
     // style
     node: {opacity: 0, color: "#222"},
-    outline: {opacity: 0.1, color: "#A50", width: 0.2},
+    outline: {opacity: 0.1, color: "#A50", width: 0.5},
     line: {color: "#000", width: 1},
     names_color: "#00A",
     lengths_color: "#888",
