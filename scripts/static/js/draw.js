@@ -99,7 +99,7 @@ async function draw(element, items, tl, zoom) {
     svg.appendChild(g);
 
     if (view.is_circular)
-        fix_text_orientations();
+        fix_text_orientations(element);
 }
 
 
@@ -343,8 +343,8 @@ function create_text(text, fs, point, tl, zx, zy, type) {
 
 // Flip all the texts in circular representation that look upside-down.
 // NOTE: getBBox() is very expensive and requires text to be already in the DOM.
-async function fix_text_orientations() {
-    const texts = Array.from(div_tree.getElementsByClassName("text"))
+async function fix_text_orientations(element) {
+    const texts = Array.from(element.getElementsByClassName("text"))
         .filter(is_upside_down);
 
     texts.sort((a, b) => get_font_size(b) - get_font_size(a));
