@@ -36,7 +36,7 @@ async function search() {
 
             view.searches[search_text] = {
                 results: {n: res.nresults,
-                          opacity: 0.2,
+                          opacity: 0.4,
                           color: colors[nsearches % colors.length]},
                 parents: {n: res.nparents,
                           color: "#000",
@@ -79,7 +79,7 @@ function add_search_to_datgui(text) {
     }
 
     const folder_results = folder.addFolder(`results (${search.results.n})`);
-    folder_results.add(search.results, "opacity", 0, 1).step(0.1).onChange(
+    folder_results.add(search.results, "opacity", 0, 1).step(0.01).onChange(
         () => colorize(text));
     folder_results.addColor(search.results, "color").onChange(
         () => colorize(text));
