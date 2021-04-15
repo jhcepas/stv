@@ -168,6 +168,9 @@ class Drawer:
 
     def get_outline(self):
         "Yield the outline representation"
+        result_of = [text for text,(results,parents) in self.searches.items()
+            if any(node in results or node in parents for node in self.collapsed)]
+
         graphics = [draw_cone(self.outline)] if not self.aligned else []
 
         graphics += self.draw_collapsed()
@@ -178,7 +181,7 @@ class Drawer:
         ndx = drawn_size(graphics, self.get_box).dx
         self.node_dxs[-1].append(ndx)
 
-        box = draw_box(self.flush_outline(ndx), '(collapsed)')
+        box = draw_box(self.flush_outline(ndx), '(collapsed)', {}, [], result_of)
         self.boxes.append(box)
 
         yield from graphics
