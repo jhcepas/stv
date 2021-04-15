@@ -48,8 +48,8 @@ function on_keydown(event) {
         reset_view();
     }
     else if (key === "m") {
-        view.minimap_show = !view.minimap_show;
-        show_minimap(view.minimap_show);
+        view.minimap.show = !view.minimap.show;
+        show_minimap(view.minimap.show);
         datgui.updateDisplay();  // update the info box on the top-right
     }
     else if (key === "+") {

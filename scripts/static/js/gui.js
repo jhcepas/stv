@@ -72,9 +72,8 @@ const view = {
     array: {padding: 0.0},
 
     // minimap
-    minimap_show: true,
-    minimap_uptodate: false,
-    minimap_zoom: {x: 1, y: 1},
+    minimap: {show: true, uptodate: false, width: 10, height: 40,
+              zoom: {x: 1, y: 1}},
 
     smart_zoom: true,
 
@@ -188,7 +187,7 @@ function on_drawer_change() {
 function reset_view() {
     reset_zoom();
     reset_position();
-    if (!view.minimap_uptodate)
+    if (!view.minimap.uptodate)
         draw_minimap();
     update();
 }
@@ -256,7 +255,7 @@ function show_minimap(show) {
     const status = (show ? "visible" : "hidden");
     div_minimap.style.visibility = div_visible_rect.style.visibility = status;
     if (show) {
-        if (!view.minimap_uptodate)
+        if (!view.minimap.uptodate)
             draw_minimap();
         update_minimap_visible_rect();
     }
@@ -288,7 +287,7 @@ function reset_position(reset_x=true, reset_y=true) {
         if (!(view.angle.min === -180 && view.angle.max === 180)) {
             view.angle.min = -180;
             view.angle.max = 180;
-            view.minimap_uptodate = false;
+            view.minimap.uptodate = false;
         }
         if (reset_x)
             view.tl.x = -div_tree.offsetWidth / view.zoom.x / 2;

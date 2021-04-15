@@ -9,30 +9,14 @@ export { draw_minimap, update_minimap_visible_rect, move_minimap_view };
 
 // Draw the full tree on a small div on the bottom-right ("minimap").
 async function draw_minimap() {
-    if (!view.minimap_show) {
-        view.minimap_uptodate = false;
+    if (!view.minimap.show) {
+        view.minimap.uptodate = false;
         return;
     }
 
-    const size = view.tree_size;
-    const mbw = 3;  // border-width from .minimap css
-    if (view.is_circular) {
-        if (div_minimap.offsetWidth < div_minimap.offsetHeight)
-            div_minimap.style.height = `${div_minimap.offsetWidth - 2*mbw}px`;
-        else
-            div_minimap.style.width = `${div_minimap.offsetHeight - 2*mbw}px`;
+    adjust_size_and_zoom();
 
-        view.minimap_zoom.x = view.minimap_zoom.y =
-            (div_minimap.offsetWidth - 2*mbw) / (view.rmin + size.width) / 2;
-    }
-    else {
-        div_minimap.style.width = "10%";
-        div_minimap.style.height = "60%";
-        view.minimap_zoom.x = (div_minimap.offsetWidth - 2*mbw) / size.width;
-        view.minimap_zoom.y = (div_minimap.offsetHeight - 2*mbw) / size.height;
-    }
-
-    let qs = `zx=${view.minimap_zoom.x}&zy=${view.minimap_zoom.y}`;
+    let qs = `zx=${view.minimap.zoom.x}&zy=${view.minimap.zoom.y}`;
     if (view.is_circular)
         qs += `&drawer=CircSimple&rmin=${view.rmin}` +
               `&amin=${view.angle.min}&amax=${view.angle.max}`;
@@ -41,17 +25,39 @@ async function draw_minimap() {
 
     const items = await api(`/trees/${get_tid()}/draw?${qs}`);
 
-    const offset = -(div_minimap.offsetWidth - 2*mbw) / view.minimap_zoom.x / 2;
+    const mbw = 3;  // border-width from .minimap css
+    const offset = -(div_minimap.offsetWidth - 2*mbw) / view.minimap.zoom.x / 2;
     const tl = view.is_circular ? {x: offset, y: offset} : {x: 0, y: 0};
 
-    draw(div_minimap, items, tl, view.minimap_zoom);
+    draw(div_minimap, items, tl, view.minimap.zoom);
 
     Array.from(div_minimap.getElementsByClassName("node")).forEach(
         e => e.remove());
 
-    view.minimap_uptodate = true;
+    view.minimap.uptodate = true;
 
     update_minimap_visible_rect();
+}
+
+
+function adjust_size_and_zoom() {
+    const size = view.tree_size;
+    const mbw = 3;  // border-width from .minimap css
+    const w = (view.minimap.width / 100) * div_tree.offsetWidth,
+          h = (view.minimap.height / 100) * div_tree.offsetHeight;
+    if (view.is_circular) {
+        div_minimap.style.width = div_minimap.style.height =
+            `${Math.min(w, h)}px`;
+
+        view.minimap.zoom.x = view.minimap.zoom.y =
+            (div_minimap.offsetWidth - 2*mbw) / (view.rmin + size.width) / 2;
+    }
+    else {
+        div_minimap.style.width = `${w}px`;
+        div_minimap.style.height = `${h}px`;
+        view.minimap.zoom.x = (div_minimap.offsetWidth - 2*mbw) / size.width;
+        view.minimap.zoom.y = (div_minimap.offsetHeight - 2*mbw) / size.height;
+    }
 }
 
 
@@ -64,7 +70,7 @@ function update_minimap_visible_rect() {
     const mbw = 3, rbw = 1;  // border-width from .minimap and .visible_rect css
     const mw = div_minimap.offsetWidth - 2 * (mbw + rbw),    // minimap size
           mh = div_minimap.offsetHeight - 2 * (mbw + rbw);
-    const wz = view.zoom, mz = view.minimap_zoom;
+    const wz = view.zoom, mz = view.minimap.zoom;
     const ww = round(mz.x/wz.x * div_tree.offsetWidth),  // viewport size (scaled)
           wh = round(mz.y/wz.y * div_tree.offsetHeight);
     let tx = round(mz.x * view.tl.x),  // top-left corner of visible area
@@ -102,8 +108,8 @@ function move_minimap_view(point) {
     // Size of the visible rectangle.
     const [w, h] = [div_visible_rect.offsetWidth, div_visible_rect.offsetHeight];
 
-    view.tl.x = (point.x - w/2 - x0) / view.minimap_zoom.x;
-    view.tl.y = (point.y - h/2 - y0) / view.minimap_zoom.y;
+    view.tl.x = (point.x - w/2 - x0) / view.minimap.zoom.x;
+    view.tl.y = (point.y - h/2 - y0) / view.minimap.zoom.y;
     // So the center of the visible rectangle will be where the mouse is.
 
     update();

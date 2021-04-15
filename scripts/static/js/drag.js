@@ -53,8 +53,8 @@ function drag_move(point, movement) {
             dy = point.y - dragging.p0.y;
 
         if (dragging.element === div_visible_rect) {
-            dx *= -view.zoom.x / view.minimap_zoom.x;
-            dy *= -view.zoom.y / view.minimap_zoom.y;
+            dx *= -view.zoom.x / view.minimap.zoom.x;
+            dy *= -view.zoom.y / view.minimap.zoom.y;
         }
 
         const g = div_tree.children[0].children[0];
@@ -62,7 +62,7 @@ function drag_move(point, movement) {
 
         datgui.updateDisplay();  // update the info box on the top-right
 
-        if (view.minimap_show)
+        if (view.minimap.show)
             update_minimap_visible_rect();
     }
 }
@@ -71,5 +71,5 @@ function get_drag_scale() {
     if (dragging.element === div_tree)
         return [-1 / view.zoom.x, -1 / view.zoom.y];
     else // dragging.element === div_visible_rect
-        return [1 / view.minimap_zoom.x, 1 / view.minimap_zoom.y];
+        return [1 / view.minimap.zoom.x, 1 / view.minimap.zoom.y];
 }

@@ -15,7 +15,7 @@ function update() {
 
     update_tree();
 
-    if (view.minimap_show)
+    if (view.minimap.show)
         update_minimap_visible_rect();
 }
 

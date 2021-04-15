@@ -24,7 +24,7 @@ function create_datgui(trees, drawers) {
 
     add_menu_style(dgui);
 
-    dgui.add(view, "minimap_show").name("minimap").onChange(show_minimap);
+    add_menu_minimap(dgui);
 
     dgui.add(view, "smart_zoom").name("smart zoom");
     dgui.add(view, "share_view").name("share view");
@@ -193,4 +193,27 @@ function style(name) {
         "line": 1, "font": 3, "name": 4, "length": 5, "node": 6, "outline": 7,
     };
     return document.styleSheets[0].cssRules[pos[name]].style;
+}
+
+
+function add_menu_minimap(dgui) {
+    const folder_minimap = dgui.addFolder("minimap");
+
+    folder_minimap.add(view.minimap, "width", 0, 100).onChange(() => {
+        if (view.is_circular) {
+            view.minimap.height = view.minimap.width * div_tree.offsetWidth
+                                                     / div_tree.offsetHeight;
+            dgui.updateDisplay();
+        }
+        draw_minimap();
+    });
+    folder_minimap.add(view.minimap, "height", 0, 100).onChange(() => {
+        if (view.is_circular) {
+            view.minimap.width = view.minimap.height * div_tree.offsetHeight
+                                                     / div_tree.offsetWidth;
+            dgui.updateDisplay();
+        }
+        draw_minimap();
+    });
+    folder_minimap.add(view.minimap, "show").onChange(show_minimap);
 }

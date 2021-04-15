@@ -137,7 +137,7 @@ function smooth_zoom(point) {
         `translate(${(1 / zooming.qz.x - 1) * point.x}
                    ${(1 / zooming.qz.y - 1) * point.y})`);
 
-    if (view.minimap_show)
+    if (view.minimap.show)
         update_minimap_visible_rect();
 
     zooming.timeout = window.setTimeout(() => {
