@@ -349,8 +349,8 @@ async function fix_text_orientations() {
 
     texts.sort((a, b) => get_font_size(b) - get_font_size(a));
 
-    texts.slice(0, 1000).forEach(t => flip_with_bbox(t, t.getBBox()));
-    texts.slice(1000).forEach(t => flip_with_bbox(t, get_approx_BBox(t)));
+    texts.slice(0, 500).forEach(t => flip_with_bbox(t, t.getBBox()));
+    texts.slice(500).forEach(t => flip_with_bbox(t, get_approx_BBox(t)));
 }
 
 function is_upside_down(text) {
