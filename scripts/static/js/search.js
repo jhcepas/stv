@@ -40,7 +40,7 @@ async function search() {
                           color: colors[nsearches % colors.length]},
                 parents: {n: res.nparents,
                           color: "#000",
-                          width: 4},
+                          width: 5},
             };
 
             add_search_to_datgui(search_text);
