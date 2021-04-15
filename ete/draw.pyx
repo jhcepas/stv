@@ -264,11 +264,8 @@ class DrawerCirc(Drawer):
 
         self.y2a = (self.ymax - self.ymin) / self.tree.size[1]
 
-        self.circumasec_viewport = circumasec(self.viewport)
-
     def in_viewport(self, box):
-        return ((intersects(self.circumasec_viewport, box) or
-            intersects(self.viewport, circumrect(box))) and
+        return ((box.dy > pi/4 or intersects(self.viewport, circumrect(box))) and
             intersects(Box(0, -pi, self.node_size(self.tree).dx, 2*pi), box))
 
     def flush_outline(self, minimum_dr=0):
