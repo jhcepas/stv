@@ -168,7 +168,7 @@ class Drawer:
 
     def get_outline(self):
         "Yield the outline representation"
-        graphics = [] if self.aligned else [draw_cone(self.outline)]
+        graphics = [draw_cone(self.outline)] if not self.aligned else []
 
         graphics += self.draw_collapsed()
         self.collapsed = []
@@ -220,7 +220,7 @@ class Drawer:
             yield from []
 
     def draw_collapsed(self):
-        "Yield graphic elements to draw a collapsed node"
+        "Yield graphic elements to draw the list of nodes in self.collapsed"
         # Can use self.outline and self.collapsed to extract and place info.
         if self.aligned:
             yield from []
