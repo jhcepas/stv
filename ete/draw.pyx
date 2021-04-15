@@ -419,7 +419,7 @@ class DrawerRectCollapsed(DrawerRectLeafNames):
         texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
         p = (x + dx, y + dy/1.1)
         fs = dy/1.2
-        yield from draw_texts(texts, p, fs, 'name')
+        yield from draw_texts_rect(texts, p, fs, 'name')
 
 
 class DrawerCircCollapsed(DrawerCircLeafNames):
@@ -440,15 +440,7 @@ class DrawerCircCollapsed(DrawerCircLeafNames):
         texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
         p = (r + dr, a + da/1.1)
         fs = (r + dr) * da/1.2
-
-        # TODO: mix the code below properly with draw_texts().
-        r, a = p
-        alpha = 0.2  # space between texts, as a fraction of the font size
-        font_size = fs / (len(texts) + (len(texts) - 1) * alpha)
-        da = font_size * (1 + alpha) / r if r > 0 else 2*pi
-        for text in texts[::-1]:
-            yield draw_text(text, cartesian((r, a)), font_size, 'name')
-            a -= da
+        yield from draw_texts_circ(texts, p, fs, 'name')
 
 
 class DrawerRectFull(DrawerRectCollapsed, DrawerRectLengths):
@@ -493,7 +485,7 @@ class DrawerAlignNames(DrawerRectFull):
             texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
             p = (0, y + dy/1.1)
             fs = dy/1.2
-            yield from draw_texts(texts, p, fs, 'name')
+            yield from draw_texts_rect(texts, p, fs, 'name')
 
 
 
@@ -526,7 +518,7 @@ class DrawerAlignHeatMap(DrawerRectFull):
                 return
             p = (x + dx, y + dy/1.1)
             fs = dy/1.2
-            yield from draw_texts(texts, p, fs, 'name')
+            yield from draw_texts_rect(texts, p, fs, 'name')
 
 
 def get_drawers():
@@ -541,15 +533,26 @@ def first_name(tree):
     return next((node.name for node in tree if node.name), '')
 
 
-def draw_texts(texts, point, fs, text_type):
+def draw_texts_rect(texts, point, fs, text_type):
     "Yield texts from the bottom-left point, with total height fs"
     alpha = 0.2  # space between texts, as a fraction of the font size
     font_size = fs / (len(texts) + (len(texts) - 1) * alpha)
-    dy = font_size * (1 + alpha)
     x, y = point
+    dy = font_size * (1 + alpha)
     for text in texts[::-1]:
         yield draw_text(text, (x, y), font_size, text_type)
         y -= dy
+
+
+def draw_texts_circ(texts, point, fs, text_type):
+    "Yield texts from the inner-smaller-angle point, with total height fs"
+    alpha = 0.2  # space between texts, as a fraction of the font size
+    font_size = fs / (len(texts) + (len(texts) - 1) * alpha)
+    r, a = point
+    da = font_size * (1 + alpha) / r if r > 0 else 2*pi
+    for text in texts[::-1]:
+        yield draw_text(text, cartesian((r, a)), font_size, text_type)
+        a -= da
 
 
 # Basic drawing elements.
