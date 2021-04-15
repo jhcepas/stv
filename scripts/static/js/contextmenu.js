@@ -66,12 +66,12 @@ function add_node_options(box, name, properties, node_id) {
 
 
 function add_node_modifying_options(box, name, properties, node_id) {
-    add_button("🖊️ (Re)name node  ⚠️", async () => {
+    add_button("🖊️ Rename node  ⚠️", async () => {
         const result = await Swal.fire({
             input: "text",
             inputPlaceholder: "Enter new name",
             preConfirm: async name => {
-                return await tree_command("name", [node_id, name]);
+                return await tree_command("rename", [node_id, name]);
             },
         });
         if (result.isConfirmed)
