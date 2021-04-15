@@ -38,7 +38,7 @@ cdef class Tree:
         self.children = children or []
         for node in self.children:
             node.parent = self
-        update_metrics(self)
+        update_size(self)
 
     def init_from_newick(self, tree_text):
         tree = nw.loads(tree_text)
@@ -119,8 +119,7 @@ def get_branches_repr(are_last):
     return prefix + ('└─' if are_last[-1] else '├─')
 
 
-def update_metrics(node):
-    "Update the size and branch height of the given node"
+def update_size(node):
     sumlengths, nleaves = get_size(node.children)
     node.size = (abs(node.length) + sumlengths, max(1, nleaves))
 

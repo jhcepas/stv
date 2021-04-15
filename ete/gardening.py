@@ -4,9 +4,9 @@ Tree-related operations.
 Sorting, changing the root to a node, moving branches, removing (prunning)...
 """
 
-# "Arboriculture" may be more precise than "gardening", but it's a mouthful!
+# "Arboriculture" may be more precise than "gardening", but it's a mouthful :)
 
-from ete.tree import Tree, update_metrics
+from ete.tree import Tree, update_size
 
 
 def sort(tree, key=None, reverse=False):
@@ -27,8 +27,8 @@ def root_at(node):
         new_root.parent = None
         new_root.children.append(current_root)
         current_root.parent = new_root
-        update_metrics(current_root)
-        update_metrics(new_root)
+        update_size(current_root)
+        update_size(new_root)
         current_root = new_root
 
     return current_root
@@ -63,7 +63,7 @@ def remove(node):
     parent.children.remove(node)
 
     while parent:
-        update_metrics(parent)
+        update_size(parent)
         parent = parent.parent
 
 
@@ -71,7 +71,7 @@ def standardize(tree):
     "Transform from a tree not following strict newick conventions"
     if tree.length == -1 and not tree.name:
         tree.length = 0
-        update_metrics(tree)
+        update_size(tree)
 
     for node in tree:
         try:
