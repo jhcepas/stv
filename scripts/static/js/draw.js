@@ -36,10 +36,9 @@ async function update_tree() {
     try {
         const items = await api(`/trees/${get_tid()}/draw?${qs}`);
 
-        save_nodeboxes(items);
-
         draw(div_tree, items, view.tl, view.zoom);
 
+        view.nnodes = div_tree.getElementsByClassName("node").length;
         colorize_tags();
         colorize_searches();
 
@@ -56,26 +55,6 @@ async function update_tree() {
     }
 
     div_tree.style.cursor = "auto";
-}
-
-
-// From all the graphic items received, save the nodeboxes in the global
-// variable view.nodes. We can use them later to count the total number of
-// nodes shown, and to color the searched nodes that are currently visible.
-function save_nodeboxes(items) {
-    view.nodes.boxes = {};
-    view.nodes.n = 0;
-    items.forEach(item => {
-        if (is_nodebox(item)) {
-            const [shape, box, name, properties, node_id] = item;
-            view.nodes.boxes[node_id] = box;
-            view.nodes.n += 1;
-        }
-    });
-}
-
-function is_nodebox(item) {
-    return item[0] === "box" && item[4].length > 0;
 }
 
 

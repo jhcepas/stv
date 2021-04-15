@@ -50,7 +50,7 @@ const view = {
     tags: {},
 
     // info
-    nodes: {boxes: {}, n: 0},  // will contain the visible nodeboxes
+    nnodes: 0,  // number of visible nodeboxes
     pos: {cx: 0, cy: 0},  // in-tree current pointer position
     show_tree_info: () => show_tree_info(),
 
