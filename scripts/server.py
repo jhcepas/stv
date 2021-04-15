@@ -53,7 +53,7 @@ import sqlalchemy
 from itsdangerous import TimedJSONWebSignatureSerializer as JSONSigSerializer
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from ete import tree, newick as nw, draw
+from ete import tree, draw
 from ete import gardening, nexus
 
 
@@ -326,7 +326,7 @@ def load_tree(tree_id):
         newicks = dbget0('newick', 'trees WHERE id=?', tid)
         assert len(newicks) == 1
 
-        t = nw.loads(newicks[0])
+        t = tree.loads(newicks[0])
         gardening.standardize(t)
 
         app.trees[tid] = t
@@ -354,7 +354,7 @@ def get_drawer(tree_id, args):
         zoom = (get('zx', 1), get('zy', 1))
         assert zoom[0] > 0 and zoom[1] > 0, 'zoom must be > 0'
 
-        drawer_name = args.get('drawer', 'Full')
+        drawer_name = args.get('drawer', 'RectFull')
         drawer_class = next(d for d in draw.get_drawers()
             if d.__name__[len('Drawer'):] == drawer_name)
 
@@ -381,7 +381,7 @@ def get_newick(tree_id, max_mb):
         tid, subtree = get_tid(tree_id)
 
         if subtree and tid in app.trees:
-            newick = nw.dumps(app.trees[tid][subtree])
+            newick = tree.dumps(app.trees[tid][subtree])
         else:
             newicks = dbget0('newick', 'trees WHERE id=?', tid)
             assert len(newicks) == 1
@@ -549,8 +549,8 @@ def add_tree(data, owner):
         raise InvalidUsage('existing tree name %r' % data['name'])
 
     try:
-        nw.loads(data['newick'])  # load it to validate
-    except nw.NewickError as e:
+        tree.loads(data['newick'])  # load it to validate
+    except tree.NewickError as e:
         raise InvalidUsage(f'malformed tree - {e}')
 
     data['birth'] = datetime.now()  # add creation time

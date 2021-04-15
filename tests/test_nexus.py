@@ -17,7 +17,7 @@ from tempfile import TemporaryFile
 
 import pytest
 
-from ete import nexus, newick as nw
+from ete import tree, nexus
 
 
 def test_loads():
@@ -37,7 +37,7 @@ END;
         fp.seek(0)
 
         trees = nexus.load(fp)
-        newicks = {name: nw.dumps(tree) for name, tree in trees.items()}
+        newicks = {name: tree.dumps(t) for name, t in trees.items()}
         assert newicks == {
             'tree1': '((1,2),3);',
             'tree2': '((Scarabaeus,Drosophila),Aranaeus);',

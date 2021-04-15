@@ -312,18 +312,20 @@ def test_get_known_tree():
 def test_get_drawers():
     drawers = get('/trees/drawers')
     assert type(drawers) == list
-    assert 'Full' in drawers and 'Simple' in drawers
+    existing_drawers = [
+        'RectSimple', 'RectFull', 'CircSimple', 'CircFull', 'AlignNames']
+    assert all(x in drawers for x in existing_drawers)
 
 
 def test_drawer_arguments():
     valid_requests = [
         'x=1&y=-1&w=1&h=1',
         'zx=3&zy=6',
-        'drawer=Simple',
+        'drawer=RectSimple',
         'min_size=8',
         'aligned',
         'rmin=5&amin=-180&amax=180',
-        'x=1&y=-1&w=1&h=1&drawer=Simple&min_size=8&aligned&zx=3&zy=6']
+        'x=1&y=-1&w=1&h=1&drawer=RectSimple&min_size=8&aligned&zx=3&zy=6']
 
     invalid_requests_and_error = [
         ('x=1&y=-1&w=1&h=-1', 'invalid viewport'),
@@ -345,17 +347,16 @@ def test_drawer_arguments():
 
 def test_search():
     valid_requests = [
-        'text=A&nmax=4',
-        'text=B&nmax=2&x=1&y=-1&w=1&h=1&drawer=Simple&min_size=8&aligned&zx=3&zy=6',
-        'text=%s&nmax=10' % quote('/r (A|B)'),
-        'text=%s&nmax=10' % quote('/e is_leaf or d > 1')]
+        'text=A',
+        'text=B&x=1&y=-1&w=1&h=1&drawer=RectSimple&min_size=8&aligned&zx=3&zy=6',
+        'text=%s' % quote('/r (A|B)'),
+        'text=%s' % quote('/e is_leaf or d > 1')]
 
     invalid_requests_and_error = [
-        ('', 'missing required arguments: text, nmax'),
-        ('text=A', 'missing required arguments: nmax'),
-        ('text=/&nmax=10', 'invalid command'),
-        ('text=%s&nmax=10' % quote('/e open("/etc/passwd")'), 'invalid use of'),
-        ('text=%s&nmax=10' % quote('/e __import__("os").execv("/bin/echo", ["0wN3d"])'),
+        ('', 'missing required arguments: text'),
+        ('text=/', 'invalid command'),
+        ('text=%s' % quote('/e open("/etc/passwd")'), 'invalid use of'),
+        ('text=%s' % quote('/e __import__("os").execv("/bin/echo", ["0wN3d"])'),
          'invalid use of')]
 
     for qs in valid_requests:

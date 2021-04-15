@@ -6,7 +6,7 @@ Read trees from a file in nexus format.
 
 import re
 
-from ete import tree, newick as nw
+from ete import tree
 
 
 class NexusError(Exception):
@@ -19,7 +19,7 @@ def load(fp):
 
 
 def loads(text):
-    return {name: nw.loads(newick) for name,newick in get_trees(text).items()}
+    return {name: tree.loads(newick) for name,newick in get_trees(text).items()}
 
 
 def get_trees(text):
@@ -54,13 +54,13 @@ def apply_translations(translate, newick):
     if not translate:
         return newick
 
-    tree = nw.loads(newick)
+    t = tree.loads(newick)
 
-    for node in tree:
+    for node in t:
         if node.name in translate:
             node.name = translate[node.name]
 
-    return nw.dumps(tree)
+    return tree.dumps(t)
 
 
 def get_section(text, section_name):
