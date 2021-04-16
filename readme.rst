@@ -62,7 +62,7 @@ which will start it in debug mode.
 
 When running the backend the first time, it will create and initialize the
 database (by using the files ``create_tables.sql`` and ``sample_data.sql``,
-and using the tool `add_tree.py` to add the trees from the ``examples``
+and using the tool ``add_tree.py`` to add the trees from the ``examples``
 directory).
 
 For a more serious usage, you can run it for example with
@@ -77,7 +77,7 @@ connections too.
 Tests
 -----
 
-You can run a bunch of tests in the `tests` directory with::
+You can run the set of tests in the ``tests`` directory with::
 
   pytest-3
 
@@ -136,8 +136,8 @@ with the values referring to the successfully logged user. The value of
 Example calls
 ~~~~~~~~~~~~~
 
-You can use `http <https://httpie.io/>`_ to test the backend with commands
-like::
+You can use `http <https://httpie.io/>`_ (which is like ``curl`` if you prefer,
+with a modern syntax) to test the backend with commands like::
 
   http localhost:5000/trees/1
 
