@@ -148,9 +148,8 @@ function on_pointerup(event) {
 // Mouse move -- move tree view if dragging, update position coordinates.
 function on_pointermove(event) {
     const point = {x: event.pageX, y: event.pageY};
-    const movement = {x: event.movementX, y: event.movementY};
 
-    drag_move(point, movement);
+    drag_move(point);
 
     [view.pos.cx, view.pos.cy] = coordinates(point);
 }

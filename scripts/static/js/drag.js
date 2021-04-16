@@ -7,14 +7,18 @@ import { update_tree } from "./draw.js";
 export { drag_start, drag_stop, drag_move };
 
 
-const dragging = {p0: {x: 0, y: 0}, element: undefined, moved: false};
+const dragging = {
+    element: undefined, moved: false,
+    p0: {x: 0, y: 0},
+    p_last: {x: 0, y: 0},
+};
 
 
 
 function drag_start(point, element) {
     div_tree.style.cursor = "grabbing";
     div_visible_rect.style.cursor = "grabbing";
-    dragging.p0 = point;
+    dragging.p0 = dragging.p_last = point;
     dragging.element = element;
 }
 
@@ -35,7 +39,11 @@ function drag_stop() {
 }
 
 
-function drag_move(point, movement) {
+function drag_move(point) {
+    const movement = {x: point.x - dragging.p_last.x,
+                      y: point.y - dragging.p_last.y};
+    dragging.p_last = point;
+
     if (dragging.element === div_aligned) {
         view.align_bar += 100 * movement.x / div_tree.offsetWidth;
         view.align_bar = Math.min(Math.max(view.align_bar, 1), 99);  // clip
