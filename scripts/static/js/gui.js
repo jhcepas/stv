@@ -8,6 +8,7 @@ import { search, remove_searches } from "./search.js";
 import { zoom_into_box, zoom_around, zoom_towards_box } from "./zoom.js";
 import { draw_minimap, update_minimap_visible_rect } from "./minimap.js";
 import { api, api_put, escape_html } from "./api.js";
+import { remove_tags } from "./tag.js";
 
 export { view, datgui, on_tree_change, on_drawer_change, show_minimap,
          tree_command, get_tid, on_box_click, on_box_wheel, coordinates,
@@ -157,6 +158,7 @@ async function tree_command(command, params=undefined) {
 async function on_tree_change() {
     div_tree.style.cursor = "wait";
     remove_searches();
+    remove_tags();
     view.tree_size = await api(`/trees/${get_tid()}/size`);
     reset_zoom();
     reset_position();

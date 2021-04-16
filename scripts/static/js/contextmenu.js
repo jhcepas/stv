@@ -1,12 +1,13 @@
 // Functions related to the context menu (right-click menu).
 
-import { view, tree_command, on_tree_change, reset_view, sort, datgui } from "./gui.js";
+import { view, tree_command, on_tree_change, reset_view, sort } from "./gui.js";
 import { draw_minimap } from "./minimap.js";
 import { update } from "./draw.js";
 import { download_newick } from "./download.js";
 import { zoom_into_box } from "./zoom.js";
+import { tag_node } from "./tag.js";
 
-export { on_box_contextmenu, colorize_tags };
+export { on_box_contextmenu };
 
 
 function on_box_contextmenu(event, box, name, properties, node_id=[]) {
@@ -69,64 +70,6 @@ function add_node_options(box, name, properties, node_id) {
 
     if (view.allow_modifications)
         add_node_modifying_options(box, name, properties, node_id);
-}
-
-
-// Tag node with the given name and return true if things went well.
-function tag_node(node_id, name) {
-    if (!name)
-        return false;  // will prevent swal popup from closing
-
-    if (name in view.tags) {
-        view.tags[name].nodes.push(node_id);
-        colorize_tag(name);
-        return true;
-    }
-
-    const folder = datgui.__folders.tags.addFolder(name);
-    const colors = ["#FF0", "#F0F", "#0FF", "#F00", "#0F0", "#00F"];
-    const ntags = Object.keys(view.tags).length;
-    view.tags[name] = {
-        nodes: [node_id],
-        opacity: 0.4,
-        color: colors[ntags % colors.length],
-    };
-
-    view.tags[name].remove = function() {
-        view.tags[name].opacity = view.node.opacity;
-        view.tags[name].color = view.node.color;
-        colorize_tag(name);
-        delete view.tags[name];
-        datgui.__folders.tags.removeFolder(folder);
-    }
-
-    folder.add(view.tags[name], "opacity", 0, 1).step(0.01).onChange(
-        () => colorize_tag(name));
-    folder.addColor(view.tags[name], "color").onChange(
-        () => colorize_tag(name));
-
-    folder.add(view.tags[name], "remove");
-
-    colorize_tag(name);
-
-    return true;
-}
-
-
-function colorize_tag(name) {
-    const tags = view.tags[name];
-    tags.nodes.forEach(node_id => {
-        const node = document.getElementById("node-" + node_id.join("_"));
-        if (node) {
-            node.style.opacity = tags.opacity;
-            node.style.fill = tags.color;
-        }
-    });
-}
-
-
-function colorize_tags() {
-    Object.keys(view.tags).forEach(name => colorize_tag(name));
 }
 
 

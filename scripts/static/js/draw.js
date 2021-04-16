@@ -3,7 +3,8 @@
 import { view, datgui, get_tid, on_box_click, on_box_wheel } from "./gui.js";
 import { update_minimap_visible_rect } from "./minimap.js";
 import { colorize_searches, get_search_class } from "./search.js";
-import { colorize_tags, on_box_contextmenu } from "./contextmenu.js";
+import { on_box_contextmenu } from "./contextmenu.js";
+import { colorize_tags } from "./tag.js";
 import { api } from "./api.js";
 
 export { update, update_tree, create_rect, create_asec, draw };
