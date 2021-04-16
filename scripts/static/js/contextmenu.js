@@ -112,7 +112,7 @@ function add_node_options(box, name, properties, node_id) {
 function colorize(name) {
     const tags = view.tags[name];
     tags.nodes.forEach(node_id => {
-        const node = document.getElementById(node_id);
+        const node = document.getElementById("node-" + node_id.join("_"));
         if (node) {
             node.style.opacity = tags.opacity;
             node.style.fill = tags.color;

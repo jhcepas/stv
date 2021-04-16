@@ -92,7 +92,8 @@ function draw_item(g, item, tl, zoom) {
     if (item[0] === "box") {
         const [ , box, name, properties, node_id, result_of] = item;
 
-        const b = create_box(box, node_id, tl, zx, zy, result_of);
+        const b = create_box(box, tl, zx, zy, result_of);
+        b.id = "node-" + node_id.join("_");
 
         b.addEventListener("click", event =>
             on_box_click(event, box, node_id));
@@ -168,22 +169,21 @@ function create_svg_element(name, attrs) {
 
 
 // Return a box (rectangle or annular sector).
-function create_box(box, node_id, tl, zx, zy, result_of) {
+function create_box(box, tl, zx, zy, result_of) {
     const classes = "node " +
         result_of.map(text => get_search_class(text, "results")).join(" ");
 
     if (view.is_circular)
-        return create_asec(box, node_id, tl, zx, classes);
+        return create_asec(box, tl, zx, classes);
     else
-        return create_rect(box, node_id, tl, zx, zy, classes);
+        return create_rect(box, tl, zx, zy, classes);
 }
 
 
-function create_rect(box, node_id, tl, zx=1, zy=1, type="") {
+function create_rect(box, tl, zx=1, zy=1, type="") {
     const [x, y, w, h] = box;
 
     return create_svg_element("rect", {
-        "id": node_id,
         "class": "box " + type,
         "x": zx * (x - tl.x), "y": zy * (y - tl.y),
         "width": zx * w, "height": zy * h,
@@ -192,7 +192,7 @@ function create_rect(box, node_id, tl, zx=1, zy=1, type="") {
 
 
 // Return a svg annular sector, described by box and with zoom z.
-function create_asec(box, node_id, tl, z=1, type="") {
+function create_asec(box, tl, z=1, type="") {
     const [r, a, dr, da] = box;
     const large = da > Math.PI ? 1 : 0;
     const p00 = cartesian_shifted(r, a, tl, z),
@@ -201,7 +201,6 @@ function create_asec(box, node_id, tl, z=1, type="") {
           p11 = cartesian_shifted(r + dr, a + da, tl, z);
 
     return create_svg_element("path", {
-        "id": node_id,
         "class": "box " + type,
         "d": `M ${p00.x} ${p00.y}
               L ${p10.x} ${p10.y}
