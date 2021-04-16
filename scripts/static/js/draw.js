@@ -74,7 +74,7 @@ async function draw(element, items, tl, zoom) {
 
     const g = create_svg_element("g");
 
-    items.forEach(item => g.appendChild(create_item(g, item, tl, zoom)));
+    items.forEach(item => g.appendChild(create_item(item, tl, zoom)));
 
     svg.appendChild(g);
 
@@ -84,7 +84,7 @@ async function draw(element, items, tl, zoom) {
 
 
 // Return the graphical (svg) element corresponding to a drawer item.
-function create_item(g, item, tl, zoom) {
+function create_item(item, tl, zoom) {
     // item looks like ["line", ...] for a line, etc.
 
     const [zx, zy] = [zoom.x, zoom.y];  // shortcut
