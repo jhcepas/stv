@@ -59,49 +59,12 @@ function add_node_options(box, name, properties, node_id) {
             window.open(`${urlbase}/wwwtax.cgi?id=${taxid}`);
         }, `Open the NCBI Taxonomy Browser on this taxonomy ID: ${taxid}.`);
     }
-    add_button("🏷️ Tag node", async () => {
-        let tag_name;
-        const result = await Swal.fire({
+    add_button("🏷️ Tag node", () => {
+        Swal.fire({
             input: "text",
             inputPlaceholder: "Enter tag",
-            preConfirm: name => {
-                if (!name)
-                    return false;  // prevent popup from closing
-
-                tag_name = name;  // to be used when checking the result later on
-
-                if (name in view.tags) {
-                    view.tags[name].nodes.push(node_id);
-                    return;
-                }
-
-                const folder = datgui.__folders.tags.addFolder(name);
-                const colors = ["#FF0", "#F0F", "#0FF", "#F00", "#0F0", "#00F"];
-                const ntags = Object.keys(view.tags).length;
-                view.tags[name] = {
-                    nodes: [node_id],
-                    opacity: 0.4,
-                    color: colors[ntags % colors.length],
-                };
-
-                view.tags[name].remove = function() {
-                    view.tags[name].opacity = view.node.opacity;
-                    view.tags[name].color = view.node.color;
-                    colorize(name);
-                    delete view.tags[name];
-                    datgui.__folders.tags.removeFolder(folder);
-                }
-
-                folder.add(view.tags[name], "opacity", 0, 1).step(0.01).onChange(
-                    () => colorize(name));
-                folder.addColor(view.tags[name], "color").onChange(
-                    () => colorize(name));
-
-                folder.add(view.tags[name], "remove");
-            },
+            preConfirm: name => tag_node(node_id, name),
         });
-        if (result.isConfirmed)
-            colorize(tag_name);
     });
 
     if (view.allow_modifications)
@@ -109,7 +72,48 @@ function add_node_options(box, name, properties, node_id) {
 }
 
 
-function colorize(name) {
+// Tag node with the given name and return true if things went well.
+function tag_node(node_id, name) {
+    if (!name)
+        return false;  // will prevent swal popup from closing
+
+    if (name in view.tags) {
+        view.tags[name].nodes.push(node_id);
+        colorize_tag(name);
+        return true;
+    }
+
+    const folder = datgui.__folders.tags.addFolder(name);
+    const colors = ["#FF0", "#F0F", "#0FF", "#F00", "#0F0", "#00F"];
+    const ntags = Object.keys(view.tags).length;
+    view.tags[name] = {
+        nodes: [node_id],
+        opacity: 0.4,
+        color: colors[ntags % colors.length],
+    };
+
+    view.tags[name].remove = function() {
+        view.tags[name].opacity = view.node.opacity;
+        view.tags[name].color = view.node.color;
+        colorize_tag(name);
+        delete view.tags[name];
+        datgui.__folders.tags.removeFolder(folder);
+    }
+
+    folder.add(view.tags[name], "opacity", 0, 1).step(0.01).onChange(
+        () => colorize_tag(name));
+    folder.addColor(view.tags[name], "color").onChange(
+        () => colorize_tag(name));
+
+    folder.add(view.tags[name], "remove");
+
+    colorize_tag(name);
+
+    return true;
+}
+
+
+function colorize_tag(name) {
     const tags = view.tags[name];
     tags.nodes.forEach(node_id => {
         const node = document.getElementById("node-" + node_id.join("_"));
@@ -122,7 +126,7 @@ function colorize(name) {
 
 
 function colorize_tags() {
-    Object.keys(view.tags).forEach(name => colorize(name));
+    Object.keys(view.tags).forEach(name => colorize_tag(name));
 }
 
 

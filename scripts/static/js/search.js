@@ -80,21 +80,21 @@ function add_search_to_datgui(text) {
 
     const folder_results = folder.addFolder(`results (${search.results.n})`);
     folder_results.add(search.results, "opacity", 0, 1).step(0.01).onChange(
-        () => colorize(text));
+        () => colorize_search(text));
     folder_results.addColor(search.results, "color").onChange(
-        () => colorize(text));
+        () => colorize_search(text));
 
     const folder_parents = folder.addFolder(`parents (${search.parents.n})`);
     folder_parents.addColor(search.parents, "color").onChange(
-        () => colorize(text));
+        () => colorize_search(text));
     folder_parents.add(search.parents, "width", 0.1, 20).onChange(
-        () => colorize(text));
+        () => colorize_search(text));
 
     folder.add(search, "remove");
 }
 
 
-function colorize(text) {
+function colorize_search(text) {
     const search = view.searches[text];
 
     const cresults = get_search_class(text, "results");
@@ -113,7 +113,7 @@ function colorize(text) {
 
 
 function colorize_searches() {
-    Object.keys(view.searches).forEach(text => colorize(text));
+    Object.keys(view.searches).forEach(text => colorize_search(text));
 }
 
 
