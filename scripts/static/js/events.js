@@ -18,11 +18,11 @@ function init_events() {
     document.addEventListener("wheel", on_wheel, {passive: false});
     // NOTE: chrome now uses passive=true otherwise
 
-    document.addEventListener("mousedown", on_mousedown);
+    document.addEventListener("pointerdown", on_pointerdown);
 
-    document.addEventListener("mouseup", on_mouseup);
+    document.addEventListener("pointerup", on_pointerup);
 
-    document.addEventListener("mousemove", on_mousemove);
+    document.addEventListener("pointermove", on_pointermove);
 
     document.addEventListener("contextmenu", on_contextmenu);
 
@@ -114,7 +114,7 @@ function on_wheel(event) {
 
 
 // Mouse down -- select text, or move in minimap, or start dragging.
-function on_mousedown(event) {
+function on_pointerdown(event) {
     if (!div_contextmenu.contains(event.target))
         div_contextmenu.style.visibility = "hidden";
 
@@ -140,13 +140,13 @@ function on_mousedown(event) {
 
 
 // Mouse up -- stop dragging.
-function on_mouseup(event) {
+function on_pointerup(event) {
     drag_stop();
 }
 
 
 // Mouse move -- move tree view if dragging, update position coordinates.
-function on_mousemove(event) {
+function on_pointermove(event) {
     const point = {x: event.pageX, y: event.pageY};
     const movement = {x: event.movementX, y: event.movementY};
 
