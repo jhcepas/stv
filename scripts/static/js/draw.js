@@ -72,9 +72,9 @@ async function draw(element, items, tl, zoom) {
     else
         element.appendChild(svg);
 
-    const g = create_svg_element("g", {});
+    const g = create_svg_element("g");
 
-    items.forEach(item => draw_item(g, item, tl, zoom));
+    items.forEach(item => g.appendChild(create_item(g, item, tl, zoom)));
 
     svg.appendChild(g);
 
@@ -83,8 +83,8 @@ async function draw(element, items, tl, zoom) {
 }
 
 
-// Append to g the graphical (svg) element corresponding to a drawer item.
-function draw_item(g, item, tl, zoom) {
+// Return the graphical (svg) element corresponding to a drawer item.
+function create_item(g, item, tl, zoom) {
     // item looks like ["line", ...] for a line, etc.
 
     const [zx, zy] = [zoom.x, zoom.y];  // shortcut
@@ -105,22 +105,22 @@ function draw_item(g, item, tl, zoom) {
         if (name.length > 0 || Object.entries(properties).length > 0)
             b.appendChild(create_tooltip(name, properties));
 
-        g.appendChild(b);
+        return b;
     }
     else if (item[0] === "cone") {
         const [ , box] = item;
 
-        g.appendChild(create_cone(box, tl, zx, zy));
+        return create_cone(box, tl, zx, zy);
     }
     else if (item[0] === "line") {
         const [ , p1, p2, type, parent_of] = item;
 
-        g.appendChild(create_line(p1, p2, tl, zx, zy, type, parent_of));
+        return create_line(p1, p2, tl, zx, zy, type, parent_of);
     }
     else if (item[0] === "arc") {
         const [ , p1, p2, large, type] = item;
 
-        g.appendChild(create_arc(p1, p2, large, tl, zx, type));
+        return create_arc(p1, p2, large, tl, zx, type);
     }
     else if (item[0] === "text") {
         const [ , text, point, fs, type] = item;
@@ -135,7 +135,7 @@ function draw_item(g, item, tl, zoom) {
                 `rotate(${angle}, ${zx * (x - tl.x)}, ${zy * (y - tl.y)})`);
         }
 
-        g.appendChild(t);
+        return t;
     }
     else if (item[0] === "array") {
         const [ , box, a] = item;
@@ -144,11 +144,14 @@ function draw_item(g, item, tl, zoom) {
 
         const [y, dy] = pad(y0, dy0, view.array.padding);
 
+        const g = create_svg_element("g");
         for (let i = 0, x = 0; i < a.length; i++, x+=dx) {
             const r = create_rect([x, y, dx, dy], tl, zx, zy, "array");
             r.style.stroke = `hsl(${a[i]}, 100%, 50%)`;
             g.appendChild(r);
         }
+
+        return g;
     }
 }
 
@@ -160,7 +163,7 @@ function pad(y0, dy0, fraction) {
 }
 
 
-function create_svg_element(name, attrs) {
+function create_svg_element(name, attrs={}) {
     const element = document.createElementNS("http://www.w3.org/2000/svg", name);
     for (const [attr, value] of Object.entries(attrs))
         element.setAttributeNS(null, attr, value);
