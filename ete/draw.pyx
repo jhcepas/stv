@@ -644,7 +644,7 @@ def drawn_size(elements, get_box):
 
 def intersects(b1, b2):
     "Return True if the boxes b1 and b2 (of the same kind) intersect"
-    cdef double x1min, x1max, x2min, x2max
+    cdef double x1min, y1min, dx1, dy1, x2min, y2min, dx2, dy2
 
     if b1 is None or b2 is None:
         return True  # the box "None" represents the full plane
