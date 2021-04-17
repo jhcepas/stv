@@ -265,7 +265,7 @@ class DrawerCirc(Drawer):
         self.y2a = (self.ymax - self.ymin) / self.tree.size[1]
 
     def in_viewport(self, box):
-        return ((box.dy > pi/4 or intersects(self.viewport, circumrect(box))) and
+        return (intersects(self.viewport, circumrect(box)) and
             intersects(Box(0, -pi, self.node_size(self.tree).dx, 2*pi), box))
 
     def flush_outline(self, minimum_dr=0):
@@ -669,15 +669,28 @@ def stack(b1, b2):
 
 def circumrect(asec):
     "Return the rectangle that circumscribes the given annular sector"
-    cdef double r, a, dr, da
+    cdef double rmin, amin, dr, da
     if asec is None:
         return None
-    r, a, dr, da = asec
-    points = [(r, a), (r, a+da), (r+dr, a), (r+dr, a+da)]
+
+    rmin, amin, dr, da = asec
+    rmax, amax = rmin + dr, amin + da
+
+    points = [(rmin, amin), (rmin, amax), (rmax, amin), (rmax, amax)]
     xs = [r * cos(a) for r,a in points]
     ys = [r * sin(a) for r,a in points]
     xmin, ymin = min(xs), min(ys)
-    return Box(xmin, ymin, max(xs) - xmin, max(ys) - ymin)
+    xmax, ymax = max(xs), max(ys)
+
+    if amin < -pi/2 < amax:  # asec traverses the -y axis
+        ymin = -rmax
+    if amin < 0 < amax:  # asec traverses the +x axis
+        xmax = rmax
+    if amin < pi/2 < amax:  # asec traverses the +y axis
+        ymax = rmax
+    # NOTE: the annular sectors we consider never traverse the -x axis.
+
+    return Box(xmin, ymin, xmax - xmin, ymax - ymin)
 
 
 def circumasec(rect):
