@@ -173,7 +173,7 @@ function create_svg_element(name, attrs={}) {
 
 
 // Return a box (rectangle or annular sector).
-function create_box(box, tl, zx, zy, result_of) {
+function create_box(box, tl, zx, zy, result_of=[]) {
     const classes = "node " +
         result_of.map(text => get_search_class(text, "results")).join(" ");
 
@@ -184,7 +184,7 @@ function create_box(box, tl, zx, zy, result_of) {
 }
 
 
-function create_rect(box, tl, zx=1, zy=1, type="") {
+function create_rect(box, tl, zx, zy, type="") {
     const [x, y, w, h] = box;
 
     return create_svg_element("rect", {
@@ -196,7 +196,7 @@ function create_rect(box, tl, zx=1, zy=1, type="") {
 
 
 // Return a svg annular sector, described by box and with zoom z.
-function create_asec(box, tl, z=1, type="") {
+function create_asec(box, tl, z, type="") {
     const [r, a, dr, da] = box;
     const large = da > Math.PI ? 1 : 0;
     const p00 = cartesian_shifted(r, a, tl, z),
@@ -230,7 +230,7 @@ function create_cone(box, tl, zx, zy) {
 
 
 // Return a svg horizontal cone.
-function create_rect_cone(box, tl, zx=1, zy=1) {
+function create_rect_cone(box, tl, zx, zy) {
     const [x, y, w, h] = transform(box, tl, zx, zy);
 
     return create_svg_element("path", {
@@ -250,7 +250,7 @@ function transform(box, tl, zx, zy) {
 
 
 // Return a svg cone in the direction of an annular sector.
-function create_circ_cone(box, tl, z=1) {
+function create_circ_cone(box, tl, z) {
     const [r, a, dr, da] = box;
     const large = da > Math.PI ? 1 : 0;
     const p0 = cartesian_shifted(r, a + da/2, tl, z),
@@ -278,7 +278,7 @@ function create_tooltip(name, properties) {
 }
 
 
-function create_line(p1, p2, tl, zx, zy, type, parent_of) {
+function create_line(p1, p2, tl, zx, zy, type="", parent_of=[]) {
     const [x1, y1] = [zx * (p1[0] - tl.x), zy * (p1[1] - tl.y)],
           [x2, y2] = [zx * (p2[0] - tl.x), zy * (p2[1] - tl.y)];
 
@@ -294,7 +294,7 @@ function create_line(p1, p2, tl, zx, zy, type, parent_of) {
 }
 
 
-function create_arc(p1, p2, large, tl, z=1, type) {
+function create_arc(p1, p2, large, tl, z, type="") {
     const [x1, y1] = p1,
           [x2, y2] = p2;
     const r = z * Math.sqrt(x1*x1 + y1*y1);
@@ -309,7 +309,7 @@ function create_arc(p1, p2, large, tl, z=1, type) {
 }
 
 
-function create_text(text, fs, point, tl, zx, zy, type) {
+function create_text(text, fs, point, tl, zx, zy, type="") {
     const [x, y] = [zx * (point[0] - tl.x), zy * (point[1] - tl.y)];
 
     const dx = (type === "name") ? view.text_padding * fs / 100 : 0;
@@ -328,8 +328,8 @@ function create_text(text, fs, point, tl, zx, zy, type) {
 
 // Flip all the texts in circular representation that look upside-down.
 // NOTE: getBBox() is very expensive and requires text to be already in the DOM.
-async function fix_text_orientations(element) {
-    const texts = Array.from(element.getElementsByClassName("text"))
+async function fix_text_orientations(div) {
+    const texts = Array.from(div.getElementsByClassName("text"))
         .filter(is_upside_down);
 
     texts.sort((a, b) => get_font_size(b) - get_font_size(a));
