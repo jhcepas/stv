@@ -192,26 +192,31 @@ class Drawer:
         self.outline = None
         return Box(x, y, max(dx, minimum_dx), dy)
 
-    # These are the functions that the user would supply to decide how to
-    # represent a node.
-    def draw_content_inline(self, node, point, bdy):
+    # These are the 3 functions that the user overloads to choose what to draw
+    # and how when representing a node (or group of collapsed nodes):
+
+    def draw_content_inline(self, node, point, bdy):  # bdy: branch dy (height)
         "Yield graphic elements to draw the inline contents of the node"
-        yield from []
+        yield from []  # graphics that go to the area inside the node
+        # They are only drawn if any of the node's content is visible.
+        # They never go to the aligned panel.
 
     def draw_content_float(self, node, point):
         "Yield graphic elements to draw the floated contents of the node"
         if self.aligned:
-            yield from []
+            yield from []  # graphics that go to the aligned panel
         else:
-            yield from []
+            yield from []  # graphics that go to the main area
+        # They are drawn if any of the node (including all children) is visible.
 
     def draw_collapsed(self):
         "Yield graphic elements to draw the list of nodes in self.collapsed"
-        # Can use self.outline and self.collapsed to extract and place info.
+        # Uses self.collapsed and self.outline to extract and place info.
         if self.aligned:
-            yield from []
+            yield from []  # graphics that go to the aligned panel
         else:
-            yield from []
+            yield from []  # graphics that go to the main area
+        # They are always drawn (only visible nodes can collapse).
 
 
 
