@@ -124,19 +124,30 @@ function create_item(item, tl, zoom) {
         return create_arc(p1, p2, large, tl, zx, type);
     }
     else if (item[0] === "text") {
-        const [ , text, point, fs, type] = item;
-        const font_size = font_adjust(type, zy * fs);
+        const [ , box, anchor, text, type] = item;
+        if (!view.is_circular) {
+            const [x, y, dx, dy] = box;
+            const fs = Math.min(zx/zy * dx * 1.5 / text.length, dy);
+            const font_size = font_adjust(type, zy * fs);
+            const point = [x, y + dy];
 
-        const t = create_text(text, font_size, point, tl, zx, zy, type);
-
-        if (view.is_circular) {
-            const [x, y] = point;
-            const angle = Math.atan2(y, x) * 180 / Math.PI;
-            t.setAttributeNS(null, "transform",
-                `rotate(${angle}, ${zx * (x - tl.x)}, ${zy * (y - tl.y)})`);
+            return create_text(text, font_size, point, tl, zx, zy, type);
         }
+        else {
+            const [r, a, dr, da] = box;
+            const fs = Math.min(dr * 1.5 / text.length, r * da);
+            const font_size = font_adjust(type, zy * fs);
+            const x = r * Math.cos(a+da),
+                  y = r * Math.sin(a+da);
+            const point = [x, y];
 
-        return t;
+            const t = create_text(text, font_size, point, tl, zx, zy, type);
+
+            const angle = Math.atan2(y, x) * 180 / Math.PI;
+            addRotation(t, angle, zx * (x - tl.x), zy * (y - tl.y));
+
+            return t;
+        }
     }
     else if (item[0] === "array") {
         const [ , box, a] = item;
@@ -350,9 +361,16 @@ function get_font_size(text) {
 
 // Apply svg transformation to flip the given text (bounded by bbox).
 function flip_with_bbox(text, bbox) {
-    const rot180 = text.ownerSVGElement.createSVGTransform();
-    rot180.setRotate(180, bbox.x + bbox.width/2, bbox.y + bbox.height/2);
-    text.transform.baseVal.appendItem(rot180);
+    addRotation(text, 180, bbox.x + bbox.width/2, bbox.y + bbox.height/2);
+}
+
+
+// Add rotation to element, with angle in degrees and centered around (cx, cy).
+function addRotation(element, angle, cx=0, cy=0) {
+    const svg = div_tree.children[0];
+    const tr = svg.createSVGTransform();
+    tr.setRotate(angle, cx, cy);
+    element.transform.baseVal.appendItem(tr);
 }
 
 
