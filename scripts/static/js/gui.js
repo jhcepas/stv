@@ -67,6 +67,7 @@ const view = {
     line: {color: "#000", width: 1},
     names_color: "#00A",
     lengths_color: "#888",
+    supports_color: "#EC8385",
     font_family: "sans-serif",
     font_size_auto: true,
     font_size_scroller: undefined,

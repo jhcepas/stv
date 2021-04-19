@@ -124,10 +124,10 @@ function create_item(item, tl, zoom) {
         return create_arc(p1, p2, large, tl, zx, type);
     }
     else if (item[0] === "text") {
-        const [ , text, point, fs, type] = item;
+        const [ , text, point, position, fs, type] = item;
         const font_size = font_adjust(type, zy * fs);
 
-        const t = create_text(text, font_size, point, tl, zx, zy, type);
+        const t = create_text(text, font_size, point, position, tl, zx, zy, type);
 
         if (view.is_circular) {
             const [x, y] = point;
@@ -309,15 +309,27 @@ function create_arc(p1, p2, large, tl, z, type="") {
 }
 
 
+<<<<<<< Updated upstream
 function create_text(text, fs, point, tl, zx, zy, type="") {
+=======
+function create_text(text, fs, point, position, tl, zx, zy, type) {
+>>>>>>> Stashed changes
     const [x, y] = [zx * (point[0] - tl.x), zy * (point[1] - tl.y)];
 
     const dx = (type === "name") ? view.text_padding * fs / 100 : 0;
 
+    position = position.split("-");
+    const dy = (position[1] === "bottom")
+        ? fs
+        : (position[1] === "middle")
+        ? fs / 2
+        : 0;
+
     const t = create_svg_element("text", {
         "class": "text " + type,
-        "x": x + dx, "y": y,
+        "x": x + dx, "y": y + dy,
         "font-size": `${fs}px`,
+        "text-anchor": position[0],
     });
 
     t.appendChild(document.createTextNode(text));

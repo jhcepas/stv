@@ -168,10 +168,7 @@ class Drawer:
 
     def get_outline(self):
         "Yield the outline representation"
-        result_of = [text for text,(results,parents) in self.searches.items()
-            if any(node in results or node in parents for node in self.collapsed)]
-
-        graphics = [draw_cone(self.outline)] if not self.aligned else []
+        graphics = [] if self.aligned else [draw_cone(self.outline)]
 
         graphics += self.draw_collapsed()
         self.collapsed = []
@@ -181,7 +178,7 @@ class Drawer:
         ndx = drawn_size(graphics, self.get_box).dx
         self.node_dxs[-1].append(ndx)
 
-        box = draw_box(self.flush_outline(ndx), '(collapsed)', {}, [], result_of)
+        box = draw_box(self.flush_outline(ndx), '(collapsed)')
         self.boxes.append(box)
 
         yield from graphics
@@ -192,31 +189,43 @@ class Drawer:
         self.outline = None
         return Box(x, y, max(dx, minimum_dx), dy)
 
-    # These are the 3 functions that the user overloads to choose what to draw
-    # and how when representing a node (or group of collapsed nodes):
+    # Useful for picking a node from a point inside its graphic representation.
+    def get_node_at(self, point):
+        "Return the node whose content area contains the given point"
+        x, y = self.xmin, self.ymin
+        for it in self.tree.walk():
+            node = it.node  # shortcut
+            ndx, ndy = self.node_size(node)
+            cdx, cdy = self.content_size(node)
+            if not is_inside(point, Box(x, y, ndx, ndy)):
+                it.descend = False  # skip walking over the node's children
+                y += ndy
+            elif node.is_leaf or is_inside(point, Box(x, y, cdx, cdy)):
+                return node
+            else:
+                x += cdx
+        return None
 
-    def draw_content_inline(self, node, point, bdy):  # bdy: branch dy (height)
+    # These are the functions that the user would supply to decide how to
+    # represent a node.
+    def draw_content_inline(self, node, point, bdy):
         "Yield graphic elements to draw the inline contents of the node"
-        yield from []  # graphics that go to the area inside the node
-        # They are only drawn if any of the node's content is visible.
-        # They never go to the aligned panel.
+        yield from []
 
     def draw_content_float(self, node, point):
         "Yield graphic elements to draw the floated contents of the node"
         if self.aligned:
-            yield from []  # graphics that go to the aligned panel
+            yield from []
         else:
-            yield from []  # graphics that go to the main area
-        # They are drawn if any of the node (including all children) is visible.
+            yield from []
 
     def draw_collapsed(self):
-        "Yield graphic elements to draw the list of nodes in self.collapsed"
-        # Uses self.collapsed and self.outline to extract and place info.
+        "Yield graphic elements to draw a collapsed node"
+        # Can use self.outline and self.collapsed to extract and place info.
         if self.aligned:
-            yield from []  # graphics that go to the aligned panel
+            yield from []
         else:
-            yield from []  # graphics that go to the main area
-        # They are always drawn (only visible nodes can collapse).
+            yield from []
 
 
 
@@ -269,8 +278,11 @@ class DrawerCirc(Drawer):
 
         self.y2a = (self.ymax - self.ymin) / self.tree.size[1]
 
+        self.circumasec_viewport = circumasec(self.viewport)
+
     def in_viewport(self, box):
-        return (intersects(self.viewport, circumrect(box)) and
+        return ((intersects(self.circumasec_viewport, box) or
+            intersects(self.viewport, circumrect(box))) and
             intersects(Box(0, -pi, self.node_size(self.tree).dx, 2*pi), box))
 
     def flush_outline(self, minimum_dr=0):
@@ -317,18 +329,18 @@ class DrawerCirc(Drawer):
                            node.name, node.properties, node_id, result_of)
 
 
-def clip_angles(double a1, double a2):
+def clip_angles( a1, a2):
     "Return the angles such that a1 to a2 extend at maximum from -pi to pi"
     EPSILON = 1e-8  # without it, p1 == p2 and svg arcs are not drawn
     return max(-pi + EPSILON, a1), min(pi - EPSILON, a2)
 
 
-def cartesian((double, double) point):
+def cartesian( point):
     r, a = point
     return r * cos(a), r * sin(a)
 
 
-def polar((double, double) point):
+def polar( point):
     x, y = point
     return sqrt(x*x + y*y), atan2(y, x)
 
@@ -391,30 +403,6 @@ class DrawerRectLengths(DrawerRect):
                 yield draw_text(text, p, fs, 'length')
 
 
-class DrawerRectMeasurements(DrawerRect):
-    "With labels on the lengths and supports"
-
-    def draw_content_inline(self, node, point, bdy):
-        x, y = point
-        dx, dy = self.content_size(node)
-        zx, zy = self.zoom
-        p = (x, y + bdy)
-        # Node length
-        length = node.length
-        if length >= 0:
-            text = '%.2g' % length
-            fs = min(bdy, zx/zy * 1.5 * dx / len(text))
-            if fs * zy > self.MIN_SIZE:
-                yield draw_text(text, p, fs, 'length', 'start-top')
-        # Node support
-        support = node.properties.get('support', False)
-        if support:
-            text = '%.2g' % support
-            fs = min(dy - bdy, zx/zy * 1.5 * dx / len(text))
-            if fs * zy > self.MIN_SIZE:
-                yield draw_text(text, p, fs, 'support', 'start-bottom')
-
-
 class DrawerCircLengths(DrawerCirc):
     "With labels on the lengths"
 
@@ -448,7 +436,7 @@ class DrawerRectCollapsed(DrawerRectLeafNames):
         texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
         p = (x + dx, y + dy/1.1)
         fs = dy/1.2
-        yield from draw_texts_rect(texts, p, fs, 'name')
+        yield from draw_texts(texts, p, fs, 'name')
 
 
 class DrawerCircCollapsed(DrawerCircLeafNames):
@@ -469,10 +457,18 @@ class DrawerCircCollapsed(DrawerCircLeafNames):
         texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
         p = (r + dr, a + da/1.1)
         fs = (r + dr) * da/1.2
-        yield from draw_texts_circ(texts, p, fs, 'name')
+
+        # TODO: mix the code below properly with draw_texts().
+        r, a = p
+        alpha = 0.2  # space between texts, as a fraction of the font size
+        font_size = fs / (len(texts) + (len(texts) - 1) * alpha)
+        da = font_size * (1 + alpha) / r if r > 0 else 2*pi
+        for text in texts[::-1]:
+            yield draw_text(text, cartesian((r, a)), font_size, 'name')
+            a -= da
 
 
-class DrawerRectFull(DrawerRectCollapsed, DrawerRectMeasurements):
+class DrawerRectFull(DrawerRectCollapsed, DrawerRectLengths):
     "With names on leaf nodes and labels on the lengths"
     pass
 
@@ -514,7 +510,7 @@ class DrawerAlignNames(DrawerRectFull):
             texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
             p = (0, y + dy/1.1)
             fs = dy/1.2
-            yield from draw_texts_rect(texts, p, fs, 'name')
+            yield from draw_texts(texts, p, fs, 'name')
 
 
 
@@ -547,7 +543,7 @@ class DrawerAlignHeatMap(DrawerRectFull):
                 return
             p = (x + dx, y + dy/1.1)
             fs = dy/1.2
-            yield from draw_texts_rect(texts, p, fs, 'name')
+            yield from draw_texts(texts, p, fs, 'name')
 
 
 def get_drawers():
@@ -562,26 +558,15 @@ def first_name(tree):
     return next((node.name for node in tree if node.name), '')
 
 
-def draw_texts_rect(texts, point, fs, text_type):
+def draw_texts(texts, point, fs, text_type):
     "Yield texts from the bottom-left point, with total height fs"
     alpha = 0.2  # space between texts, as a fraction of the font size
     font_size = fs / (len(texts) + (len(texts) - 1) * alpha)
-    x, y = point
     dy = font_size * (1 + alpha)
+    x, y = point
     for text in texts[::-1]:
         yield draw_text(text, (x, y), font_size, text_type)
         y -= dy
-
-
-def draw_texts_circ(texts, point, fs, text_type):
-    "Yield texts from the inner-smaller-angle point, with total height fs"
-    alpha = 0.2  # space between texts, as a fraction of the font size
-    font_size = fs / (len(texts) + (len(texts) - 1) * alpha)
-    r, a = point
-    da = font_size * (1 + alpha) / r if r > 0 else 2*pi
-    for text in texts[::-1]:
-        yield draw_text(text, cartesian((r, a)), font_size, text_type)
-        a -= da
 
 
 # Basic drawing elements.
@@ -598,8 +583,8 @@ def draw_line(p1, p2, line_type='', parent_of=None):
 def draw_arc(p1, p2, large=False, arc_type=''):
     return ['arc', p1, p2, int(large), arc_type]
 
-def draw_text(text, point, fs, text_type='', pos='start-top'):
-    return ['text', text, point, pos, fs, text_type]
+def draw_text(text, point, fs, text_type=''):
+    return ['text', text, point, fs, text_type]
 
 def draw_array(box, a):
     return ['array', box, a]
@@ -622,7 +607,7 @@ def get_rect(element, zoom):
         (x1, y1), (x2, y2) = element[1], element[2]
         return Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
     elif eid == 'text':
-        _, text, (x, y), _, fs, _ = element
+        _, text, (x, y), fs, _ = element
         zx, zy = zoom
         return Box(x, y - fs, zy/zx * fs / 1.5 * len(text), fs)
     else:
@@ -654,7 +639,6 @@ def drawn_size(elements, get_box):
     # The type of size will depend on the kind of boxes that are returned by
     # get_box() for the elements. It is width and height for boxes that are
     # rectangles, and dr and da for boxes that are annular sectors.
-    cdef double x, y, dx, dy, x_min, x_max, y_min, y_max
 
     if not elements:
         return Size(0, 0)
@@ -673,7 +657,6 @@ def drawn_size(elements, get_box):
 
 def intersects(b1, b2):
     "Return True if the boxes b1 and b2 (of the same kind) intersect"
-    cdef double x1min, y1min, dx1, dy1, x2min, y2min, dx2, dy2
 
     if b1 is None or b2 is None:
         return True  # the box "None" represents the full plane
@@ -684,6 +667,15 @@ def intersects(b1, b2):
     x2max, y2max = x2min + dx2, y2min + dy2
     return ((x1min <= x2max and x2min <= x1max) and
             (y1min <= y2max and y2min <= y1max))
+
+
+def is_inside(point, box):
+    "Return True if point is inside the box"
+    if box is None:
+        return True
+    px, py = point
+    x, y, dx, dy = box
+    return (x <= px < x + dx) and (y <= py < y + dy)
 
 
 def stack(b1, b2):
@@ -698,33 +690,18 @@ def stack(b1, b2):
 
 def circumrect(asec):
     "Return the rectangle that circumscribes the given annular sector"
-    cdef double rmin, amin, dr, da
     if asec is None:
         return None
-
-    rmin, amin, dr, da = asec
-    rmax, amax = rmin + dr, amin + da
-
-    points = [(rmin, amin), (rmin, amax), (rmax, amin), (rmax, amax)]
+    r, a, dr, da = asec
+    points = [(r, a), (r, a+da), (r+dr, a), (r+dr, a+da)]
     xs = [r * cos(a) for r,a in points]
     ys = [r * sin(a) for r,a in points]
     xmin, ymin = min(xs), min(ys)
-    xmax, ymax = max(xs), max(ys)
-
-    if amin < -pi/2 < amax:  # asec traverses the -y axis
-        ymin = -rmax
-    if amin < 0 < amax:  # asec traverses the +x axis
-        xmax = rmax
-    if amin < pi/2 < amax:  # asec traverses the +y axis
-        ymax = rmax
-    # NOTE: the annular sectors we consider never traverse the -x axis.
-
-    return Box(xmin, ymin, xmax - xmin, ymax - ymin)
+    return Box(xmin, ymin, max(xs) - xmin, max(ys) - ymin)
 
 
 def circumasec(rect):
     "Return the annular sector that circumscribes the given rectangle"
-    cdef double x, y, dx, dy
     if rect is None:
         return None
     x, y, dx, dy = rect

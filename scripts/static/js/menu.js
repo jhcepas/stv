@@ -161,6 +161,8 @@ function add_menu_style(dgui) {
         () => style("name").fill = view.names_color);
     folder_text.addColor(view, "lengths_color").name("lengths").onChange(
         () => style("length").fill = view.lengths_color);
+    folder_text.addColor(view, "supports_color").name("supports").onChange(
+        () => style("support").fill = view.supports_color);
     folder_text.add(view, "font_family", ["sans-serif", "serif", "monospace"])
         .name("font").onChange(() => style("font").fontFamily = view.font_family);
     folder_text.add(view, "font_size_auto").name("automatic size").onChange(
@@ -192,7 +194,13 @@ function add_menu_style(dgui) {
 
 function style(name) {
     const pos = {
-        "line": 1, "font": 3, "name": 4, "length": 5, "node": 6, "outline": 7,
+        "line": 1,
+        "font": 3,
+        "name": 4,
+        "length": 5,
+        "support": 6,
+        "node": 7,
+        "outline": 8,
     };
     return document.styleSheets[0].cssRules[pos[name]].style;
 }
