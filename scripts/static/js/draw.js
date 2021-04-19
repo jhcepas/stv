@@ -323,7 +323,7 @@ function create_arc(p1, p2, large, tl, z, type="") {
 function create_text(text, fs, point, tl, zx, zy, type="") {
     const [x, y] = [zx * (point[0] - tl.x), zy * (point[1] - tl.y)];
 
-    const dx = (type === "name") ? view.text_padding * fs / 100 : 0;
+    const dx = (type === "name") ? view.names.padding * fs / 100 : 0;
 
     const t = create_svg_element("text", {
         "class": "text " + type,
@@ -387,9 +387,9 @@ function get_approx_BBox(text) {
 // Return the font size adjusted for the given type of text.
 function font_adjust(type, fs) {
     if (type === "name")
-        return fs;  // no adjustments
+        return Math.min(view.names.max_size, fs);
+    else if (type === "length")
+        return Math.min(view.lengths.max_size, fs);
     else
-        return Math.min(view.font_size_max, fs);
-    // NOTE: we could modify the font size depending on other kinds of text
-    // (limiting their minimum and maximum sizes if appropriate, for example).
+        return fs;
 }
