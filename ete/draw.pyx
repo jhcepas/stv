@@ -239,7 +239,8 @@ class DrawerRect(Drawer):
         return Size(node.size[0] - abs(node.length), node.size[1])
 
     def is_small(self, box):
-        return box.dy * self.zoom[1] < self.MIN_SIZE
+        zx, zy = self.zoom
+        return box.dx * zx < self.MIN_SIZE or box.dy * zy < self.MIN_SIZE
 
     def get_box(self, element):
         return get_rect(element, self.zoom)
@@ -264,10 +265,12 @@ class DrawerCirc(Drawer):
                  aligned=False, limits=None, searches=None):
         super().__init__(tree, viewport, zoom, aligned, limits, searches)
 
+        assert self.zoom[0] == self.zoom[1], 'zoom must be equal in x and y'
+
         if not limits:
             self.ymin, self.ymax = -pi, pi
 
-        self.y2a = (self.ymax - self.ymin) / self.tree.size[1]
+        self.dy2da = (self.ymax - self.ymin) / self.tree.size[1]
 
     def in_viewport(self, box):
         return (intersects(self.viewport, circumrect(box)) and
@@ -281,18 +284,20 @@ class DrawerCirc(Drawer):
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
-        return Size(node.size[0], node.size[1] * self.y2a)
+        return Size(node.size[0], node.size[1] * self.dy2da)
 
     def content_size(self, node):
         "Return the size of the node's content"
-        return Size(abs(node.length), node.size[1] * self.y2a)
+        return Size(abs(node.length), node.size[1] * self.dy2da)
 
     def children_size(self, node):
         "Return the size of the node's children"
-        return Size(node.size[0] - abs(node.length), node.size[1] * self.y2a)
+        return Size(node.size[0] - abs(node.length), node.size[1] * self.dy2da)
 
     def is_small(self, box):
-        return (box.x + box.dx) * box.dy * self.zoom[0] < self.MIN_SIZE
+        z = self.zoom[0]  # zx == zy in this drawer
+        r, a, dr, da = box
+        return dr * z < self.MIN_SIZE or (r + dr) * da * z < self.MIN_SIZE
 
     def get_box(self, element):
         return get_asec(element, self.zoom)
@@ -307,7 +312,8 @@ class DrawerCirc(Drawer):
         (r1, a1), (r2, a2) = p1, p2
         a1, a2 = clip_angles(a1, a2)
         if a1 < a2:
-            yield draw_arc(cartesian((r1, a1)), cartesian((r2, a2)), a2 - a1 > pi)
+            is_large = a2 - a1 > pi
+            yield draw_arc(cartesian((r1, a1)), cartesian((r2, a2)), is_large)
 
     def draw_nodebox(self, node, node_id, box, result_of):
         r, a, dr, da = box
