@@ -246,7 +246,7 @@ class DrawerRect(Drawer):
 
     def is_small(self, box):
         zx, zy = self.zoom
-        return box.dx * zx < self.MIN_SIZE or box.dy * zy < self.MIN_SIZE
+        return box.dy * zy < self.MIN_SIZE
 
     def get_box(self, element):
         return get_rect(element, self.zoom)
@@ -303,7 +303,7 @@ class DrawerCirc(Drawer):
     def is_small(self, box):
         z = self.zoom[0]  # zx == zy in this drawer
         r, a, dr, da = box
-        return dr * z < self.MIN_SIZE or (r + dr) * da * z < self.MIN_SIZE
+        return (r + dr) * da * z < self.MIN_SIZE
 
     def get_box(self, element):
         return get_asec(element, self.zoom)
