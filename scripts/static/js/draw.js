@@ -278,8 +278,8 @@ function create_circ_cone(box, tl, z) {
 }
 
 
-// Create an element that, appended to a svg element (normally a box), will
-// make it show a tooltip showing nicely the contents of name and properties.
+// Return an element that, appended to a svg element (normally a box), will
+// make it show a tooltip showing nicely the given name and properties.
 function create_tooltip(name, properties) {
     const title = create_svg_element("title", {});
     const text = (name ? name : "(unnamed)") + "\n" +
