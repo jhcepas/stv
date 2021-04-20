@@ -195,7 +195,7 @@ class Drawer:
     def dx_fitting_texts(self, texts, dy):
         "Return a dx wide enough on the screen to fit all texts in the given dy"
         zx, zy = self.zoom
-        dy_char = zy * dy / len(texts)  # height of 1 char, in window units
+        dy_char = zy * dy / len(texts)  # height of 1 char, in screen units
         dx_char = dy_char / 1.5  # approximate width of a char
         max_len = max(len(t) for t in texts)  # number of chars of the longest
         return max_len * dx_char / zx  # in tree units
