@@ -66,11 +66,30 @@ const view = {
     select_text: false,
 
     // style
-    node: {opacity: 0, color: "#222"},
-    outline: {opacity: 0.1, color: "#A50", width: 0.5},
-    line: {color: "#000", width: 1},
-    names: {color: "#00A", padding: 10, font: "sans-serif", max_size: 100},
-    lengths: {color: "#888", font: "sans-serif", max_size: 15},
+    node: {
+        opacity: 0,
+        color: "#222",
+    },
+    outline: {
+        opacity: 0.1,
+        color: "#A50",
+        width: 0.5,
+    },
+    line: {
+        color: "#000",
+        width: 1,
+    },
+    names: {
+        color: "#00A",
+        font: "sans-serif",
+        max_size: 100,
+        padding: {left: 10, vertical: 0.20},
+    },
+    lengths: {
+        color: "#888",
+        font: "sans-serif",
+        max_size: 15,
+    },
     font_sizes: {auto: true, scroller: undefined, fixed: 10},
     array: {padding: 0.0},
 

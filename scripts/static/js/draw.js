@@ -125,29 +125,8 @@ function create_item(item, tl, zoom) {
     }
     else if (item[0] === "text") {
         const [ , box, anchor, text, type] = item;
-        if (!view.is_circular) {
-            const [x, y, dx, dy] = box;
-            const fs = Math.min(zx/zy * dx * 1.5 / text.length, dy);
-            const font_size = font_adjust(type, zy * fs);
-            const point = [x, y + dy];
 
-            return create_text(text, font_size, point, tl, zx, zy, type);
-        }
-        else {
-            const [r, a, dr, da] = box;
-            const fs = Math.min(dr * 1.5 / text.length, r * da);
-            const font_size = font_adjust(type, zy * fs);
-            const x = r * Math.cos(a+da),
-                  y = r * Math.sin(a+da);
-            const point = [x, y];
-
-            const t = create_text(text, font_size, point, tl, zx, zy, type);
-
-            const angle = Math.atan2(y, x) * 180 / Math.PI;
-            addRotation(t, angle, zx * (x - tl.x), zy * (y - tl.y));
-
-            return t;
-        }
+        return create_text(box, anchor, text, tl, zx, zy, type);
     }
     else if (item[0] === "array") {
         const [ , box, a] = item;
@@ -320,20 +299,64 @@ function create_arc(p1, p2, large, tl, z, type="") {
 }
 
 
-function create_text(text, fs, point, tl, zx, zy, type="") {
-    const [x, y] = [zx * (point[0] - tl.x), zy * (point[1] - tl.y)];
+function create_text(box, anchor, text, tl, zx, zy, type="") {
+    const [x, y, fs] = view.is_circular ?
+        get_text_placement_circ(box, anchor, text, tl, zx, zy, type) :
+        get_text_placement_rect(box, anchor, text, tl, zx, zy, type);
 
-    const dx = (type === "name") ? view.names.padding * fs / 100 : 0;
+    const dx = (type === "name") ? view.names.padding.left * fs / 100 : 0;
 
     const t = create_svg_element("text", {
         "class": "text " + type,
         "x": x + dx, "y": y,
         "font-size": `${fs}px`,
+        "data-x0": x,              // extra data that we save in the element
+        "data-box": box,           // (useful for reprocessing later without
+        "data-anchor": anchor,     // having to do new api calls)
     });
 
     t.appendChild(document.createTextNode(text));
 
+    if (view.is_circular) {
+        const angle = Math.atan2(zy * tl.y + y, zx * tl.x + x) * 180 / Math.PI;
+        addRotation(t, angle, x, y);
+    }
+
     return t;
+}
+
+
+// Return the position and font size to draw the text when box is a rect.
+function get_text_placement_rect(box, anchor, text, tl, zx, zy, type="") {
+    const [x, y, dx, dy] = box;
+
+    const fs_in_tree = Math.min(zx/zy * dx * 1.5 / text.length, dy);
+    const fs = font_adjust(zy * fs_in_tree, type);
+
+    const shift = 1 - fs / (zy * dy);
+    const [ax, ay] = anchor;
+    const x_in_tree = x + ax * shift * dx,
+          y_in_tree = y + ay * shift * dy + 0.9 * fs / zy;
+
+    return [zx * (x_in_tree - tl.x), zy * (y_in_tree - tl.y), fs];
+}
+
+
+// Return the position and font size to draw the text when box is an asec.
+function get_text_placement_circ(box, anchor, text, tl, zx, zy, type="") {
+    const [r, a, dr, da] = box;
+
+    const fs_in_tree = Math.min(dr * 1.5 / text.length, r * da);
+    const fs = font_adjust(zy * fs_in_tree, type);
+
+    const shift = 1 - fs / (zy * r * da);
+    const [ar, aa] = anchor;
+    const r_shifted = r + ar * shift * dr,
+          a_shifted = a + aa * shift * da + 0.9 * (fs / r) / zy;
+    const x_in_tree = r_shifted * Math.cos(a_shifted),
+          y_in_tree = r_shifted * Math.sin(a_shifted);
+
+    return [zx * (x_in_tree - tl.x), zy * (y_in_tree - tl.y), fs];
 }
 
 
@@ -385,9 +408,10 @@ function get_approx_BBox(text) {
 
 
 // Return the font size adjusted for the given type of text.
-function font_adjust(type, fs) {
+function font_adjust(fs, type) {
     if (type === "name")
-        return Math.min(view.names.max_size, fs);
+        return Math.min(view.names.max_size,
+                        (1 - view.names.padding.vertical) * fs);
     else if (type === "length")
         return Math.min(view.lengths.max_size, fs);
     else
