@@ -192,6 +192,14 @@ class Drawer:
         self.outline = None
         return Box(x, y, max(dx, minimum_dx), dy)
 
+    def dx_fitting_texts(self, texts, dy):
+        "Return a dx wide enough on the screen to fit all texts in the given dy"
+        zx, zy = self.zoom
+        dy_char = zy * dy / len(texts)  # height of 1 char, in screen units
+        dx_char = dy_char / 1.5  # approximate width of a char
+        max_len = max(len(t) for t in texts)  # number of chars of the longest
+        return max_len * dx_char / zx  # in tree units
+
     # These are the 3 functions that the user overloads to choose what to draw
     # and how when representing a node (or group of collapsed nodes):
 
@@ -239,7 +247,8 @@ class DrawerRect(Drawer):
         return Size(node.size[0] - abs(node.length), node.size[1])
 
     def is_small(self, box):
-        return box.dy * self.zoom[1] < self.MIN_SIZE
+        zx, zy = self.zoom
+        return box.dy * zy < self.MIN_SIZE
 
     def get_box(self, element):
         return get_rect(element, self.zoom)
@@ -264,10 +273,12 @@ class DrawerCirc(Drawer):
                  aligned=False, limits=None, searches=None):
         super().__init__(tree, viewport, zoom, aligned, limits, searches)
 
+        assert self.zoom[0] == self.zoom[1], 'zoom must be equal in x and y'
+
         if not limits:
             self.ymin, self.ymax = -pi, pi
 
-        self.y2a = (self.ymax - self.ymin) / self.tree.size[1]
+        self.dy2da = (self.ymax - self.ymin) / self.tree.size[1]
 
     def in_viewport(self, box):
         return (intersects(self.viewport, circumrect(box)) and
@@ -281,18 +292,20 @@ class DrawerCirc(Drawer):
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
-        return Size(node.size[0], node.size[1] * self.y2a)
+        return Size(node.size[0], node.size[1] * self.dy2da)
 
     def content_size(self, node):
         "Return the size of the node's content"
-        return Size(abs(node.length), node.size[1] * self.y2a)
+        return Size(abs(node.length), node.size[1] * self.dy2da)
 
     def children_size(self, node):
         "Return the size of the node's children"
-        return Size(node.size[0] - abs(node.length), node.size[1] * self.y2a)
+        return Size(node.size[0] - abs(node.length), node.size[1] * self.dy2da)
 
     def is_small(self, box):
-        return (box.x + box.dx) * box.dy * self.zoom[0] < self.MIN_SIZE
+        z = self.zoom[0]  # zx == zy in this drawer
+        r, a, dr, da = box
+        return (r + dr) * da * z < self.MIN_SIZE
 
     def get_box(self, element):
         return get_asec(element, self.zoom)
@@ -307,7 +320,8 @@ class DrawerCirc(Drawer):
         (r1, a1), (r2, a2) = p1, p2
         a1, a2 = clip_angles(a1, a2)
         if a1 < a2:
-            yield draw_arc(cartesian((r1, a1)), cartesian((r2, a2)), a2 - a1 > pi)
+            is_large = a2 - a1 > pi
+            yield draw_arc(cartesian((r1, a1)), cartesian((r2, a2)), is_large)
 
     def draw_nodebox(self, node, node_id, box, result_of):
         r, a, dr, da = box
@@ -356,9 +370,9 @@ class DrawerRectLeafNames(DrawerRect):
             x, y = point
             dx, dy = self.content_size(node)
 
-            p = (x + dx, y + dy/1.3)
-            fs = dy/1.4
-            yield draw_text(node.name, p, fs, 'name')
+            dx_fit = self.dx_fitting_texts([node.name], dy)
+            box = Box(x + dx, y, dx_fit, dy)
+            yield draw_text(box, (0, 0.5), node.name, 'name')
 
 
 class DrawerCircLeafNames(DrawerCirc):
@@ -369,10 +383,10 @@ class DrawerCircLeafNames(DrawerCirc):
             r, a = point
             dr, da = self.content_size(node)
 
-            if is_good_angle_interval(a, a + da):
-                p = cartesian((r + dr, a + da/1.3))
-                fs = (r + dr) * da/1.4
-                yield draw_text(node.name, p, fs, 'name')
+            if is_good_angle_interval(a, a + da) and r + dr > 0:
+                dr_fit = self.dx_fitting_texts([node.name], (r + dr) * da)
+                box = Box(r + dr, a, dr_fit, da)
+                yield draw_text(box, (0, 0.5), node.name, 'name')
 
 
 class DrawerRectLengths(DrawerRect):
@@ -385,10 +399,9 @@ class DrawerRectLengths(DrawerRect):
             zx, zy = self.zoom
 
             text = '%.2g' % node.length
-            p = (x, y + bdy)
-            fs = min(bdy, zx/zy * 1.5 * dx / len(text))
-            if fs * zy > self.MIN_SIZE:
-                yield draw_text(text, p, fs, 'length')
+            box = Box(x, y, dx, bdy)
+            if box.dx * zx > self.MIN_SIZE and box.dy * zy > self.MIN_SIZE:
+                yield draw_text(box, (0, 1), text, 'length')
 
 
 class DrawerCircLengths(DrawerCirc):
@@ -398,14 +411,13 @@ class DrawerCircLengths(DrawerCirc):
         if node.length >= 0:
             r, a = point
             dr, da = self.content_size(node)
-            zx, zy = self.zoom
+            z = self.zoom[0]  # zx == zy
 
             if is_good_angle_interval(a, a + da):
                 text = '%.2g' % node.length
-                p = cartesian((r, a + bda))
-                fs = min((r + dr) * bda, zx/zy * 1.5 * dr / len(text))
-                if fs * zy > self.MIN_SIZE:
-                    yield draw_text(text, p, fs, 'length')
+                box = Box(r, a, dr, bda)
+                if dr * z > self.MIN_SIZE and r * bda * z > self.MIN_SIZE:
+                    yield draw_text(box, (0, 1), text, 'length')
 
 
 class DrawerRectCollapsed(DrawerRectLeafNames):
@@ -422,9 +434,9 @@ class DrawerRectCollapsed(DrawerRectLeafNames):
         x, y, dx, dy = self.outline
 
         texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
-        p = (x + dx, y + dy/1.1)
-        fs = dy/1.2
-        yield from draw_texts_rect(texts, p, fs, 'name')
+        dx_fit = self.dx_fitting_texts(texts, dy)
+        box = Box(x + dx, y, dx_fit, dy)
+        yield from draw_texts(box, (0, 0.5), texts, 'name')
 
 
 class DrawerCircCollapsed(DrawerCircLeafNames):
@@ -443,9 +455,9 @@ class DrawerCircCollapsed(DrawerCircLeafNames):
             return
 
         texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
-        p = (r + dr, a + da/1.1)
-        fs = (r + dr) * da/1.2
-        yield from draw_texts_circ(texts, p, fs, 'name')
+        dr_fit = self.dx_fitting_texts(texts, (r + dr) * da)
+        box = Box(r + dr, a, dr_fit, da)
+        yield from draw_texts(box, (0, 0.5), texts, 'name')
 
 
 class DrawerRectFull(DrawerRectCollapsed, DrawerRectLengths):
@@ -472,7 +484,9 @@ class DrawerAlignNames(DrawerRectFull):
                     p2 = (self.viewport.x + self.viewport.dx, y + dy/2)
                     yield draw_line(p1, p2, 'dotted')
             else:
-                yield draw_text(node.name, (0, y + dy/1.5), dy/2, 'name')
+                dx_fit = self.dx_fitting_texts([node.name], dy)
+                box = Box(0, y, dx_fit, dy)
+                yield draw_text(box, (0, 0.5), node.name, 'name')
 
     def draw_collapsed(self):
         names = [first_name(node) for node in self.collapsed]
@@ -488,9 +502,9 @@ class DrawerAlignNames(DrawerRectFull):
                 yield draw_line(p1, p2, 'dotted')
         else:
             texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
-            p = (0, y + dy/1.1)
-            fs = dy/1.2
-            yield from draw_texts_rect(texts, p, fs, 'name')
+            dx_fit = self.dx_fitting_texts(texts, dy)
+            box = Box(0, y, dx_fit, dy)
+            yield from draw_texts(box, (0, 0.5), texts, 'name')
 
 
 
@@ -521,9 +535,9 @@ class DrawerAlignHeatMap(DrawerRectFull):
         else:
             if all(name == '' for name in names):
                 return
-            p = (x + dx, y + dy/1.1)
-            fs = dy/1.2
-            yield from draw_texts_rect(texts, p, fs, 'name')
+            dx_fit = self.dx_fitting_texts(texts, dy)
+            box = Box(x + dx, y, dx_fit, dy)
+            yield from draw_texts(box, (0, 0.5), texts, 'name')
 
 
 def get_drawers():
@@ -538,26 +552,13 @@ def first_name(tree):
     return next((node.name for node in tree if node.name), '')
 
 
-def draw_texts_rect(texts, point, fs, text_type):
-    "Yield texts from the bottom-left point, with total height fs"
-    alpha = 0.2  # space between texts, as a fraction of the font size
-    font_size = fs / (len(texts) + (len(texts) - 1) * alpha)
-    x, y = point
-    dy = font_size * (1 + alpha)
-    for text in texts[::-1]:
-        yield draw_text(text, (x, y), font_size, text_type)
-        y -= dy
-
-
-def draw_texts_circ(texts, point, fs, text_type):
-    "Yield texts from the inner-smaller-angle point, with total height fs"
-    alpha = 0.2  # space between texts, as a fraction of the font size
-    font_size = fs / (len(texts) + (len(texts) - 1) * alpha)
-    r, a = point
-    da = font_size * (1 + alpha) / r if r > 0 else 2*pi
-    for text in texts[::-1]:
-        yield draw_text(text, cartesian((r, a)), font_size, text_type)
-        a -= da
+def draw_texts(box, anchor, texts, text_type):
+    "Yield texts so they fit in the box"
+    dy = box.dy / len(texts)
+    y = box.y
+    for text in texts:
+        yield draw_text(Box(box.x, y, box.dx, dy), anchor, text, text_type)
+        y += dy
 
 
 # Basic drawing elements.
@@ -574,8 +575,8 @@ def draw_line(p1, p2, line_type='', parent_of=None):
 def draw_arc(p1, p2, large=False, arc_type=''):
     return ['arc', p1, p2, int(large), arc_type]
 
-def draw_text(text, point, fs, text_type=''):
-    return ['text', text, point, fs, text_type]
+def draw_text(box, anchor, text, text_type=''):
+    return ['text', box, anchor, text, text_type]
 
 def draw_array(box, a):
     return ['array', box, a]
@@ -592,15 +593,11 @@ def make_box(point, size):
 def get_rect(element, zoom):
     "Return the rectangle that contains the given graphic element"
     eid = element[0]
-    if eid in ['box', 'cone', 'array']:
+    if eid in ['box', 'cone', 'array', 'text']:
         return element[1]
     elif eid in ['line', 'arc']:
         (x1, y1), (x2, y2) = element[1], element[2]
         return Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
-    elif eid == 'text':
-        _, text, (x, y), fs, _ = element
-        zx, zy = zoom
-        return Box(x, y - fs, zy/zx * fs / 1.5 * len(text), fs)
     else:
         raise ValueError(f'unrecognized element: {element!r}')
 
@@ -608,19 +605,12 @@ def get_rect(element, zoom):
 def get_asec(element, zoom):
     "Return the annular sector that contains the given graphic element"
     eid = element[0]
-    if eid in ['box', 'cone', 'array']:
+    if eid in ['box', 'cone', 'array', 'text']:
         return element[1]
     elif eid in ['line', 'arc']:
         (x1, y1), (x2, y2) = element[1], element[2]
         rect = Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
         return circumasec(rect)
-    elif eid == 'text':
-        _, text, point, fs, _ = element
-        r, a = polar(point)
-        zx, zy = zoom
-        dr = zy/zx * fs / 1.5 * len(text)
-        da = fs/r if r > 0 else 2*pi
-        return Box(r, a - da, dr, da)
     else:
         raise ValueError(f'unrecognized element: {element!r}')
 

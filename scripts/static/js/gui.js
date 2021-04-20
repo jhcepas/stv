@@ -26,13 +26,17 @@ const view = {
     tree: "",
     tree_size: {width: 0, height: 0},
     subtree: "",
-    sorting: {sort: () => sort(),
-              key: '(dy, dx, name)',
-              reverse: false},
+    sorting: {
+        sort: () => sort(),
+        key: '(dy, dx, name)',
+        reverse: false,
+    },
     upload: () => window.location.href = "upload_tree.html",
-    download: {newick: () => download_newick(),
-               svg:    () => download_svg(),
-               image:  () => download_image()},
+    download: {
+        newick: () => download_newick(),
+        svg:    () => download_svg(),
+        image:  () => download_image(),
+    },
     allow_modifications: true,
 
     // representation
@@ -62,22 +66,41 @@ const view = {
     select_text: false,
 
     // style
-    node: {opacity: 0, color: "#222"},
-    outline: {opacity: 0.1, color: "#A50", width: 0.5},
-    line: {color: "#000", width: 1},
-    names_color: "#00A",
-    lengths_color: "#888",
-    font_family: "sans-serif",
-    font_size_auto: true,
-    font_size_scroller: undefined,
-    font_size: 10,
-    font_size_max: 15,
-    text_padding: 10,
+    node: {
+        opacity: 0,
+        color: "#222",
+    },
+    outline: {
+        opacity: 0.1,
+        color: "#A50",
+        width: 0.5,
+    },
+    line: {
+        color: "#000",
+        width: 1,
+    },
+    names: {
+        color: "#00A",
+        font: "sans-serif",
+        max_size: 100,
+        padding: {left: 10, vertical: 0.20},
+    },
+    lengths: {
+        color: "#888",
+        font: "sans-serif",
+        max_size: 15,
+    },
+    font_sizes: {auto: true, scroller: undefined, fixed: 10},
     array: {padding: 0.0},
 
     // minimap
-    minimap: {show: true, uptodate: false, width: 10, height: 40,
-              zoom: {x: 1, y: 1}},
+    minimap: {
+        show: true,
+        uptodate: false,
+        width: 10,
+        height: 40,
+        zoom: {x: 1, y: 1},
+    },
 
     smart_zoom: true,
 

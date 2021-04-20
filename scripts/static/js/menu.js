@@ -157,30 +157,66 @@ function add_menu_style(dgui) {
 
     const folder_text = folder_style.addFolder("text");
 
-    folder_text.addColor(view, "names_color").name("names").onChange(
-        () => style("name").fill = view.names_color);
-    folder_text.addColor(view, "lengths_color").name("lengths").onChange(
-        () => style("length").fill = view.lengths_color);
-    folder_text.add(view, "font_family", ["sans-serif", "serif", "monospace"])
-        .name("font").onChange(() => style("font").fontFamily = view.font_family);
-    folder_text.add(view, "font_size_auto").name("automatic size").onChange(
+    const folder_names = folder_text.addFolder("names");
+
+    folder_names.addColor(view.names, "color").onChange(
+        () => style("name").fill = view.names.color);
+
+    const folder_padding = folder_names.addFolder("padding");
+
+    folder_padding.add(view.names.padding, "left", -20, 200).onChange(() => {
+        update();
+
+        // TODO: avoid the api call by using something like the code below
+        //   which needs fixing for the case of inverted texts in circular rep.
+        // const padding = view.names.padding.left / 100;
+        // Array.from(div_tree.getElementsByClassName("name")).forEach(t => {
+        //     const fs = Number(t.getAttribute("font-size").slice(0, -2));
+        //     const x0 = Number(t.getAttribute("data-x0"));
+        //     t.setAttribute("x", x0 + padding * fs);
+    });
+    folder_padding.add(view.names.padding, "vertical", 0, 1).step(0.01).onChange(
+        () => {
+            update();
+
+            // TODO: avoid the api call by using something like the code below:
+            // Array.from(div_tree.getElementsByClassName("name")).forEach(t => {
+            // const box = t.getAttribute("data-box").split(",").map(Number);
+            // const anchor = t.getAttribute("data-anchor").split(",").map(Number);
+    });
+    folder_names.add(view.names, "font", ["sans-serif", "serif", "monospace"])
+        .onChange(() => style("name").fontFamily = view.names.font);
+    folder_names.add(view.names, "max_size", 1, 200).name("max size").onChange(
+        () => {
+            // TODO: avoid the api call.
+            update();
+    });
+
+    const folder_lengths = folder_text.addFolder("lengths");
+
+    folder_lengths.addColor(view.lengths, "color").name("lengths").onChange(
+        () => style("length").fill = view.lengths.color);
+    folder_lengths.add(view.lengths, "font", ["sans-serif", "serif", "monospace"])
+        .onChange(() => style("length").fontFamily = view.lengths.font);
+    folder_lengths.add(view.lengths, "max_size", 1, 100).name("max size").onChange(
+        () => {
+            // TODO: avoid the api call.
+            update();
+    });
+    folder_text.add(view.font_sizes, "auto").name("automatic size").onChange(
         () => {
             style("font").fontSize =
-                view.font_size_auto ? "" : `${view.font_size}px`;
+                view.font_sizes.auto ? "" : `${view.font_sizes.fixed}px`;
 
-            if (view.font_size_auto && view.font_size_scroller)
-                view.font_size_scroller.remove();
+            if (view.font_sizes.auto && view.font_sizes.scroller)
+                view.font_sizes.scroller.remove();
             else
-                view.font_size_scroller = create_font_size_scroller();
+                view.font_sizes.scroller = create_font_size_scroller();
     });
-    folder_text.add(view, "font_size_max", 1, 100).name("max size").onChange(
-        update);
-    folder_text.add(view, "text_padding", -20, 200).name("padding").onChange(
-        update);
 
     function create_font_size_scroller() {
-        return folder_text.add(view, "font_size", 0.1, 50).name("font size")
-            .onChange(() => style("font").fontSize = `${view.font_size}px`);
+        return folder_text.add(view.font_sizes, "fixed", 0.1, 50).onChange(
+            () => style("font").fontSize = `${view.font_sizes.fixed}px`);
     }
 
     const folder_array = folder_style.addFolder("array");

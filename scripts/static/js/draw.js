@@ -124,19 +124,9 @@ function create_item(item, tl, zoom) {
         return create_arc(p1, p2, large, tl, zx, type);
     }
     else if (item[0] === "text") {
-        const [ , text, point, fs, type] = item;
-        const font_size = font_adjust(type, zy * fs);
+        const [ , box, anchor, text, type] = item;
 
-        const t = create_text(text, font_size, point, tl, zx, zy, type);
-
-        if (view.is_circular) {
-            const [x, y] = point;
-            const angle = Math.atan2(y, x) * 180 / Math.PI;
-            t.setAttributeNS(null, "transform",
-                `rotate(${angle}, ${zx * (x - tl.x)}, ${zy * (y - tl.y)})`);
-        }
-
-        return t;
+        return create_text(box, anchor, text, tl, zx, zy, type);
     }
     else if (item[0] === "array") {
         const [ , box, a] = item;
@@ -267,8 +257,8 @@ function create_circ_cone(box, tl, z) {
 }
 
 
-// Create an element that, appended to a svg element (normally a box), will
-// make it show a tooltip showing nicely the contents of name and properties.
+// Return an element that, appended to a svg element (normally a box), will
+// make it show a tooltip showing nicely the given name and properties.
 function create_tooltip(name, properties) {
     const title = create_svg_element("title", {});
     const text = (name ? name : "(unnamed)") + "\n" +
@@ -309,20 +299,74 @@ function create_arc(p1, p2, large, tl, z, type="") {
 }
 
 
-function create_text(text, fs, point, tl, zx, zy, type="") {
-    const [x, y] = [zx * (point[0] - tl.x), zy * (point[1] - tl.y)];
+function create_text(box, anchor, text, tl, zx, zy, type="") {
+    const [x, y, fs] = view.is_circular ?
+        get_text_placement_circ(box, anchor, text, tl, zx, zy, type) :
+        get_text_placement_rect(box, anchor, text, tl, zx, zy, type);
 
-    const dx = (type === "name") ? view.text_padding * fs / 100 : 0;
+    const dx = (type === "name") ? view.names.padding.left * fs / 100 : 0;
 
     const t = create_svg_element("text", {
         "class": "text " + type,
         "x": x + dx, "y": y,
         "font-size": `${fs}px`,
+        "data-x0": x,              // extra data that we save in the element
+        "data-box": box,           // (useful for reprocessing later without
+        "data-anchor": anchor,     // having to do new api calls)
     });
 
     t.appendChild(document.createTextNode(text));
 
+    if (view.is_circular) {
+        const angle = Math.atan2(zy * tl.y + y, zx * tl.x + x) * 180 / Math.PI;
+        addRotation(t, angle, x, y);
+    }
+
     return t;
+}
+
+
+// Return the position and font size to draw the text when box is a rect.
+function get_text_placement_rect(box, anchor, text, tl, zx, zy, type="") {
+    const [x, y, dx, dy] = box;
+
+    const dx_char = dx / text.length;  // ~ width of 1 char (in tree units)
+    const fs_max = Math.min(zx * dx_char * 1.5, zy * dy);
+    const fs = font_adjust(fs_max, type);
+
+    const shift = 1 - fs / (zy * dy);
+    const [ax, ay] = anchor;
+    const x_in_tree = x + ax * shift * dx,
+          y_in_tree = y + ay * shift * dy + 0.9 * fs / zy;
+    // We give the position as the bottom-left point, the same convention as in
+    // svgs. We go a bit up (0.9 instead of 1.0) because of the baseline.
+
+    return [zx * (x_in_tree - tl.x), zy * (y_in_tree - tl.y), fs];
+}
+
+
+// Return the position and font size to draw the text when box is an asec.
+function get_text_placement_circ(box, anchor, text, tl, zx, zy, type="") {
+    if (zx !== zy)
+        throw new Error("different zoom x and y in circular view");
+
+    const z = zx;
+    const [r, a, dr, da] = box;
+
+    const dr_char = dr / text.length;  // ~ dr of 1 char (in tree units)
+    const fs_max = z * Math.min(dr_char * 1.5, r * da);
+    const fs = font_adjust(fs_max, type);
+
+    const shift = 1 - fs / (z * r * da);
+    const [ar, aa] = anchor;
+    const r_shifted = r + ar * shift * dr,
+          a_shifted = a + aa * shift * da + 0.9 * (fs / r) / z;
+    // We give the position as the bottom-left point, the same convention as in
+    // svgs. We go a bit up (0.9 instead of 1.0) because of the baseline.
+    const x_in_tree = r_shifted * Math.cos(a_shifted),
+          y_in_tree = r_shifted * Math.sin(a_shifted);
+
+    return [z * (x_in_tree - tl.x), z * (y_in_tree - tl.y), fs];
 }
 
 
@@ -350,9 +394,16 @@ function get_font_size(text) {
 
 // Apply svg transformation to flip the given text (bounded by bbox).
 function flip_with_bbox(text, bbox) {
-    const rot180 = text.ownerSVGElement.createSVGTransform();
-    rot180.setRotate(180, bbox.x + bbox.width/2, bbox.y + bbox.height/2);
-    text.transform.baseVal.appendItem(rot180);
+    addRotation(text, 180, bbox.x + bbox.width/2, bbox.y + bbox.height/2);
+}
+
+
+// Add rotation to element, with angle in degrees and centered around (cx, cy).
+function addRotation(element, angle, cx=0, cy=0) {
+    const svg = div_tree.children[0];
+    const tr = svg.createSVGTransform();
+    tr.setRotate(angle, cx, cy);
+    element.transform.baseVal.appendItem(tr);
 }
 
 
@@ -367,11 +418,12 @@ function get_approx_BBox(text) {
 
 
 // Return the font size adjusted for the given type of text.
-function font_adjust(type, fs) {
+function font_adjust(fs, type) {
     if (type === "name")
-        return fs;  // no adjustments
+        return Math.min(view.names.max_size,
+                        (1 - view.names.padding.vertical) * fs);
+    else if (type === "length")
+        return Math.min(view.lengths.max_size, fs);
     else
-        return Math.min(view.font_size_max, fs);
-    // NOTE: we could modify the font size depending on other kinds of text
-    // (limiting their minimum and maximum sizes if appropriate, for example).
+        return fs;
 }
