@@ -186,6 +186,12 @@ class Drawer:
 
         yield from graphics
 
+    def flush_outline(self, minimum_dx=0):
+        "Return box outlining the collapsed nodes and reset the current outline"
+        x, y, dx, dy = self.outline
+        self.outline = None
+        return Box(x, y, max(dx, minimum_dx), dy)
+
     def dx_fitting_texts(self, texts, dy):
         "Return a dx wide enough on the screen to fit all texts in the given dy"
         zx, zy = self.zoom
@@ -193,12 +199,6 @@ class Drawer:
         dx_char = dy_char / 1.5  # approximate width of a char
         max_len = max(len(t) for t in texts)  # number of chars of the longest
         return max_len * dx_char / zx  # in tree units
-
-    def flush_outline(self, minimum_dx=0):
-        "Return box outlining the collapsed nodes and reset the current outline"
-        x, y, dx, dy = self.outline
-        self.outline = None
-        return Box(x, y, max(dx, minimum_dx), dy)
 
     # These are the 3 functions that the user overloads to choose what to draw
     # and how when representing a node (or group of collapsed nodes):
