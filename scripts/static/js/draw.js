@@ -330,13 +330,16 @@ function create_text(box, anchor, text, tl, zx, zy, type="") {
 function get_text_placement_rect(box, anchor, text, tl, zx, zy, type="") {
     const [x, y, dx, dy] = box;
 
-    const fs_in_tree = Math.min(zx/zy * dx * 1.5 / text.length, dy);
-    const fs = font_adjust(zy * fs_in_tree, type);
+    const dx_char = dx / text.length;  // ~ width of 1 char (in tree units)
+    const fs_max = Math.min(zx * dx_char * 1.5, zy * dy);
+    const fs = font_adjust(fs_max, type);
 
     const shift = 1 - fs / (zy * dy);
     const [ax, ay] = anchor;
     const x_in_tree = x + ax * shift * dx,
           y_in_tree = y + ay * shift * dy + 0.9 * fs / zy;
+    // We give the position as the bottom-left point, the same convention as in
+    // svgs. We go a bit up (0.9 instead of 1.0) because of the baseline.
 
     return [zx * (x_in_tree - tl.x), zy * (y_in_tree - tl.y), fs];
 }
@@ -344,19 +347,26 @@ function get_text_placement_rect(box, anchor, text, tl, zx, zy, type="") {
 
 // Return the position and font size to draw the text when box is an asec.
 function get_text_placement_circ(box, anchor, text, tl, zx, zy, type="") {
+    if (zx !== zy)
+        throw new Error("different zoom x and y in circular view");
+
+    const z = zx;
     const [r, a, dr, da] = box;
 
-    const fs_in_tree = Math.min(dr * 1.5 / text.length, r * da);
-    const fs = font_adjust(zy * fs_in_tree, type);
+    const dr_char = dr / text.length;  // ~ dr of 1 char (in tree units)
+    const fs_max = z * Math.min(dr_char * 1.5, r * da);
+    const fs = font_adjust(fs_max, type);
 
-    const shift = 1 - fs / (zy * r * da);
+    const shift = 1 - fs / (z * r * da);
     const [ar, aa] = anchor;
     const r_shifted = r + ar * shift * dr,
-          a_shifted = a + aa * shift * da + 0.9 * (fs / r) / zy;
+          a_shifted = a + aa * shift * da + 0.9 * (fs / r) / z;
+    // We give the position as the bottom-left point, the same convention as in
+    // svgs. We go a bit up (0.9 instead of 1.0) because of the baseline.
     const x_in_tree = r_shifted * Math.cos(a_shifted),
           y_in_tree = r_shifted * Math.sin(a_shifted);
 
-    return [zx * (x_in_tree - tl.x), zy * (y_in_tree - tl.y), fs];
+    return [z * (x_in_tree - tl.x), z * (y_in_tree - tl.y), fs];
 }
 
 
