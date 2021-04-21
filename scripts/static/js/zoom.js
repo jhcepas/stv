@@ -13,7 +13,7 @@ const zooming = {qz: {x: 1, y: 1}, timeout: undefined};
 // Zoom the current view into the area defined by the given box, with a border
 // marking the fraction of zoom-out (to see a bit the surroundings).
 function zoom_into_box(box, border=0.10) {
-    if (!view.is_circular) {
+    if (view.drawer.type === "rect") {
         const [x, y, w, h] = box;
         view.tl.x = x - border * w;
         view.tl.y = y - border * h;
@@ -50,7 +50,10 @@ function zoom_around(point, zoom_in, do_zoom={x:true, y:true}) {
     const qz = {x: (zoom_in ? 1.25 : 0.8),  // zoom change (quotient)
                 y: (zoom_in ? 1.25 : 0.8)};
 
-    if (view.is_circular) {
+    if (view.drawer.type === "rect") {
+        zoom_xy(point, qz, do_zoom);
+    }
+    else {
         if (do_zoom.x) {
             do_zoom.y = true;  // both dimensions zoom together in circular
             zoom_xy(point, qz, do_zoom);
@@ -58,9 +61,6 @@ function zoom_around(point, zoom_in, do_zoom={x:true, y:true}) {
         else if (do_zoom.y) {
             zoom_angular(point, qz);
         }
-    }
-    else {
-        zoom_xy(point, qz, do_zoom);
     }
 }
 

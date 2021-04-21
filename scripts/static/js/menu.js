@@ -62,7 +62,8 @@ function add_menu_tree(dgui, trees) {
 function add_menu_representation(dgui, drawers) {
     const folder_repr = dgui.addFolder("representation");
 
-    folder_repr.add(view, "drawer", drawers).onChange(on_drawer_change);
+    folder_repr.add(view.drawer, "name", drawers).name("drawer").onChange(
+        on_drawer_change);
     folder_repr.add(view, "align_bar", 0, 100).name("align bar").onChange(
         (value) => div_aligned.style.width = `${100 - value}%`);
 
@@ -238,7 +239,7 @@ function add_menu_minimap(dgui) {
     const folder_minimap = dgui.addFolder("minimap");
 
     folder_minimap.add(view.minimap, "width", 0, 100).onChange(() => {
-        if (view.is_circular) {
+        if (view.drawer.type === "circ") {
             view.minimap.height = view.minimap.width * div_tree.offsetWidth
                                                      / div_tree.offsetHeight;
             dgui.updateDisplay();
@@ -246,7 +247,7 @@ function add_menu_minimap(dgui) {
         draw_minimap();
     });
     folder_minimap.add(view.minimap, "height", 0, 100).onChange(() => {
-        if (view.is_circular) {
+        if (view.drawer.type === "circ") {
             view.minimap.width = view.minimap.height * div_tree.offsetHeight
                                                      / div_tree.offsetWidth;
             dgui.updateDisplay();

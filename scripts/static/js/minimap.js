@@ -17,17 +17,19 @@ async function draw_minimap() {
     adjust_size_and_zoom();
 
     let qs = `zx=${view.minimap.zoom.x}&zy=${view.minimap.zoom.y}`;
-    if (view.is_circular)
-        qs += `&drawer=CircSimple&rmin=${view.rmin}` +
-              `&amin=${view.angle.min}&amax=${view.angle.max}`;
+    if (view.drawer.type === "rect")
+        qs += "&drawer=Rect";
     else
-        qs += "&drawer=RectSimple";
+        qs += `&drawer=Circ&rmin=${view.rmin}` +
+              `&amin=${view.angle.min}&amax=${view.angle.max}`;
 
     const items = await api(`/trees/${get_tid()}/draw?${qs}`);
 
     const mbw = 3;  // border-width from .minimap css
     const offset = -(div_minimap.offsetWidth - 2*mbw) / view.minimap.zoom.x / 2;
-    const tl = view.is_circular ? {x: offset, y: offset} : {x: 0, y: 0};
+    const tl = view.drawer.type === "rect" ?
+        {x: 0, y: 0} :
+        {x: offset, y: offset};
 
     draw(div_minimap, items, tl, view.minimap.zoom);
 
@@ -45,18 +47,18 @@ function adjust_size_and_zoom() {
     const mbw = 3;  // border-width from .minimap css
     const w = (view.minimap.width / 100) * div_tree.offsetWidth,
           h = (view.minimap.height / 100) * div_tree.offsetHeight;
-    if (view.is_circular) {
+    if (view.drawer.type === "rect") {
+        div_minimap.style.width = `${w}px`;
+        div_minimap.style.height = `${h}px`;
+        view.minimap.zoom.x = (div_minimap.offsetWidth - 2*mbw) / size.width;
+        view.minimap.zoom.y = (div_minimap.offsetHeight - 2*mbw) / size.height;
+    }
+    else {
         div_minimap.style.width = div_minimap.style.height =
             `${Math.min(w, h)}px`;
 
         view.minimap.zoom.x = view.minimap.zoom.y =
             (div_minimap.offsetWidth - 2*mbw) / (view.rmin + size.width) / 2;
-    }
-    else {
-        div_minimap.style.width = `${w}px`;
-        div_minimap.style.height = `${h}px`;
-        view.minimap.zoom.x = (div_minimap.offsetWidth - 2*mbw) / size.width;
-        view.minimap.zoom.y = (div_minimap.offsetHeight - 2*mbw) / size.height;
     }
 }
 
@@ -76,7 +78,7 @@ function update_minimap_visible_rect() {
     let tx = round(mz.x * view.tl.x),  // top-left corner of visible area
         ty = round(mz.y * view.tl.y);  //   in tree coordinates (scaled)
 
-    if (view.is_circular) {
+    if (view.drawer.type === "circ") {
         tx += mw / 2;
         ty += mh / 2;
     }
@@ -100,7 +102,7 @@ function move_minimap_view(point) {
 
     // Top-left pixel coordinates of the tree (0, 0) position in the minimap.
     let [x0, y0] = [div_minimap.offsetLeft + mbw, div_minimap.offsetTop + mbw];
-    if (view.is_circular) {
+    if (view.drawer.type === "circ") {
         x0 += (div_minimap.offsetWidth - 2 * mbw) / 2;
         y0 += (div_minimap.offsetHeight - 2 * mbw) / 2;
     }

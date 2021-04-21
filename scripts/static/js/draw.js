@@ -7,14 +7,14 @@ import { on_box_contextmenu } from "./contextmenu.js";
 import { colorize_tags } from "./tag.js";
 import { api } from "./api.js";
 
-export { update, update_tree, create_rect, create_asec, draw };
+export { update, draw_tree, draw };
 
 
 // Update the view of all elements (gui, tree, minimap).
 function update() {
     datgui.updateDisplay();  // update the info box on the top-right
 
-    update_tree();
+    draw_tree();
 
     if (view.minimap.show)
         update_minimap_visible_rect();
@@ -22,17 +22,25 @@ function update() {
 
 
 // Ask the server for a tree in the new defined region, and draw it.
-async function update_tree() {
+async function draw_tree() {
     const [zx, zy] = [view.zoom.x, view.zoom.y];
     const [x, y] = [view.tl.x, view.tl.y];
     const [w, h] = [div_tree.offsetWidth / zx, div_tree.offsetHeight / zy];
 
     div_tree.style.cursor = "wait";
 
-    let qs = `drawer=${view.drawer}&min_size=${view.min_size}&` +
-             `zx=${zx}&zy=${zy}&x=${x}&y=${y}&w=${w}&h=${h}`;
-    if (view.is_circular)
-        qs += `&rmin=${view.rmin}&amin=${view.angle.min}&amax=${view.angle.max}`;
+    const params_rect = {  // parameters we have to pass to the drawer
+        "drawer": view.drawer.name, "min_size": view.min_size,
+        "zx": zx, "zy": zy, "x": x, "y": y, "w": w, "h": h,
+    };
+
+    const params_circ = {  // parameters to the drawer, in circular mode
+        ...params_rect,  // all the parameters in params_rect, plus:
+        "rmin": view.rmin, "amin": view.angle.min, "amax": view.angle.max,
+    };
+
+    const params = view.drawer.type === "rect" ? params_rect : params_circ;
+    const qs = new URLSearchParams(params).toString();  // "x=...&y=..."
 
     try {
         const items = await api(`/trees/${get_tid()}/draw?${qs}`);
@@ -43,10 +51,8 @@ async function update_tree() {
         colorize_tags();
         colorize_searches();
 
-        if (view.drawer.startsWith("Align")) {
-            const aitems = await api(`/trees/${get_tid()}/draw?${qs}&aligned`);
-            draw(div_aligned, aitems, {x: 0, y: view.tl.y}, view.zoom);
-        }
+        if (view.drawer.npanels > 1)
+            draw_aligned(params);
     }
     catch (ex) {
         Swal.fire({
@@ -59,10 +65,26 @@ async function update_tree() {
 }
 
 
-// Drawing.
-
 // Append a svg to the given element, with all the items in the list drawn.
-async function draw(element, items, tl, zoom) {
+// The first child of element will be used or replaced as a svg.
+function draw(element, items, tl, zoom, replace=true) {
+    const g = create_svg_element("g");
+
+    items.forEach(item => g.appendChild(create_item(item, tl, zoom)));
+
+    if (replace)
+        replace_svg(element);
+
+    const svg = element.children[0];
+    svg.appendChild(g);
+
+    if (view.drawer.type === "circ" && replace)
+        fix_text_orientations(element);
+        // TODO: find a better criterium than "&& replace"
+}
+
+
+function replace_svg(element) {
     const svg = create_svg_element("svg", {
         "width": element.offsetWidth,
         "height": element.offsetHeight,
@@ -72,15 +94,29 @@ async function draw(element, items, tl, zoom) {
         element.children[0].replaceWith(svg);
     else
         element.appendChild(svg);
+}
 
-    const g = create_svg_element("g");
 
-    items.forEach(item => g.appendChild(create_item(item, tl, zoom)));
+// Draw elements that belong to panels above 0.
+// NOTE: Only implemented for panel=1 for the moment.
+async function draw_aligned(params) {
+    if (view.drawer.type === "rect") {
+        const qs = new URLSearchParams({...params, "panel": 1}).toString();
 
-    svg.appendChild(g);
+        const items = await api(`/trees/${get_tid()}/draw?${qs}`);
 
-    if (view.is_circular)
-        fix_text_orientations(element);
+        draw(div_aligned, items, {x: 0, y: view.tl.y}, view.zoom);
+    }
+    else {
+        const qs = new URLSearchParams({
+            ...params, "panel": 1,
+            "rmin": view.rmin + view.tree_size.width}).toString();
+
+        const items = await api(`/trees/${get_tid()}/draw?${qs}`);
+
+        const replace = false;
+        draw(div_tree, items, view.tl, view.zoom, replace);
+    }
 }
 
 
@@ -90,11 +126,15 @@ function create_item(item, tl, zoom) {
 
     const [zx, zy] = [zoom.x, zoom.y];  // shortcut
 
-    if (item[0] === "box") {
+    if (item[0] === "nodebox") {
         const [ , box, name, properties, node_id, result_of] = item;
 
-        const b = create_box(box, tl, zx, zy, result_of);
+        const b = create_box(box, tl, zx, zy);
+
         b.id = "node-" + node_id.join("_");
+
+        b.classList.add("node");
+        result_of.forEach(t => b.classList.add(get_search_class(t, "results")));
 
         b.addEventListener("click", event =>
             on_box_click(event, box, node_id));
@@ -108,10 +148,10 @@ function create_item(item, tl, zoom) {
 
         return b;
     }
-    else if (item[0] === "cone") {
+    else if (item[0] === "outline") {
         const [ , box] = item;
 
-        return create_cone(box, tl, zx, zy);
+        return create_outline(box, tl, zx, zy);
     }
     else if (item[0] === "line") {
         const [ , p1, p2, type, parent_of] = item;
@@ -129,16 +169,18 @@ function create_item(item, tl, zoom) {
         return create_text(box, anchor, text, tl, zx, zy, type);
     }
     else if (item[0] === "array") {
-        const [ , box, a] = item;
+        const [ , box, array] = item;
         const [x0, y0, dx0, dy0] = box;
-        const dx = dx0 / a.length / zx;
+        const dx = dx0 / array.length / zx;
 
         const [y, dy] = pad(y0, dy0, view.array.padding);
 
         const g = create_svg_element("g");
-        for (let i = 0, x = 0; i < a.length; i++, x+=dx) {
-            const r = create_rect([x, y, dx, dy], tl, zx, zy, "array");
-            r.style.stroke = `hsl(${a[i]}, 100%, 50%)`;
+        for (let i = 0, x = x0; i < array.length; i++, x+=dx) {
+            const r = view.drawer.type === "rect" ?
+                create_rect([x, y, dx, dy], tl, zx, zy) :
+                create_asec([x, y, dx, dy], tl, zx);
+            r.style.stroke = `hsl(${array[i]}, 100%, 50%)`;
             g.appendChild(r);
         }
 
@@ -163,22 +205,19 @@ function create_svg_element(name, attrs={}) {
 
 
 // Return a box (rectangle or annular sector).
-function create_box(box, tl, zx, zy, result_of=[]) {
-    const classes = "node " +
-        result_of.map(text => get_search_class(text, "results")).join(" ");
-
-    if (view.is_circular)
-        return create_asec(box, tl, zx, classes);
-    else
-        return create_rect(box, tl, zx, zy, classes);
+function create_box(box, tl, zx, zy) {
+    const b = view.drawer.type === "rect" ?
+                    create_rect(box, tl, zx, zy) :
+                    create_asec(box, tl, zx);
+    b.classList.add("box");
+    return b;
 }
 
 
-function create_rect(box, tl, zx, zy, type="") {
+function create_rect(box, tl, zx, zy) {
     const [x, y, w, h] = box;
 
     return create_svg_element("rect", {
-        "class": "box " + type,
         "x": zx * (x - tl.x), "y": zy * (y - tl.y),
         "width": zx * w, "height": zy * h,
     });
@@ -186,7 +225,7 @@ function create_rect(box, tl, zx, zy, type="") {
 
 
 // Return a svg annular sector, described by box and with zoom z.
-function create_asec(box, tl, z, type="") {
+function create_asec(box, tl, z) {
     const [r, a, dr, da] = box;
     const large = da > Math.PI ? 1 : 0;
     const p00 = cartesian_shifted(r, a, tl, z),
@@ -195,7 +234,6 @@ function create_asec(box, tl, z, type="") {
           p11 = cartesian_shifted(r + dr, a + da, tl, z);
 
     return create_svg_element("path", {
-        "class": "box " + type,
         "d": `M ${p00.x} ${p00.y}
               L ${p10.x} ${p10.y}
               A ${z * (r + dr)} ${z * (r + dr)} 0 ${large} 1 ${p11.x} ${p11.y}
@@ -210,17 +248,17 @@ function cartesian_shifted(r, a, tl, z) {
 }
 
 
-// Return a cone (collapsed version of a box).
-function create_cone(box, tl, zx, zy) {
-    if (view.is_circular)
-        return create_circ_cone(box, tl, zx);
+// Return an outline (collapsed version of a box).
+function create_outline(box, tl, zx, zy) {
+    if (view.drawer.type === "rect")
+        return create_rect_outline(box, tl, zx, zy);
     else
-        return create_rect_cone(box, tl, zx, zy);
+        return create_circ_outline(box, tl, zx);
 }
 
 
-// Return a svg horizontal cone.
-function create_rect_cone(box, tl, zx, zy) {
+// Return a svg horizontal outline.
+function create_rect_outline(box, tl, zx, zy) {
     const [x, y, w, h] = transform(box, tl, zx, zy);
 
     return create_svg_element("path", {
@@ -239,8 +277,8 @@ function transform(box, tl, zx, zy) {
 }
 
 
-// Return a svg cone in the direction of an annular sector.
-function create_circ_cone(box, tl, z) {
+// Return a svg outline in the direction of an annular sector.
+function create_circ_outline(box, tl, z) {
     const [r, a, dr, da] = box;
     const large = da > Math.PI ? 1 : 0;
     const p0 = cartesian_shifted(r, a + da/2, tl, z),
@@ -300,9 +338,9 @@ function create_arc(p1, p2, large, tl, z, type="") {
 
 
 function create_text(box, anchor, text, tl, zx, zy, type="") {
-    const [x, y, fs] = view.is_circular ?
-        get_text_placement_circ(box, anchor, text, tl, zx, zy, type) :
-        get_text_placement_rect(box, anchor, text, tl, zx, zy, type);
+    const [x, y, fs] = view.drawer.type === "rect" ?
+        get_text_placement_rect(box, anchor, text, tl, zx, zy, type) :
+        get_text_placement_circ(box, anchor, text, tl, zx, type);
 
     const dx = (type === "name") ? view.names.padding.left * fs / 100 : 0;
 
@@ -317,7 +355,7 @@ function create_text(box, anchor, text, tl, zx, zy, type="") {
 
     t.appendChild(document.createTextNode(text));
 
-    if (view.is_circular) {
+    if (view.drawer.type === "circ") {
         const angle = Math.atan2(zy * tl.y + y, zx * tl.x + x) * 180 / Math.PI;
         addRotation(t, angle, x, y);
     }
@@ -328,6 +366,10 @@ function create_text(box, anchor, text, tl, zx, zy, type="") {
 
 // Return the position and font size to draw the text when box is a rect.
 function get_text_placement_rect(box, anchor, text, tl, zx, zy, type="") {
+    if (text.length === 0)
+        throw new Error("please do not try to place empty texts :)")
+        // We could, but it's almost surely a bug upstream!
+
     const [x, y, dx, dy] = box;
 
     const dx_char = dx / text.length;  // ~ width of 1 char (in tree units)
@@ -346,12 +388,14 @@ function get_text_placement_rect(box, anchor, text, tl, zx, zy, type="") {
 
 
 // Return the position and font size to draw the text when box is an asec.
-function get_text_placement_circ(box, anchor, text, tl, zx, zy, type="") {
-    if (zx !== zy)
-        throw new Error("different zoom x and y in circular view");
+function get_text_placement_circ(box, anchor, text, tl, z, type="") {
+    if (text.length === 0)
+        throw new Error("please do not try to place empty texts :)");
+        // We could, but it's almost surely a bug upstream!
 
-    const z = zx;
     const [r, a, dr, da] = box;
+    if (r === 0)
+        throw new Error("r cannot be 0 (text would have 0 font size)");
 
     const dr_char = dr / text.length;  // ~ dr of 1 char (in tree units)
     const fs_max = z * Math.min(dr_char * 1.5, r * da);
