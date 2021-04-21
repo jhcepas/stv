@@ -194,7 +194,7 @@ class Drawer:
         return max_len * dx_char / zx  # in tree units
 
     # These are the 2 functions that the user overloads to choose what to draw
-    # and how when representing a node and a group of collapsed nodes:
+    # when representing a node and a group of collapsed nodes:
 
     def draw_node(self, node, point, bdy):  # bdy: branch dy (height)
         "Yield graphic elements to draw the contents of the node"
@@ -277,7 +277,8 @@ class DrawerCirc(Drawer):
             return (intersects_box(self.viewport, circumrect(box)) and
                     intersects_segment((-pi, +pi), get_ys(box)))
         else:
-            return intersects_segment(get_ys(circumasec(self.viewport)), get_ys(box))
+            angles_viewport = get_ys(circumasec(self.viewport))
+            return intersects_segment(angles_viewport, get_ys(box))
 
     def flush_outline(self, minimum_dr=0):
         "Return box outlining the collapsed nodes"
@@ -347,7 +348,10 @@ def is_good_angle_interval(a1, a2):
     return -pi <= a1 < a2 < pi + EPSILON
 
 
+# Drawing generators. Similar to "faces" in ete v3.
+
 def draw_rect_leaf_names(drawer, node, point):
+    "Yield name to the right of the leaf"
     if not node.is_leaf or not node.name:
         return
 
@@ -362,6 +366,7 @@ def draw_rect_leaf_names(drawer, node, point):
 
 
 def draw_circ_leaf_names(drawer, node, point):
+    "Yield name at the end of the leaf"
     if not node.is_leaf or not node.name:
         return
 
@@ -376,6 +381,7 @@ def draw_circ_leaf_names(drawer, node, point):
 
 
 def draw_rect_lengths(drawer, node, point, bdy):
+    "Yield node length as text above the branch line"
     if node.length <= 0:
         return
 
@@ -391,6 +397,7 @@ def draw_rect_lengths(drawer, node, point, bdy):
 
 
 def draw_circ_lengths(drawer, node, point, bda):
+    "Yield node length as text above the branch line"
     if node.length <= 0:
         return
 
@@ -407,6 +414,7 @@ def draw_circ_lengths(drawer, node, point, bda):
 
 
 def draw_rect_support(drawer, node, point, bdy):
+    "Yield node support as text below the branch line"
     if 'support' not in node.properties:
         return
 
@@ -422,6 +430,7 @@ def draw_rect_support(drawer, node, point, bdy):
 
 
 def draw_circ_support(drawer, node, point, bda):
+    "Yield node support as text below the branch line"
     if 'support' not in node.properties:
         return
 
@@ -438,6 +447,7 @@ def draw_circ_support(drawer, node, point, bda):
 
 
 def draw_rect_collapsed_names(drawer):
+    "Yield names of collapsed nodes after their outline"
     x, y, dx, dy = drawer.outline
 
     names = [first_name(node) for node in drawer.collapsed]
@@ -454,6 +464,7 @@ def draw_rect_collapsed_names(drawer):
 
 
 def draw_circ_collapsed_names(drawer):
+    "Yield names of collapsed nodes after their outline"
     r, a, dr, da = drawer.outline
     if not (-pi <= a <= pi and -pi <= a + da <= pi):
         return
@@ -482,10 +493,10 @@ class DrawerRectFull(DrawerRect):
 
 
 class DrawerCircFull(DrawerCirc):
-    def draw_node(self, node, point, bdy):
+    def draw_node(self, node, point, bda):
         yield from draw_circ_leaf_names(self, node, point)
-        yield from draw_circ_lengths(self, node, point, bdy)
-        yield from draw_circ_support(self, node, point, bdy)
+        yield from draw_circ_lengths(self, node, point, bda)
+        yield from draw_circ_support(self, node, point, bda)
 
     def draw_collapsed(self):
         yield from draw_circ_collapsed_names(self)
