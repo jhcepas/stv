@@ -360,9 +360,9 @@ function get_text_placement_circ(box, anchor, text, tl, zx, zy, type="") {
     const shift = 1 - fs / (z * r * da);
     const [ar, aa] = anchor;
     const r_shifted = r + ar * shift * dr,
-          a_shifted = a + aa * shift * da + 0.9 * (fs / r) / z;
+          a_shifted = a + aa * shift * da + 0.8 * (fs / r) / z;
     // We give the position as the bottom-left point, the same convention as in
-    // svgs. We go a bit up (0.9 instead of 1.0) because of the baseline.
+    // svgs. We go a bit up (0.8 instead of 1.0) because of the baseline.
     const x_in_tree = r_shifted * Math.cos(a_shifted),
           y_in_tree = r_shifted * Math.sin(a_shifted);
 
@@ -422,8 +422,8 @@ function font_adjust(fs, type) {
     if (type === "name")
         return Math.min(view.names.max_size,
                         (1 - view.names.padding.vertical) * fs);
-    else if (type === "length")
-        return Math.min(view.lengths.max_size, fs);
+    else if (type === "length" || type === "support")
+        return Math.min(view[`${type}s`].max_size, fs);
     else
         return fs;
 }

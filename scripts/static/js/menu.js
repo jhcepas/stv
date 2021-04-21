@@ -192,17 +192,21 @@ function add_menu_style(dgui) {
             update();
     });
 
-    const folder_lengths = folder_text.addFolder("lengths");
+    const properties = ['lengths', 'supports'];
+    properties.forEach(p => {
+        const folder_p = folder_text.addFolder(p);
+        const style_name = p.slice(0, -1);
 
-    folder_lengths.addColor(view.lengths, "color").name("lengths").onChange(
-        () => style("length").fill = view.lengths.color);
-    folder_lengths.add(view.lengths, "font", ["sans-serif", "serif", "monospace"])
-        .onChange(() => style("length").fontFamily = view.lengths.font);
-    folder_lengths.add(view.lengths, "max_size", 1, 100).name("max size").onChange(
-        () => {
-            // TODO: avoid the api call.
-            update();
-    });
+        folder_p.addColor(view[p], "color").onChange(
+            () => style(style_name).fill = view[p].color);
+        folder_p.add(view[p], "font", ["sans-serif", "serif", "monospace"])
+            .onChange(() => style(style_name).fontFamily = view[p].font);
+        folder_p.add(view[p], "max_size", 1, 100).name("max size").onChange(
+            () => {
+                // TODO: avoid the api call.
+                update();
+        });
+    })
     folder_text.add(view.font_sizes, "auto").name("automatic size").onChange(
         () => {
             style("font").fontSize =
@@ -228,7 +232,13 @@ function add_menu_style(dgui) {
 
 function style(name) {
     const pos = {
-        "line": 1, "font": 3, "name": 4, "length": 5, "node": 6, "outline": 7,
+        "line": 1, 
+        "font": 3,
+        "name": 4,
+        "length": 5, 
+        "support": 6,
+        "node": 7,
+        "outline": 8,
     };
     return document.styleSheets[0].cssRules[pos[name]].style;
 }

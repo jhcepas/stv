@@ -389,35 +389,47 @@ class DrawerCircLeafNames(DrawerCirc):
                 yield draw_text(box, (0, 0.5), node.name, 'name')
 
 
-class DrawerRectLengths(DrawerRect):
-    "With labels on the lengths"
+class DrawerRectProperties(DrawerRect):
+    "With labels on the properties (length, support)"
 
     def draw_content_inline(self, node, point, bdy):
-        if node.length >= 0:
-            x, y = point
-            dx, dy = self.content_size(node)
-            zx, zy = self.zoom
+        x, y = point
+        dx, dy = self.content_size(node)
+        zx, zy = self.zoom
 
+        if node.length >= 0:
             text = '%.2g' % node.length
             box = Box(x, y, dx, bdy)
             if box.dx * zx > self.MIN_SIZE and box.dy * zy > self.MIN_SIZE:
                 yield draw_text(box, (0, 1), text, 'length')
 
+        if 'support' in node.properties:
+            text = '%.2g' % node.properties['support']
+            box = Box(x, y + bdy, dx, dy - bdy)
+            if box.dx * zx > self.MIN_SIZE and box.dy * zy > self.MIN_SIZE:
+                yield draw_text(box, (0, 0), text, 'support')
 
-class DrawerCircLengths(DrawerCirc):
-    "With labels on the lengths"
+
+class DrawerCircProperties(DrawerCirc):
+    "With labels on the properties (length, support)"
 
     def draw_content_inline(self, node, point, bda):
-        if node.length >= 0:
-            r, a = point
-            dr, da = self.content_size(node)
-            z = self.zoom[0]  # zx == zy
-
-            if is_good_angle_interval(a, a + da):
+        r, a = point
+        dr, da = self.content_size(node)
+        z = self.zoom[0]  # zx == zy
+        if is_good_angle_interval(a, a + da):
+            if node.length >= 0:
                 text = '%.2g' % node.length
                 box = Box(r, a, dr, bda)
                 if dr * z > self.MIN_SIZE and r * bda * z > self.MIN_SIZE:
                     yield draw_text(box, (0, 1), text, 'length')
+            support = node.properties.get('support', False)
+            if support:
+                text = '%.2g' % support
+                box = Box(r, a + bda, dr, da - bda)
+                if dr * z > self.MIN_SIZE and r * bda * z > self.MIN_SIZE:
+                    yield draw_text(box, (0, 0), text, 'support')
+
 
 
 class DrawerRectCollapsed(DrawerRectLeafNames):
@@ -460,13 +472,13 @@ class DrawerCircCollapsed(DrawerCircLeafNames):
         yield from draw_texts(box, (0, 0.5), texts, 'name')
 
 
-class DrawerRectFull(DrawerRectCollapsed, DrawerRectLengths):
-    "With names on leaf nodes and labels on the lengths"
+class DrawerRectFull(DrawerRectCollapsed, DrawerRectProperties):
+    "With names on leaf nodes and labels on the properties (length, support)"
     pass
 
 
-class DrawerCircFull(DrawerCircCollapsed, DrawerCircLengths):
-    "With names on leaf nodes and labels on the lengths"
+class DrawerCircFull(DrawerCircCollapsed, DrawerCircProperties):
+    "With names on leaf nodes and labels on the properties (length, support)"
     pass
 
 
