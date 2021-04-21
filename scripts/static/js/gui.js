@@ -78,18 +78,18 @@ const view = {
         color: "#000",
         width: 1,
     },
-    names: {
+    name: {
         color: "#00A",
         font: "sans-serif",
         max_size: 100,
         padding: {left: 10, vertical: 0.20},
     },
-    lengths: {
+    length: {
         color: "#888",
         font: "sans-serif",
         max_size: 15,
     },
-    supports: {
+    support: {
         color: "#F08080",
         font: "sans-serif",
         max_size: 15,

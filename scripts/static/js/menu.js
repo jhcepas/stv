@@ -158,25 +158,25 @@ function add_menu_style(dgui) {
 
     const folder_text = folder_style.addFolder("text");
 
-    const folder_names = folder_text.addFolder("names");
+    const folder_name = folder_text.addFolder("name");
 
-    folder_names.addColor(view.names, "color").onChange(
-        () => style("name").fill = view.names.color);
+    folder_name.addColor(view.name, "color").onChange(
+        () => style("name").fill = view.name.color);
 
-    const folder_padding = folder_names.addFolder("padding");
+    const folder_padding = folder_name.addFolder("padding");
 
-    folder_padding.add(view.names.padding, "left", -20, 200).onChange(() => {
+    folder_padding.add(view.name.padding, "left", -20, 200).onChange(() => {
         update();
 
         // TODO: avoid the api call by using something like the code below
         //   which needs fixing for the case of inverted texts in circular rep.
-        // const padding = view.names.padding.left / 100;
+        // const padding = view.name.padding.left / 100;
         // Array.from(div_tree.getElementsByClassName("name")).forEach(t => {
         //     const fs = Number(t.getAttribute("font-size").slice(0, -2));
         //     const x0 = Number(t.getAttribute("data-x0"));
         //     t.setAttribute("x", x0 + padding * fs);
     });
-    folder_padding.add(view.names.padding, "vertical", 0, 1).step(0.01).onChange(
+    folder_padding.add(view.name.padding, "vertical", 0, 1).step(0.01).onChange(
         () => {
             update();
 
@@ -185,24 +185,23 @@ function add_menu_style(dgui) {
             // const box = t.getAttribute("data-box").split(",").map(Number);
             // const anchor = t.getAttribute("data-anchor").split(",").map(Number);
     });
-    folder_names.add(view.names, "font", ["sans-serif", "serif", "monospace"])
-        .onChange(() => style("name").fontFamily = view.names.font);
-    folder_names.add(view.names, "max_size", 1, 200).name("max size").onChange(
+    folder_name.add(view.name, "font", ["sans-serif", "serif", "monospace"])
+        .onChange(() => style("name").fontFamily = view.name.font);
+    folder_name.add(view.name, "max_size", 1, 200).name("max size").onChange(
         () => {
             // TODO: avoid the api call.
             update();
     });
 
-    const properties = ['lengths', 'supports'];
+    const properties = ['length', 'support'];
     properties.forEach(p => {
-        const folder_p = folder_text.addFolder(p);
-        const style_name = p.slice(0, -1);
+        const folder = folder_text.addFolder(p);
 
-        folder_p.addColor(view[p], "color").onChange(
-            () => style(style_name).fill = view[p].color);
-        folder_p.add(view[p], "font", ["sans-serif", "serif", "monospace"])
-            .onChange(() => style(style_name).fontFamily = view[p].font);
-        folder_p.add(view[p], "max_size", 1, 100).name("max size").onChange(
+        folder.addColor(view[p], "color").onChange(
+            () => style(p).fill = view[p].color);
+        folder.add(view[p], "font", ["sans-serif", "serif", "monospace"])
+            .onChange(() => style(p).fontFamily = view[p].font);
+        folder.add(view[p], "max_size", 1, 100).name("max size").onChange(
             () => {
                 // TODO: avoid the api call.
                 update();

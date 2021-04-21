@@ -342,7 +342,7 @@ function create_text(box, anchor, text, tl, zx, zy, type="") {
         get_text_placement_rect(box, anchor, text, tl, zx, zy, type) :
         get_text_placement_circ(box, anchor, text, tl, zx, type);
 
-    const dx = (type === "name") ? view.names.padding.left * fs / 100 : 0;
+    const dx = (type === "name") ? view.name.padding.left * fs / 100 : 0;
 
     const t = create_svg_element("text", {
         "class": "text " + type,
@@ -464,10 +464,10 @@ function get_approx_BBox(text) {
 // Return the font size adjusted for the given type of text.
 function font_adjust(fs, type) {
     if (type === "name")
-        return Math.min(view.names.max_size,
-                        (1 - view.names.padding.vertical) * fs);
+        return Math.min(view.name.max_size,
+                        (1 - view.name.padding.vertical) * fs);
     else if (type === "length" || type === "support")
-        return Math.min(view[`${type}s`].max_size, fs);
+        return Math.min(view[type].max_size, fs);
     else
         return fs;
 }
