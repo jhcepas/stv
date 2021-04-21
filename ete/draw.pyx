@@ -389,19 +389,26 @@ class DrawerCircLeafNames(DrawerCirc):
                 yield draw_text(box, (0, 0.5), node.name, 'name')
 
 
-class DrawerRectLengths(DrawerRect):
-    "With labels on the lengths"
+class DrawerRectProperties(DrawerRect):
+    "With labels on the properties (length, support)"
 
     def draw_content_inline(self, node, point, bdy):
-        if node.length >= 0:
-            x, y = point
-            dx, dy = self.content_size(node)
-            zx, zy = self.zoom
+        x, y = point
+        dx, dy = self.content_size(node)
+        zx, zy = self.zoom
 
+        if node.length >= 0:
             text = '%.2g' % node.length
             box = Box(x, y, dx, bdy)
             if box.dx * zx > self.MIN_SIZE and box.dy * zy > self.MIN_SIZE:
                 yield draw_text(box, (0, 1), text, 'length')
+
+        support = node.properties.get('support', False)
+        if support:
+            text = '%.2g' % support
+            box = Box(x, y + bdy, dx, dy - bdy)
+            if box.dx * zx > self.MIN_SIZE and box.dy * zy > self.MIN_SIZE:
+                yield draw_text(box, (0, 0), text, 'support')
 
 
 class DrawerCircLengths(DrawerCirc):
@@ -460,8 +467,8 @@ class DrawerCircCollapsed(DrawerCircLeafNames):
         yield from draw_texts(box, (0, 0.5), texts, 'name')
 
 
-class DrawerRectFull(DrawerRectCollapsed, DrawerRectLengths):
-    "With names on leaf nodes and labels on the lengths"
+class DrawerRectFull(DrawerRectCollapsed, DrawerRectProperties):
+    "With names on leaf nodes and labels on the properties (length, support)"
     pass
 
 

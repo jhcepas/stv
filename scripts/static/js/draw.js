@@ -422,7 +422,7 @@ function font_adjust(fs, type) {
     if (type === "name")
         return Math.min(view.names.max_size,
                         (1 - view.names.padding.vertical) * fs);
-    else if (type === "length")
+    else if (type === "length" || type === "support")
         return Math.min(view.lengths.max_size, fs);
     else
         return fs;
