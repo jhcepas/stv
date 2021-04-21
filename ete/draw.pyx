@@ -403,9 +403,8 @@ class DrawerRectProperties(DrawerRect):
             if box.dx * zx > self.MIN_SIZE and box.dy * zy > self.MIN_SIZE:
                 yield draw_text(box, (0, 1), text, 'length')
 
-        support = node.properties.get('support', False)
-        if support:
-            text = '%.2g' % support
+        if 'support' in node.properties:
+            text = '%.2g' % node.properties['support']
             box = Box(x, y + bdy, dx, dy - bdy)
             if box.dx * zx > self.MIN_SIZE and box.dy * zy > self.MIN_SIZE:
                 yield draw_text(box, (0, 0), text, 'support')

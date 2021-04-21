@@ -91,7 +91,7 @@ const view = {
         max_size: 15,
     },
     supports: {
-        color: "#f08080",
+        color: "#F08080",
         font: "sans-serif",
         max_size: 15,
     },
