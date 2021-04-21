@@ -285,7 +285,7 @@ def test_get_unknown_tree():
 
 
 def test_get_known_tree():
-    valid_elements = ['box', 'cone', 'line', 'arc', 'text']
+    valid_elements = ['nodebox', 'outline', 'line', 'arc', 'text']
 
     trees = [x['id'] for x in get('trees')]
 
@@ -310,10 +310,11 @@ def test_get_known_tree():
 
 
 def test_get_drawers():
-    drawers = get('/trees/drawers')
+    drawers = get('/drawers')
     assert type(drawers) == list
     existing_drawers = [
-        'RectSimple', 'RectFull', 'CircSimple', 'CircFull', 'AlignNames']
+        'Rect', 'Circ', 'RectFull', 'CircFull',
+        'AlignNames', 'AlignHeatMap']
     assert all(x in drawers for x in existing_drawers)
 
 
@@ -321,11 +322,11 @@ def test_drawer_arguments():
     valid_requests = [
         'x=1&y=-1&w=1&h=1',
         'zx=3&zy=6',
-        'drawer=RectSimple',
+        'drawer=Rect',
         'min_size=8',
-        'aligned',
+        'panel=1',
         'rmin=5&amin=-180&amax=180',
-        'x=1&y=-1&w=1&h=1&drawer=RectSimple&min_size=8&aligned&zx=3&zy=6']
+        'x=1&y=-1&w=1&h=1&drawer=Rect&min_size=8&panel=1&zx=3&zy=6']
 
     invalid_requests_and_error = [
         ('x=1&y=-1&w=1&h=-1', 'invalid viewport'),
