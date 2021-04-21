@@ -2,7 +2,7 @@
 
 import { view, datgui } from "./gui.js";
 import { update_minimap_visible_rect } from "./minimap.js";
-import { update_tree } from "./draw.js";
+import { draw_tree } from "./draw.js";
 
 export { drag_start, drag_stop, drag_move };
 
@@ -31,7 +31,7 @@ function drag_stop() {
     div_visible_rect.style.cursor = "grab";
 
     if (dragging.moved) {
-        update_tree();
+        draw_tree();
         dragging.moved = false;
     }
 

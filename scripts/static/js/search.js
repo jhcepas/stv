@@ -1,7 +1,7 @@
 // Search-related functions.
 
 import { view, datgui, get_tid } from "./gui.js";
-import { update_tree } from "./draw.js";
+import { draw_tree } from "./draw.js";
 import { api } from "./api.js";
 
 export { search, remove_searches, get_search_class, colorize_searches };
@@ -45,7 +45,7 @@ async function search() {
 
             add_search_to_datgui(search_text);
 
-            update_tree();
+            draw_tree();
         }
         else {
             Swal.fire({
@@ -75,7 +75,7 @@ function add_search_to_datgui(text) {
     search.remove = function() {
         delete view.searches[text];
         datgui.__folders.searches.removeFolder(folder);
-        update_tree();
+        draw_tree();
     }
 
     const folder_results = folder.addFolder(`results (${search.results.n})`);

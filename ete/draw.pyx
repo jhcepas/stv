@@ -41,30 +41,23 @@ class Drawer:
 
     MIN_SIZE = 6  # anything that has less pixels will be outlined
 
-    def __init__(self, tree, viewport=None, zoom=(1, 1),
-                 aligned=False, limits=None, searches=None):
+    NPANELS = 1  # number of drawing panels (including the aligned ones)
+    TYPE = 'base'  # can be 'rect' or 'circ' for working drawers
+
+    def __init__(self, tree, viewport=None, panel=0, zoom=(1, 1),
+                 limits=None, searches=None):
         self.tree = tree
+        self.viewport = Box(*viewport) if viewport else None
+        self.panel = panel
         self.zoom = zoom
-        self.aligned = aligned
-
-        if viewport:
-            x, y, dx, dy = viewport
-            if not aligned:  # normal case
-                self.viewport = Box(x, y, dx, dy)
-            else:  # drawing for the aligned panel, so consider full tree width
-                self.viewport = Box(0, y, self.tree.size[0], dy)
-        else:
-            self.viewport = None
-
         self.xmin, self.xmax, self.ymin, self.ymax = limits or (0, 0, 0, 0)
-
         self.searches = searches or {}  # looks like {text: (results, parents)}
 
     def draw(self):
         "Yield graphic elements to draw the tree"
         self.outline = None  # box surrounding collapsed nodes
         self.collapsed = []  # nodes that are collapsed together
-        self.boxes = []  # node and collapsed boxes (will be filled in postorder)
+        self.nodeboxes = []  # node and collapsed boxes
         self.node_dxs = [[]]  # lists of nodes dx (to find the max)
         self.bdy_dys = [[]]  # lists of branching dys and total dys
 
@@ -80,8 +73,8 @@ class Drawer:
         if self.outline:
             yield from self.get_outline()
 
-        if not self.aligned:  # draw in preorder the boxes we found in postorder
-            yield from self.boxes[::-1]  # (so they overlap nicely)
+        if self.panel == 0:  # draw in preorder the boxes we found in postorder
+            yield from self.nodeboxes[::-1]  # (so they overlap nicely)
 
     def on_first_visit(self, point, it, graphics):
         "Update list of graphics to draw and return new position"
@@ -131,7 +124,7 @@ class Drawer:
         box = Box(x_before, y_before, ndx, dy)
         result_of = [text for text,(results,_) in self.searches.items()
                         if it.node in results]
-        self.boxes += self.draw_nodebox(it.node, it.node_id, box, result_of)
+        self.nodeboxes += self.draw_nodebox(it.node, it.node_id, box, result_of)
 
         return x_before, y_after
 
@@ -139,6 +132,9 @@ class Drawer:
         "Yield the node content's graphic elements"
         x, y = point
         dx, dy = self.content_size(node)
+
+        if not self.in_viewport(Box(x, y, dx, dy)):
+            return
 
         # Find branching dy of first child (bdy0), last (bdy1), and self (bdy).
         bdy_dys = self.bdy_dys.pop()  # bdy_dys[i] == (bdy, dy)
@@ -149,8 +145,8 @@ class Drawer:
         bdy = (bdy0 + bdy1) / 2  # this node's branching dy
         self.bdy_dys[-1].append( (bdy, dy) )
 
-        # Draw line spanning content, line to children, and inline content.
-        if not self.aligned and self.in_viewport(Box(x, y, dx, dy)):
+        # Draw the branch line ("lengthline") and a line spanning all children.
+        if self.panel == 0:
             if dx > 0:
                 parent_of = [text for text,(_,parents) in self.searches.items()
                                 if node in parents]
@@ -161,17 +157,14 @@ class Drawer:
                 yield from self.draw_childrenline((x + dx, y + bdy0),
                                                   (x + dx, y + bdy1))
 
-            yield from self.draw_content_inline(node, point, bdy)
-
-        # Draw things that may be floating (typically to the right for leaves).
-        yield from self.draw_content_float(node, point)
+        yield from self.draw_node(node, point, bdy)
 
     def get_outline(self):
         "Yield the outline representation"
         result_of = [text for text,(results,parents) in self.searches.items()
             if any(node in results or node in parents for node in self.collapsed)]
 
-        graphics = [draw_cone(self.outline)] if not self.aligned else []
+        graphics = [draw_outline(self.outline)] if self.panel == 0 else []
 
         graphics += self.draw_collapsed()
         self.collapsed = []
@@ -181,8 +174,8 @@ class Drawer:
         ndx = drawn_size(graphics, self.get_box).dx
         self.node_dxs[-1].append(ndx)
 
-        box = draw_box(self.flush_outline(ndx), '(collapsed)', {}, [], result_of)
-        self.boxes.append(box)
+        box = draw_nodebox(self.flush_outline(ndx), '(collapsed)', {}, [], result_of)
+        self.nodeboxes.append(box)
 
         yield from graphics
 
@@ -195,44 +188,38 @@ class Drawer:
     def dx_fitting_texts(self, texts, dy):
         "Return a dx wide enough on the screen to fit all texts in the given dy"
         zx, zy = self.zoom
-        dy_char = zy * dy / len(texts)  # height of 1 char, in screen units
+        dy_char = zy * dy / len(texts)  # height of a char, in screen units
         dx_char = dy_char / 1.5  # approximate width of a char
         max_len = max(len(t) for t in texts)  # number of chars of the longest
         return max_len * dx_char / zx  # in tree units
 
-    # These are the 3 functions that the user overloads to choose what to draw
-    # and how when representing a node (or group of collapsed nodes):
+    # These are the 2 functions that the user overloads to choose what to draw
+    # and how when representing a node and a group of collapsed nodes:
 
-    def draw_content_inline(self, node, point, bdy):  # bdy: branch dy (height)
-        "Yield graphic elements to draw the inline contents of the node"
-        yield from []  # graphics that go to the area inside the node
-        # They are only drawn if any of the node's content is visible.
-        # They never go to the aligned panel.
-
-    def draw_content_float(self, node, point):
-        "Yield graphic elements to draw the floated contents of the node"
-        if self.aligned:
-            yield from []  # graphics that go to the aligned panel
-        else:
-            yield from []  # graphics that go to the main area
-        # They are drawn if any of the node (including all children) is visible.
+    def draw_node(self, node, point, bdy):  # bdy: branch dy (height)
+        "Yield graphic elements to draw the contents of the node"
+        yield from []  # only drawn if any of the node's content is visible
 
     def draw_collapsed(self):
         "Yield graphic elements to draw the list of nodes in self.collapsed"
+        yield from []  # they are always drawn (only visible nodes can collapse)
         # Uses self.collapsed and self.outline to extract and place info.
-        if self.aligned:
-            yield from []  # graphics that go to the aligned panel
-        else:
-            yield from []  # graphics that go to the main area
-        # They are always drawn (only visible nodes can collapse).
 
 
 
 class DrawerRect(Drawer):
     "Minimal functional drawer for a rectangular representation"
 
+    TYPE = 'rect'
+
     def in_viewport(self, box):
-        return intersects(self.viewport, box)
+        if not self.viewport:
+            return True
+
+        if self.panel == 0:
+            return intersects_box(self.viewport, box)
+        else:
+            return intersects_segment(get_ys(self.viewport), get_ys(box))
 
     def node_size(self, node):
         "Return the size of a node (its content and its children)"
@@ -262,16 +249,18 @@ class DrawerRect(Drawer):
         yield draw_line(p1, p2)
 
     def draw_nodebox(self, node, node_id, box, result_of):
-        yield draw_box(box, node.name, node.properties, node_id, result_of)
+        yield draw_nodebox(box, node.name, node.properties, node_id, result_of)
 
 
 
 class DrawerCirc(Drawer):
     "Minimal functional drawer for a circular representation"
 
-    def __init__(self, tree, viewport=None, zoom=(1, 1),
-                 aligned=False, limits=None, searches=None):
-        super().__init__(tree, viewport, zoom, aligned, limits, searches)
+    TYPE = 'circ'
+
+    def __init__(self, tree, viewport=None, panel=0, zoom=(1, 1),
+                 limits=None, searches=None):
+        super().__init__(tree, viewport, panel, zoom, limits, searches)
 
         assert self.zoom[0] == self.zoom[1], 'zoom must be equal in x and y'
 
@@ -281,8 +270,14 @@ class DrawerCirc(Drawer):
         self.dy2da = (self.ymax - self.ymin) / self.tree.size[1]
 
     def in_viewport(self, box):
-        return (intersects(self.viewport, circumrect(box)) and
-            intersects(Box(0, -pi, self.node_size(self.tree).dx, 2*pi), box))
+        if not self.viewport:
+            return True
+
+        if self.panel == 0:
+            return (intersects_box(self.viewport, circumrect(box)) and
+                    intersects_segment((-pi, +pi), get_ys(box)))
+        else:
+            return intersects_segment(get_ys(circumasec(self.viewport)), get_ys(box))
 
     def flush_outline(self, minimum_dr=0):
         "Return box outlining the collapsed nodes"
@@ -327,13 +322,13 @@ class DrawerCirc(Drawer):
         r, a, dr, da = box
         a1, a2 = clip_angles(a, a + da)
         if a1 < a2:
-            yield draw_box(Box(r, a1, dr, a2 - a1),
-                           node.name, node.properties, node_id, result_of)
+            yield draw_nodebox(Box(r, a1, dr, a2 - a1),
+                               node.name, node.properties, node_id, result_of)
 
 
 def clip_angles(double a1, double a2):
     "Return the angles such that a1 to a2 extend at maximum from -pi to pi"
-    EPSILON = 1e-8  # without it, p1 == p2 and svg arcs are not drawn
+    EPSILON = 1e-8  # without it, p1 can be == p2 and svg arcs are not drawn
     return max(-pi + EPSILON, a1), min(pi - EPSILON, a2)
 
 
@@ -352,211 +347,278 @@ def is_good_angle_interval(a1, a2):
     return -pi <= a1 < a2 < pi + EPSILON
 
 
-class DrawerRectSimple(DrawerRect):
-    "Skeleton of the tree"
-    pass
+def draw_rect_leaf_names(drawer, node, point):
+    if not node.is_leaf or not node.name:
+        return
+
+    x, y = point
+    dx, dy = drawer.content_size(node)
+
+    x_text = (x + dx) if drawer.panel == 0 else drawer.xmin
+    dx_fit = drawer.dx_fitting_texts([node.name], dy)
+    box = Box(x_text, y, dx_fit, dy)
+
+    yield draw_text(box, (0, 0.5), node.name, 'name')
 
 
-class DrawerCircSimple(DrawerCirc):
-    "Skeleton of the tree"
-    pass
+def draw_circ_leaf_names(drawer, node, point):
+    if not node.is_leaf or not node.name:
+        return
+
+    r, a = point
+    dr, da = drawer.content_size(node)
+
+    if is_good_angle_interval(a, a + da) and r + dr > 0:
+        r_text = (r + dr) if drawer.panel == 0 else drawer.xmin
+        dr_fit = drawer.dx_fitting_texts([node.name], (r + dr) * da)
+        box = Box(r_text, a, dr_fit, da)
+        yield draw_text(box, (0, 0.5), node.name, 'name')
 
 
-class DrawerRectLeafNames(DrawerRect):
-    "With names on leaf nodes"
+def draw_rect_lengths(drawer, node, point, bdy):
+    if node.length <= 0:
+        return
 
-    def draw_content_float(self, node, point):
-        if not self.aligned and node.is_leaf:
-            x, y = point
-            dx, dy = self.content_size(node)
+    x, y = point
+    dx, dy = drawer.content_size(node)
+    zx, zy = drawer.zoom
 
-            dx_fit = self.dx_fitting_texts([node.name], dy)
-            box = Box(x + dx, y, dx_fit, dy)
-            yield draw_text(box, (0, 0.5), node.name, 'name')
+    text = '%.2g' % node.length
 
-
-class DrawerCircLeafNames(DrawerCirc):
-    "With names on leaf nodes"
-
-    def draw_content_float(self, node, point):
-        if not self.aligned and node.is_leaf:
-            r, a = point
-            dr, da = self.content_size(node)
-
-            if is_good_angle_interval(a, a + da) and r + dr > 0:
-                dr_fit = self.dx_fitting_texts([node.name], (r + dr) * da)
-                box = Box(r + dr, a, dr_fit, da)
-                yield draw_text(box, (0, 0.5), node.name, 'name')
+    box = Box(x, y, dx, bdy)
+    if box.dx * zx > drawer.MIN_SIZE and box.dy * zy > drawer.MIN_SIZE:
+        yield draw_text(box, (0, 1), text, 'length')
 
 
-class DrawerRectProperties(DrawerRect):
-    "With labels on the properties (length, support)"
+def draw_circ_lengths(drawer, node, point, bda):
+    if node.length <= 0:
+        return
 
-    def draw_content_inline(self, node, point, bdy):
-        x, y = point
-        dx, dy = self.content_size(node)
-        zx, zy = self.zoom
+    r, a = point
+    dr, da = drawer.content_size(node)
+    z = drawer.zoom[0]  # zx == zy
 
-        if node.length >= 0:
-            text = '%.2g' % node.length
-            box = Box(x, y, dx, bdy)
-            if box.dx * zx > self.MIN_SIZE and box.dy * zy > self.MIN_SIZE:
-                yield draw_text(box, (0, 1), text, 'length')
+    if is_good_angle_interval(a, a + da):
+        text = '%.2g' % node.length
 
-        if 'support' in node.properties:
-            text = '%.2g' % node.properties['support']
-            box = Box(x, y + bdy, dx, dy - bdy)
-            if box.dx * zx > self.MIN_SIZE and box.dy * zy > self.MIN_SIZE:
-                yield draw_text(box, (0, 0), text, 'support')
+        box = Box(r, a, dr, bda)
+        if dr * z > drawer.MIN_SIZE and r * bda * z > drawer.MIN_SIZE:
+            yield draw_text(box, (0, 1), text, 'length')
 
 
-class DrawerCircProperties(DrawerCirc):
-    "With labels on the properties (length, support)"
+def draw_rect_support(drawer, node, point, bdy):
+    if 'support' not in node.properties:
+        return
 
-    def draw_content_inline(self, node, point, bda):
-        r, a = point
-        dr, da = self.content_size(node)
-        z = self.zoom[0]  # zx == zy
-        if is_good_angle_interval(a, a + da):
-            if node.length >= 0:
-                text = '%.2g' % node.length
-                box = Box(r, a, dr, bda)
-                if dr * z > self.MIN_SIZE and r * bda * z > self.MIN_SIZE:
-                    yield draw_text(box, (0, 1), text, 'length')
-            support = node.properties.get('support', False)
-            if support:
-                text = '%.2g' % support
-                box = Box(r, a + bda, dr, da - bda)
-                if dr * z > self.MIN_SIZE and r * bda * z > self.MIN_SIZE:
-                    yield draw_text(box, (0, 0), text, 'support')
+    x, y = point
+    dx, dy = drawer.content_size(node)
+    zx, zy = drawer.zoom
+
+    text = '%.2g' % node.properties['support']
+
+    box = Box(x, y + bdy, dx, dy - bdy)
+    if box.dx * zx > drawer.MIN_SIZE and box.dy * zy > drawer.MIN_SIZE:
+        yield draw_text(box, (0, 0), text, 'support')
 
 
+def draw_circ_support(drawer, node, point, bda):
+    if 'support' not in node.properties:
+        return
 
-class DrawerRectCollapsed(DrawerRectLeafNames):
-    "With text on collapsed nodes"
+    r, a = point
+    dr, da = drawer.content_size(node)
+    z = drawer.zoom[0]  # zx == zy
 
-    def draw_collapsed(self):
-        if self.aligned:
-            return
+    if is_good_angle_interval(a, a + da):
+        text = '%.2g' % node.properties['support']
 
-        names = [first_name(node) for node in self.collapsed]
-        if all(name == '' for name in names):
-            return
-
-        x, y, dx, dy = self.outline
-
-        texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
-        dx_fit = self.dx_fitting_texts(texts, dy)
-        box = Box(x + dx, y, dx_fit, dy)
-        yield from draw_texts(box, (0, 0.5), texts, 'name')
+        box = Box(r, a + bda, dr, da - bda)
+        if dr * z > drawer.MIN_SIZE and r * bda * z > drawer.MIN_SIZE:
+            yield draw_text(box, (0, 0), text, 'support')
 
 
-class DrawerCircCollapsed(DrawerCircLeafNames):
-    "With text on collapsed nodes"
+def draw_rect_collapsed_names(drawer):
+    x, y, dx, dy = drawer.outline
 
-    def draw_collapsed(self):
-        if self.aligned:
-            return
+    names = [first_name(node) for node in drawer.collapsed]
+    if all(name == '' for name in names):
+        return
 
-        r, a, dr, da = self.outline
-        if not (-pi <= a <= pi and -pi <= a + da <= pi):
-            return
+    texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
 
-        names = [first_name(node) for node in self.collapsed]
-        if all(name == '' for name in names):
-            return
+    x_text = (x + dx) if drawer.panel == 0 else drawer.xmin
+    dx_fit = drawer.dx_fitting_texts(texts, dy)
+    box = Box(x_text, y, dx_fit, dy)
 
-        texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
-        dr_fit = self.dx_fitting_texts(texts, (r + dr) * da)
-        box = Box(r + dr, a, dr_fit, da)
-        yield from draw_texts(box, (0, 0.5), texts, 'name')
+    yield from draw_texts(box, (0, 0.5), texts, 'name')
 
 
-class DrawerRectFull(DrawerRectCollapsed, DrawerRectProperties):
-    "With names on leaf nodes and labels on the properties (length, support)"
-    pass
+def draw_circ_collapsed_names(drawer):
+    r, a, dr, da = drawer.outline
+    if not (-pi <= a <= pi and -pi <= a + da <= pi):
+        return
+
+    names = [first_name(node) for node in drawer.collapsed]
+    if all(name == '' for name in names):
+        return
+
+    texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
+
+    r_text = (r + dr) if drawer.panel == 0 else drawer.xmin
+    dr_fit = drawer.dx_fitting_texts(texts, (r + dr) * da)
+    box = Box(r_text, a, dr_fit, da)
+
+    yield from draw_texts(box, (0, 0.5), texts, 'name')
 
 
-class DrawerCircFull(DrawerCircCollapsed, DrawerCircProperties):
-    "With names on leaf nodes and labels on the properties (length, support)"
-    pass
-
-
-class DrawerAlignNames(DrawerRectFull):
-    "With aligned content"
-
-    def draw_content_float(self, node, point):
-        if node.is_leaf:
-            x, y = point
-            dx, dy = self.content_size(node)
-
-            if not self.aligned:
-                if self.viewport:
-                    p1 = (x + dx, y + dy/2)
-                    p2 = (self.viewport.x + self.viewport.dx, y + dy/2)
-                    yield draw_line(p1, p2, 'dotted')
-            else:
-                dx_fit = self.dx_fitting_texts([node.name], dy)
-                box = Box(0, y, dx_fit, dy)
-                yield draw_text(box, (0, 0.5), node.name, 'name')
+class DrawerRectFull(DrawerRect):
+    def draw_node(self, node, point, bdy):
+        yield from draw_rect_leaf_names(self, node, point)
+        yield from draw_rect_lengths(self, node, point, bdy)
+        yield from draw_rect_support(self, node, point, bdy)
 
     def draw_collapsed(self):
-        names = [first_name(node) for node in self.collapsed]
-        if all(name == '' for name in names):
-            return
+        yield from draw_rect_collapsed_names(self)
 
-        x, y, dx, dy = self.outline
 
-        if not self.aligned:
-            if self.viewport:
+class DrawerCircFull(DrawerCirc):
+    def draw_node(self, node, point, bdy):
+        yield from draw_circ_leaf_names(self, node, point)
+        yield from draw_circ_lengths(self, node, point, bdy)
+        yield from draw_circ_support(self, node, point, bdy)
+
+    def draw_collapsed(self):
+        yield from draw_circ_collapsed_names(self)
+
+
+class DrawerAlignNames(DrawerRect):
+    NPANELS = 2
+
+    def draw_node(self, node, point, bdy):
+        if self.panel == 0:
+            yield from draw_rect_lengths(self, node, point, bdy)
+            yield from draw_rect_support(self, node, point, bdy)
+
+            if node.is_leaf and self.viewport:
+                x, y = point
+                dx, dy = self.content_size(node)
                 p1 = (x + dx, y + dy/2)
                 p2 = (self.viewport.x + self.viewport.dx, y + dy/2)
                 yield draw_line(p1, p2, 'dotted')
-        else:
-            texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
-            dx_fit = self.dx_fitting_texts(texts, dy)
-            box = Box(0, y, dx_fit, dy)
-            yield from draw_texts(box, (0, 0.5), texts, 'name')
-
-
-
-class DrawerAlignHeatMap(DrawerRectFull):
-    "With an example heatmap as aligned content"
-
-    def draw_content_float(self, node, point):
-        yield from super().draw_content_float(node, point)
-
-        if self.aligned and node.is_leaf:
-            _, y = point
-            dx, dy = self.content_size(node)
-            zx, zy = self.zoom
-            random.seed(node.name)
-            a = [random.randint(1, 360) for i in range(300)]
-            yield draw_array(Box(0, y, 600, dy), a)
+        elif self.panel == 1:
+            yield from draw_rect_leaf_names(self, node, point)
 
     def draw_collapsed(self):
         names = [first_name(node) for node in self.collapsed]
-        texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
+        if all(name == '' for name in names):
+            return
 
-        x, y, dx, dy = self.outline
-        if self.aligned:
-            zx, zy = self.zoom
-            random.seed(str(texts))
-            a = [random.randint(1, 360) for i in range(300)]
-            yield draw_array(Box(0, y, 600, dy), a)
-        else:
-            if all(name == '' for name in names):
-                return
-            dx_fit = self.dx_fitting_texts(texts, dy)
-            box = Box(x + dx, y, dx_fit, dy)
-            yield from draw_texts(box, (0, 0.5), texts, 'name')
+        if self.panel == 0:
+            if self.viewport:
+                x, y, dx, dy = self.outline
+                p1 = (x + dx, y + dy/2)
+                p2 = (self.viewport.x + self.viewport.dx, y + dy/2)
+                yield draw_line(p1, p2, 'dotted')
+        elif self.panel == 1:
+            yield from draw_rect_collapsed_names(self)
+
+
+class DrawerCircAlignNames(DrawerCirc):
+    NPANELS = 2
+
+    def draw_node(self, node, point, bda):
+        if self.panel == 0:
+            yield from draw_circ_lengths(self, node, point, bda)
+            yield from draw_circ_support(self, node, point, bda)
+
+            if node.is_leaf and self.viewport:
+                r, a = point
+                dr, da = self.content_size(node)
+                p1 = (r + dr, a + da/2)
+                p2 = (self.xmin + self.tree.size[0], a + da/2)
+                yield draw_line(cartesian(p1), cartesian(p2), 'dotted')
+        elif self.panel == 1:
+            yield from draw_circ_leaf_names(self, node, point)
+
+    def draw_collapsed(self):
+        names = [first_name(node) for node in self.collapsed]
+        if all(name == '' for name in names):
+            return
+
+        if self.panel == 0:
+            if self.viewport:
+                r, a, dr, da = self.outline
+                p1 = (r + dr, a + da/2)
+                p2 = (self.xmin + self.tree.size[0], a + da/2)
+                yield draw_line(cartesian(p1), cartesian(p2), 'dotted')
+        elif self.panel == 1:
+            yield from draw_circ_collapsed_names(self)
+
+
+# NOTE: The next two drawers (DrawerAlignHeatMap and DrawerCircAlignHeatMap)
+#   are only there as an example for how to represent gene array data and so on
+#   with heatmaps, but not really useful now (as opposed to the previous ones!).
+
+class DrawerAlignHeatMap(DrawerRect):
+    NPANELS = 2
+
+    def draw_node(self, node, point, bdy):
+        if self.panel == 0:
+            yield from draw_rect_leaf_names(self, node, point)
+            yield from draw_rect_lengths(self, node, point, bdy)
+            yield from draw_rect_support(self, node, point, bdy)
+        elif self.panel == 1 and node.is_leaf:
+            x, y = point
+            dx, dy = self.content_size(node)
+            random.seed(node.name)
+            array = [random.randint(1, 360) for i in range(300)]
+            yield draw_array(Box(0, y, 600, dy), array)
+
+    def draw_collapsed(self):
+        if self.panel == 0:
+            yield from draw_rect_collapsed_names(self)
+        elif self.panel == 1:
+            x, y, dx, dy = self.outline
+            text = ''.join(first_name(node) for node in self.collapsed)
+            random.seed(text)
+            array = [random.randint(1, 360) for i in range(300)]
+            yield draw_array(Box(0, y, 600, dy), array)
+
+
+class DrawerCircAlignHeatMap(DrawerCirc):
+    NPANELS = 2
+
+    def draw_node(self, node, point, bda):
+        if self.panel == 0:
+            yield from draw_circ_leaf_names(self, node, point)
+            yield from draw_circ_lengths(self, node, point, bda)
+            yield from draw_circ_support(self, node, point, bda)
+        elif self.panel == 1 and node.is_leaf:
+            r, a = point
+            dr, da = self.content_size(node)
+            random.seed(node.name)
+            array = [random.randint(1, 360) for i in range(50)]
+            box = Box(1.5 * self.xmin, a, 20 * self.tree.size[0], da)
+            yield draw_array(box, array)
+
+    def draw_collapsed(self):
+        if self.panel == 0:
+            yield from draw_circ_collapsed_names(self)
+        elif self.panel == 1:
+            r, a, dr, da = self.outline
+            text = ''.join(first_name(node) for node in self.collapsed)
+            random.seed(text)
+            array = [random.randint(1, 360) for i in range(50)]
+            box = Box(1.5 * self.xmin, a, 20 * self.tree.size[0], da)
+            yield draw_array(box, array)
 
 
 def get_drawers():
     return [
-        DrawerRectSimple, DrawerRectFull,
-        DrawerCircSimple, DrawerCircFull,
-        DrawerAlignNames, DrawerAlignHeatMap]
+        DrawerRect, DrawerCirc,
+        DrawerRectFull, DrawerCircFull,
+        DrawerAlignNames, DrawerCircAlignNames,
+        DrawerAlignHeatMap, DrawerCircAlignHeatMap]
 
 
 def first_name(tree):
@@ -575,11 +637,11 @@ def draw_texts(box, anchor, texts, text_type):
 
 # Basic drawing elements.
 
-def draw_box(box, name='', properties=None, node_id=None, result_of=None):
-    return ['box', box, name, properties or {}, node_id or [], result_of or []]
+def draw_nodebox(box, name='', properties=None, node_id=None, result_of=None):
+    return ['nodebox', box, name, properties or {}, node_id or [], result_of or []]
 
-def draw_cone(box):
-    return ['cone', box]
+def draw_outline(box):
+    return ['outline', box]
 
 def draw_line(p1, p2, line_type='', parent_of=None):
     return ['line', p1, p2, line_type, parent_of or []]
@@ -601,11 +663,19 @@ def make_box(point, size):
     dx, dy = size
     return Box(x, y, dx, dy)
 
+def get_xs(box):
+    x, _, dx, _ = box
+    return x, x + dx
+
+def get_ys(box):
+    _, y, _, dy = box
+    return y, y + dy
+
 
 def get_rect(element, zoom):
     "Return the rectangle that contains the given graphic element"
     eid = element[0]
-    if eid in ['box', 'cone', 'array', 'text']:
+    if eid in ['nodebox', 'outline', 'array', 'text']:
         return element[1]
     elif eid in ['line', 'arc']:
         (x1, y1), (x2, y2) = element[1], element[2]
@@ -617,7 +687,7 @@ def get_rect(element, zoom):
 def get_asec(element, zoom):
     "Return the annular sector that contains the given graphic element"
     eid = element[0]
-    if eid in ['box', 'cone', 'array', 'text']:
+    if eid in ['nodebox', 'outline', 'array', 'text']:
         return element[1]
     elif eid in ['line', 'arc']:
         (x1, y1), (x2, y2) = element[1], element[2]
@@ -649,19 +719,17 @@ def drawn_size(elements, get_box):
     return Size(x_max - x_min, y_max - y_min)
 
 
-def intersects(b1, b2):
+def intersects_box(b1, b2):
     "Return True if the boxes b1 and b2 (of the same kind) intersect"
-    cdef double x1min, y1min, dx1, dy1, x2min, y2min, dx2, dy2
+    return (intersects_segment(get_xs(b1), get_xs(b2)) and
+            intersects_segment(get_ys(b1), get_ys(b2)))
 
-    if b1 is None or b2 is None:
-        return True  # the box "None" represents the full plane
 
-    x1min, y1min, dx1, dy1 = b1
-    x1max, y1max = x1min + dx1, y1min + dy1
-    x2min, y2min, dx2, dy2 = b2
-    x2max, y2max = x2min + dx2, y2min + dy2
-    return ((x1min <= x2max and x2min <= x1max) and
-            (y1min <= y2max and y2min <= y1max))
+def intersects_segment(s1, s2):
+    "Return True if the segments s1 and s2 intersect"
+    s1min, s1max = s1
+    s2min, s2max = s2
+    return s1min <= s2max and s2min <= s1max
 
 
 def stack(b1, b2):

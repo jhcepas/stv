@@ -17,7 +17,7 @@ function tag_node(node_id, name) {
     }
 
     const folder = datgui.__folders.tags.addFolder(name);
-    const colors = ["#FF0", "#F0F", "#0FF", "#F00", "#0F0", "#00F"];
+    const colors = ["#FF0", "#F0F", "#0FF", "#F00", "#0F0", "#00F"].reverse();
     const ntags = Object.keys(view.tags).length;
     view.tags[name] = {
         nodes: [node_id],

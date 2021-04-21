@@ -193,6 +193,22 @@ class Users(Resource):
         return {'message': 'ok'}
 
 
+class Drawers(Resource):
+    def get(self, name=None):
+        "Return data from the drawer (or info about all drawers if no id given)"
+        rule = request.url_rule.rule  # shortcut
+        if rule == '/drawers':
+            return [d.__name__[len('Drawer'):] for d in draw.get_drawers()]
+        elif rule == '/drawers/<string:name>':
+            try:
+                drawer_class = next(d for d in draw.get_drawers()
+                    if d.__name__[len('Drawer'):] == name)
+                return {'type': drawer_class.TYPE,
+                        'npanels': drawer_class.NPANELS}
+            except StopIteration:
+                raise InvalidUsage(f'not a valid drawer: {name}')
+
+
 class Trees(Resource):
     # NOTE: If we wanted to enforce that only the 'readers' (or owner) of a
     #   tree have access to it, we would need to add  @auth.login_required
@@ -202,8 +218,6 @@ class Trees(Resource):
         rule = request.url_rule.rule  # shortcut
         if rule == '/trees':
             return [get_tree(pid) for pid in dbget0('id', 'trees')]
-        elif rule == '/trees/drawers':
-            return [d.__name__[len('Drawer'):] for d in draw.get_drawers()]
         elif rule == '/trees/<string:tree_id>':
             return get_tree(tree_id)
         elif rule == '/trees/<string:tree_id>/newick':
@@ -338,8 +352,8 @@ def load_tree(tree_id):
 
 def get_drawer(tree_id, args):
     "Return the drawer initialized as specified in the args"
-    valid_keys = ['x', 'y', 'w', 'h', 'zx', 'zy', 'drawer', 'min_size',
-                  'aligned', 'rmin', 'amin', 'amax']
+    valid_keys = ['x', 'y', 'w', 'h', 'panel', 'zx', 'zy', 'drawer', 'min_size',
+                  'rmin', 'amin', 'amax']
 
     try:
         assert all(k in valid_keys for k in args.keys()), 'invalid keys'
@@ -351,6 +365,8 @@ def get_drawer(tree_id, args):
         assert viewport is None or (viewport[2] > 0 and viewport[3] > 0), \
             'invalid viewport'  # None=all plane, width and height must be > 0
 
+        panel = get('panel', 0)
+
         zoom = (get('zx', 1), get('zy', 1))
         assert zoom[0] > 0 and zoom[1] > 0, 'zoom must be > 0'
 
@@ -361,13 +377,11 @@ def get_drawer(tree_id, args):
         drawer_class.MIN_SIZE = get('min_size', 6)
         assert drawer_class.MIN_SIZE > 0, 'min_size must be > 0'
 
-        aligned = 'aligned' in args
-
         limits = (None if not drawer_name.startswith('Circ') else
             (get('rmin', 0), 0,
              get('amin', -180) * pi/180, get('amax', 180) * pi/180))
 
-        return drawer_class(load_tree(tree_id), viewport, zoom, aligned, limits,
+        return drawer_class(load_tree(tree_id), viewport, panel, zoom, limits,
                             app.searches.get(tree_id))
     except StopIteration:
         raise InvalidUsage(f'not a valid drawer: {drawer_name}')
@@ -815,9 +829,9 @@ def add_resources(api):
     add = api.add_resource  # shortcut
     add(Login, '/login')
     add(Users, '/users', '/users/<int:user_id>')
+    add(Drawers, '/drawers', '/drawers/<string:name>')
     add(Trees,
         '/trees',
-        '/trees/drawers',
         '/trees/<string:tree_id>',
         '/trees/<string:tree_id>/newick',
         '/trees/<string:tree_id>/draw',

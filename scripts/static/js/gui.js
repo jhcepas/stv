@@ -40,12 +40,11 @@ const view = {
     allow_modifications: true,
 
     // representation
-    drawer: "RectFull",
-    align_bar: 80,
-    is_circular: false,
+    drawer: {name: "RectFull", type: "rect", npanels: 1},  // default drawer
+    min_size: 20,
     rmin: 0,
     angle: {min: -180, max: 180},
-    min_size: 20,
+    align_bar: 80,
 
     // searches
     search: () => search(),
@@ -124,7 +123,7 @@ async function main() {
 
     await set_query_string_values();
 
-    const drawers = await api("/trees/drawers");
+    const drawers = await api("/drawers");
     datgui = create_datgui(Object.keys(trees), drawers);
 
     init_events();
@@ -199,15 +198,19 @@ async function on_tree_change() {
 
 
 // What happens when the user selects a new drawer in the datgui menu.
-function on_drawer_change() {
-    const has_aligned = view.drawer.startsWith("Align");
-    div_aligned.style.display = has_aligned ? "initial" : "none";
+async function on_drawer_change() {
+    const previous_type = view.drawer.type;
 
-    const reset_draw = (view.is_circular !== view.drawer.startsWith("Circ"));
+    const drawer_info = await api(`/drawers/${view.drawer.name}`);
+    view.drawer.type = drawer_info.type;
+    view.drawer.npanels = drawer_info.npanels;
 
-    view.is_circular = view.drawer.startsWith("Circ");
+    if (drawer_info.type === "rect" && drawer_info.npanels > 1)
+        div_aligned.style.display = "initial";
+    else
+        div_aligned.style.display = "none";
 
-    if (reset_draw) {
+    if (drawer_info.type !== previous_type) {
         reset_zoom();
         reset_position();
         draw_minimap();
@@ -245,7 +248,7 @@ async function set_query_string_values() {
         else if (param === "h")
             view.zoom.y = div_tree.offsetHeight / Number(value);
         else if (param === "drawer")
-            view.drawer = value;
+            view.drawer.name = value;
         else
             unknown_params.push(param);
     }
@@ -265,9 +268,16 @@ async function set_query_string_values() {
 async function set_consistent_values() {
     view.tree_size = await api(`/trees/${get_tid()}/size`);
 
-    view.is_circular = view.drawer.startsWith("Circ");
+    const drawer_info = await api(`/drawers/${view.drawer.name}`);
+    view.drawer.type = drawer_info.type;
+    view.drawer.npanels = drawer_info.npanels;
 
-    if (view.is_circular) {
+    if (drawer_info.type === "rect" && drawer_info.npanels > 1)
+        div_aligned.style.display = "initial";
+    else
+        div_aligned.style.display = "none";
+
+    if (view.drawer.type === "circ") {
         if (view.zoom.x !== null && view.zoom.y !== null)
             view.zoom.x = view.zoom.y = Math.min(view.zoom.x, view.zoom.y);
         else if (view.zoom.x !== null)
@@ -278,9 +288,6 @@ async function set_consistent_values() {
 
     reset_zoom(view.zoom.x === null, view.zoom.y === null);
     reset_position(view.tl.x === null, view.tl.y === null);
-
-    const has_aligned = view.drawer.startsWith("Align");
-    div_aligned.style.display = has_aligned ? "initial" : "none";
 }
 
 
@@ -302,21 +309,27 @@ function reset_zoom(reset_zx=true, reset_zy=true) {
 
     const size = view.tree_size;
 
-    if (view.is_circular) {
-        const min_w_h = Math.min(div_tree.offsetWidth, div_tree.offsetHeight);
-        view.zoom.x = view.zoom.y = min_w_h / (view.rmin + size.width) / 2;
-    }
-    else {
+    if (view.drawer.type === "rect") {
         if (reset_zx)
             view.zoom.x = 0.6 * div_tree.offsetWidth / size.width;
         if (reset_zy)
             view.zoom.y = 0.9 * div_tree.offsetHeight / size.height;
     }
+    else {
+        const min_w_h = Math.min(div_tree.offsetWidth, div_tree.offsetHeight);
+        view.zoom.x = view.zoom.y = min_w_h / (view.rmin + size.width) / 2;
+    }
 }
 
 
 function reset_position(reset_x=true, reset_y=true) {
-    if (view.is_circular) {
+    if (view.drawer.type === "rect") {
+        if (reset_x)
+            view.tl.x = -0.10 * div_tree.offsetWidth / view.zoom.x;
+        if (reset_y)
+            view.tl.y = -0.05 * div_tree.offsetHeight / view.zoom.y;
+    }
+    else {
         if (!(view.angle.min === -180 && view.angle.max === 180)) {
             view.angle.min = -180;
             view.angle.max = 180;
@@ -327,12 +340,6 @@ function reset_position(reset_x=true, reset_y=true) {
         if (reset_y)
             view.tl.y = -div_tree.offsetHeight / view.zoom.y / 2;
     }
-    else {
-        if (reset_x)
-            view.tl.x = -0.10 * div_tree.offsetWidth / view.zoom.x;
-        if (reset_y)
-            view.tl.y = -0.05 * div_tree.offsetHeight / view.zoom.y;
-    }
 }
 
 
@@ -340,7 +347,7 @@ function reset_position(reset_x=true, reset_y=true) {
 function get_url_view(x, y, w, h) {
     const qs = new URLSearchParams({
         x: x, y: y, w: w, h: h,
-        tree: view.tree, subtree: view.subtree, drawer: view.drawer,
+        tree: view.tree, subtree: view.subtree, drawer: view.drawer.name,
     }).toString();
     return window.location.origin + window.location.pathname + "?" + qs;
 }
@@ -470,13 +477,13 @@ function coordinates(point) {
     const x = view.tl.x + point.x / view.zoom.x,
           y = view.tl.y + point.y / view.zoom.y;
 
-    if (view.is_circular) {
+    if (view.drawer.type === "rect") {
+        return [x, y];
+    }
+    else {
         const r = Math.sqrt(x*x + y*y);
         const a = Math.atan2(y, x) * 180 / Math.PI;
         return [r, a];
-    }
-    else {
-        return [x, y];
     }
 }
 
@@ -500,7 +507,7 @@ function on_box_wheel(event, box) {
     const zoom_in = event.deltaY < 0;
     const do_zoom = {x: !event.ctrlKey, y: !event.altKey};
 
-    if (view.is_circular || !view.smart_zoom)
+    if (view.drawer.type === "circ" || !view.smart_zoom)
         zoom_around(point, zoom_in, do_zoom);
     else
         zoom_towards_box(box, point, zoom_in, do_zoom);
