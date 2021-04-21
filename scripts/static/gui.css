@@ -27,6 +27,10 @@
     fill: #888;
 }
 
+.support {
+    fill: #F08080;
+}
+
 .node {
     opacity: 0;
     fill: #222;

@@ -406,6 +406,37 @@ def draw_circ_lengths(drawer, node, point, bda):
             yield draw_text(box, (0, 1), text, 'length')
 
 
+def draw_rect_support(drawer, node, point, bdy):
+    if 'support' not in node.properties:
+        return
+
+    x, y = point
+    dx, dy = drawer.content_size(node)
+    zx, zy = drawer.zoom
+
+    text = '%.2g' % node.properties['support']
+
+    box = Box(x, y + bdy, dx, dy - bdy)
+    if box.dx * zx > drawer.MIN_SIZE and box.dy * zy > drawer.MIN_SIZE:
+        yield draw_text(box, (0, 0), text, 'support')
+
+
+def draw_circ_support(drawer, node, point, bda):
+    if 'support' not in node.properties:
+        return
+
+    r, a = point
+    dr, da = drawer.content_size(node)
+    z = drawer.zoom[0]  # zx == zy
+
+    if is_good_angle_interval(a, a + da):
+        text = '%.2g' % node.properties['support']
+
+        box = Box(r, a + bda, dr, da - bda)
+        if dr * z > drawer.MIN_SIZE and r * bda * z > drawer.MIN_SIZE:
+            yield draw_text(box, (0, 0), text, 'support')
+
+
 def draw_rect_collapsed_names(drawer):
     x, y, dx, dy = drawer.outline
 
@@ -444,6 +475,7 @@ class DrawerRectFull(DrawerRect):
     def draw_node(self, node, point, bdy):
         yield from draw_rect_leaf_names(self, node, point)
         yield from draw_rect_lengths(self, node, point, bdy)
+        yield from draw_rect_support(self, node, point, bdy)
 
     def draw_collapsed(self):
         yield from draw_rect_collapsed_names(self)
@@ -453,6 +485,7 @@ class DrawerCircFull(DrawerCirc):
     def draw_node(self, node, point, bdy):
         yield from draw_circ_leaf_names(self, node, point)
         yield from draw_circ_lengths(self, node, point, bdy)
+        yield from draw_circ_support(self, node, point, bdy)
 
     def draw_collapsed(self):
         yield from draw_circ_collapsed_names(self)
@@ -464,6 +497,7 @@ class DrawerAlignNames(DrawerRect):
     def draw_node(self, node, point, bdy):
         if self.panel == 0:
             yield from draw_rect_lengths(self, node, point, bdy)
+            yield from draw_rect_support(self, node, point, bdy)
 
             if node.is_leaf and self.viewport:
                 x, y = point
@@ -492,9 +526,10 @@ class DrawerAlignNames(DrawerRect):
 class DrawerCircAlignNames(DrawerCirc):
     NPANELS = 2
 
-    def draw_node(self, node, point, bdy):
+    def draw_node(self, node, point, bda):
         if self.panel == 0:
-            yield from draw_circ_lengths(self, node, point, bdy)
+            yield from draw_circ_lengths(self, node, point, bda)
+            yield from draw_circ_support(self, node, point, bda)
 
             if node.is_leaf and self.viewport:
                 r, a = point
@@ -531,6 +566,7 @@ class DrawerAlignHeatMap(DrawerRect):
         if self.panel == 0:
             yield from draw_rect_leaf_names(self, node, point)
             yield from draw_rect_lengths(self, node, point, bdy)
+            yield from draw_rect_support(self, node, point, bdy)
         elif self.panel == 1 and node.is_leaf:
             x, y = point
             dx, dy = self.content_size(node)
@@ -552,10 +588,11 @@ class DrawerAlignHeatMap(DrawerRect):
 class DrawerCircAlignHeatMap(DrawerCirc):
     NPANELS = 2
 
-    def draw_node(self, node, point, bdy):
+    def draw_node(self, node, point, bda):
         if self.panel == 0:
             yield from draw_circ_leaf_names(self, node, point)
-            yield from draw_circ_lengths(self, node, point, bdy)
+            yield from draw_circ_lengths(self, node, point, bda)
+            yield from draw_circ_support(self, node, point, bda)
         elif self.panel == 1 and node.is_leaf:
             r, a = point
             dr, da = self.content_size(node)

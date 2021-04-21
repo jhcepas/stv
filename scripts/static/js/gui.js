@@ -89,6 +89,11 @@ const view = {
         font: "sans-serif",
         max_size: 15,
     },
+    supports: {
+        color: "#F08080",
+        font: "sans-serif",
+        max_size: 15,
+    },
     font_sizes: {auto: true, scroller: undefined, fixed: 10},
     array: {padding: 0.0},
 
