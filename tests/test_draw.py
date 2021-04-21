@@ -27,9 +27,12 @@ def test_draw_elements():
 
 def test_draw_content_inline():
     t = tree.Tree('A:10')
+    t.properties['support'] = 0.9
     drawer1 = draw.DrawerRectFull(t, zoom=(20, 20))
     assert list(drawer1.draw_content_inline(t, (0, 0), 0.5)) == [
-        ['text', (0, 0, 10.0, 0.5), (0, 1), '10', 'length']]
+            ['text', (0, 0, 10.0, 0.5), (0, 1), '10', 'length'],
+            ['text', (0, 0.5, 10.0, 0.5), (0, 0), '0.9', 'support']
+        ]
     drawer2 = draw.DrawerRectFull(t, zoom=(0.1, 0.1))
     assert list(drawer2.draw_content_inline(t, (0, 0), 0.5)) == []
 
