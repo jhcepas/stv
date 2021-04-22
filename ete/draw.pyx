@@ -55,11 +55,11 @@ class Drawer:
 
     def draw(self):
         "Yield graphic elements to draw the tree"
-        self.outline = None  # box surrounding collapsed nodes
-        self.collapsed = []  # nodes that are collapsed together
-        self.nodeboxes = []  # node and collapsed boxes
+        self.outline = None  # box surrounding the current collapsed nodes
+        self.collapsed = []  # nodes that are curretly collapsed together
+        self.nodeboxes = []  # boxes surrounding all nodes and collapsed boxes
         self.node_dxs = [[]]  # lists of nodes dx (to find the max)
-        self.bdy_dys = [[]]  # lists of branching dys and total dys
+        self.bdy_dys = [[]]  # lists of branch dys and total dys
 
         point = self.xmin, self.ymin
         for it in self.tree.walk():
@@ -136,13 +136,13 @@ class Drawer:
         if not self.in_viewport(Box(x, y, dx, dy)):
             return
 
-        # Find branching dy of first child (bdy0), last (bdy1), and self (bdy).
+        # Find branch dy of first child (bdy0), last (bdy1), and self (bdy).
         bdy_dys = self.bdy_dys.pop()  # bdy_dys[i] == (bdy, dy)
-        bdy0 = bdy1 = dy / 2  # branching dys of the first and last children
+        bdy0 = bdy1 = dy / 2  # branch dys of the first and last children
         if bdy_dys:
             bdy0 = bdy_dys[0][0]
             bdy1 = sum(bdy_dy[1] for bdy_dy in bdy_dys[:-1]) + bdy_dys[-1][0]
-        bdy = (bdy0 + bdy1) / 2  # this node's branching dy
+        bdy = (bdy0 + bdy1) / 2  # this node's branch dy
         self.bdy_dys[-1].append( (bdy, dy) )
 
         # Draw the branch line ("lengthline") and a line spanning all children.
@@ -198,7 +198,7 @@ class Drawer:
 
     def draw_node(self, node, point, bdy):  # bdy: branch dy (height)
         "Yield graphic elements to draw the contents of the node"
-        yield from []  # only drawn if any of the node's content is visible
+        yield from []  # only drawn if the node's content is visible
 
     def draw_collapsed(self):
         "Yield graphic elements to draw the list of nodes in self.collapsed"
@@ -344,7 +344,7 @@ def polar((double, double) point):
 
 
 def is_good_angle_interval(a1, a2):
-    EPSILON = 1e-12  # without it, rounding can fake a2 > pi
+    EPSILON = 1e-8  # without it, rounding can fake a2 > pi
     return -pi <= a1 < a2 < pi + EPSILON
 
 

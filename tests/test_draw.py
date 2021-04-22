@@ -23,7 +23,7 @@ def assert_equal(elements1, elements2):
 
 def assert_equal_elements(element1, element2):
     "Assert that the graphic elements are equal within rounding"
-    EPSILON = 1e-10
+    TOLERANCE = 1e-10
 
     assert type(element1) == type(element2) == list
     assert len(element1) == len(element2)
@@ -31,18 +31,12 @@ def assert_equal_elements(element1, element2):
     for p1, p2 in zip(element1, element2):
         c1, c2 = type(p1), type(p2)
         assert c1 == c2 or isinstance(p1, c2) or isinstance(p2, c1)
-        if c1 == str:
+        if c1 in [str, int, dict, list]:
             assert p1 == p2
         elif issubclass(c1, tuple):
             assert len(p1) == len(p2)
             for x1, x2 in zip(p1, p2):
-                assert abs(x1 - x2) < EPSILON
-        elif c1 == dict:
-            assert p1 == p2
-        elif c1 == list:
-            assert p1 == p2
-        elif c1 == int:
-            assert p1 == p2
+                assert abs(x1 - x2) < TOLERANCE
         else:
             raise AssertionError(f'unrecognized type {c1}')
 
@@ -123,10 +117,10 @@ def test_draw_collapsed():
 
     drawer_z1 = draw.DrawerRectFull(t)
     elements_z1 = list(drawer_z1.draw())
-    assert elements_z1 == [
+    assert_equal(elements_z1, [
         ['outline', (0, 0, 751.0, 3.0)],
         ['text', (751.0, 0, 2.0, 3.0), (0, 0.5), 'F', 'name'],
-        ['nodebox', (0, 0, 753.0, 3.0), '(collapsed)', {}, [], []]]
+        ['nodebox', (0, 0, 753.0, 3.0), '(collapsed)', {}, [], []]])
 
 
 def test_draw_tree_rect():

@@ -141,7 +141,6 @@ def test_auth_bearer():
     auth_txt = 'Bearer ' + res['token']
     r = req.Request(urlbase + 'info', headers={'Authorization': auth_txt})
     req.urlopen(r)
-
     # If we are not authenticated, the request will raise an error.
 
 
