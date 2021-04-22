@@ -348,7 +348,6 @@ def test_drawer_arguments():
 def test_search():
     valid_requests = [
         'text=A',
-        'text=B&x=1&y=-1&w=1&h=1&drawer=RectSimple&min_size=8&aligned&zx=3&zy=6',
         'text=%s' % quote('/r (A|B)'),
         'text=%s' % quote('/e is_leaf or d > 1')]
 
