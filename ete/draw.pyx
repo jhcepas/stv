@@ -422,7 +422,7 @@ def draw_rect_support(drawer, node, point, bdy):
     dx, dy = drawer.content_size(node)
     zx, zy = drawer.zoom
 
-    text = '%.2g' % node.properties['support']
+    text = '%.2g' % float(node.properties['support'])
 
     box = Box(x, y + bdy, dx, dy - bdy)
     if box.dx * zx > drawer.MIN_SIZE and box.dy * zy > drawer.MIN_SIZE:
@@ -439,7 +439,7 @@ def draw_circ_support(drawer, node, point, bda):
     z = drawer.zoom[0]  # zx == zy
 
     if is_good_angle_interval(a, a + da):
-        text = '%.2g' % node.properties['support']
+        text = '%.2g' % float(node.properties['support'])
 
         box = Box(r, a + bda, dr, da - bda)
         if dr * z > drawer.MIN_SIZE and r * bda * z > drawer.MIN_SIZE:
