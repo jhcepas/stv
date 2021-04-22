@@ -277,8 +277,8 @@ class DrawerCirc(Drawer):
             return (intersects_box(self.viewport, circumrect(box)) and
                     intersects_segment((-pi, +pi), get_ys(box)))
         else:
-            angles_viewport = get_ys(circumasec(self.viewport))
-            return intersects_segment(angles_viewport, get_ys(box))
+            rects = split_thru_xaxis(self.viewport, negative_x_only=True)
+            return any(intersects_angles(r, box) for r in rects)
 
     def flush_outline(self, minimum_dr=0):
         "Return box outlining the collapsed nodes"
@@ -741,6 +741,21 @@ def intersects_segment(s1, s2):
     s1min, s1max = s1
     s2min, s2max = s2
     return s1min <= s2max and s2min <= s1max
+
+
+def intersects_angles(rect, asec):
+    "Return True if any part of rect is contained within the angles of the asec"
+    return intersects_segment(get_ys(circumasec(rect)), get_ys(asec))
+
+
+def split_thru_xaxis(rect, negative_x_only=True):
+    "Return a list of rectangles resulting from cutting the given one"
+    x, y, dx, dy = rect
+    if (negative_x_only and x >= 0) or y > 0 or y + dy < 0:
+        return [rect]
+    else:
+        EPSILON = 1e-8
+        return [Box(x, y, dx, -y-EPSILON), Box(x, EPSILON, dx, dy + y)]
 
 
 def stack(b1, b2):
