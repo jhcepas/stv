@@ -165,33 +165,13 @@ function add_menu_style(dgui) {
 
     const folder_padding = folder_name.addFolder("padding");
 
-    folder_padding.add(view.name.padding, "left", -20, 200).onChange(() => {
-        update();
-
-        // TODO: avoid the api call by using something like the code below
-        //   which needs fixing for the case of inverted texts in circular rep.
-        // const padding = view.name.padding.left / 100;
-        // Array.from(div_tree.getElementsByClassName("name")).forEach(t => {
-        //     const fs = Number(t.getAttribute("font-size").slice(0, -2));
-        //     const x0 = Number(t.getAttribute("data-x0"));
-        //     t.setAttribute("x", x0 + padding * fs);
-    });
+    folder_padding.add(view.name.padding, "left", -20, 200).onChange(update);
     folder_padding.add(view.name.padding, "vertical", 0, 1).step(0.01).onChange(
-        () => {
-            update();
-
-            // TODO: avoid the api call by using something like the code below:
-            // Array.from(div_tree.getElementsByClassName("name")).forEach(t => {
-            // const box = t.getAttribute("data-box").split(",").map(Number);
-            // const anchor = t.getAttribute("data-anchor").split(",").map(Number);
-    });
+        update);
     folder_name.add(view.name, "font", ["sans-serif", "serif", "monospace"])
         .onChange(() => style("name").fontFamily = view.name.font);
     folder_name.add(view.name, "max_size", 1, 200).name("max size").onChange(
-        () => {
-            // TODO: avoid the api call.
-            update();
-    });
+        update);
 
     const properties = ['length', 'support'];
     properties.forEach(p => {
@@ -201,12 +181,9 @@ function add_menu_style(dgui) {
             () => style(p).fill = view[p].color);
         folder.add(view[p], "font", ["sans-serif", "serif", "monospace"])
             .onChange(() => style(p).fontFamily = view[p].font);
-        folder.add(view[p], "max_size", 1, 100).name("max size").onChange(
-            () => {
-                // TODO: avoid the api call.
-                update();
-        });
-    })
+        folder.add(view[p], "max_size", 1, 100).name("max size").onChange(update);
+    });
+
     folder_text.add(view.font_sizes, "auto").name("automatic size").onChange(
         () => {
             style("font").fontSize =
