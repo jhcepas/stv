@@ -52,7 +52,10 @@ async function draw_tree() {
         colorize_searches();
 
         if (view.drawer.npanels > 1)
-            draw_aligned(params);
+            await draw_aligned(params);
+
+        if (view.drawer.type === "circ")
+            fix_text_orientations();
     }
     catch (ex) {
         Swal.fire({
@@ -77,10 +80,6 @@ function draw(element, items, tl, zoom, replace=true) {
 
     const svg = element.children[0];
     svg.appendChild(g);
-
-    if (view.drawer.type === "circ" && replace)
-        fix_text_orientations(element);
-        // TODO: find a better criterium than "&& replace"
 }
 
 
@@ -416,8 +415,8 @@ function get_text_placement_circ(box, anchor, text, tl, z, type="") {
 
 // Flip all the texts in circular representation that look upside-down.
 // NOTE: getBBox() is very expensive and requires text to be already in the DOM.
-async function fix_text_orientations(div) {
-    const texts = Array.from(div.getElementsByClassName("text"))
+async function fix_text_orientations() {
+    const texts = Array.from(div_tree.getElementsByClassName("text"))
         .filter(is_upside_down);
 
     texts.sort((a, b) => get_font_size(b) - get_font_size(a));
