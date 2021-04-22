@@ -7,7 +7,7 @@ import { update } from "./draw.js";
 export { create_datgui };
 
 
-// Create the top-right box ("gui") with all the options we can see and change.
+// Return the top-right box ("gui") with all the options we can see and change.
 function create_datgui(trees, drawers) {
     const dgui = new dat.GUI({autoPlace: false});
     div_datgui.appendChild(dgui.domElement);
@@ -18,7 +18,7 @@ function create_datgui(trees, drawers) {
 
     add_menu_searches(dgui);
 
-    dgui.addFolder("tags");
+    dgui.addFolder("tags");  // filled dynamically with tag_node()
 
     add_menu_info(dgui);
 
