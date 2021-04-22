@@ -131,11 +131,11 @@ function smooth_zoom(point) {
     if (zooming.timeout)
         window.clearTimeout(zooming.timeout);
 
-    const g = div_tree.children[0].children[0];
-    g.setAttribute("transform",
-        `scale(${zooming.qz.x}, ${zooming.qz.y}) ` +
-        `translate(${(1 / zooming.qz.x - 1) * point.x}
-                   ${(1 / zooming.qz.y - 1) * point.y})`);
+    Array.from(div_tree.children[0].children).forEach(g =>
+        g.setAttribute("transform",
+            `scale(${zooming.qz.x}, ${zooming.qz.y}) ` +
+            `translate(${(1 / zooming.qz.x - 1) * point.x}
+                    ${(1 / zooming.qz.y - 1) * point.y})`));
 
     if (view.minimap.show)
         update_minimap_visible_rect();

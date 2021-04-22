@@ -65,8 +65,8 @@ function drag_move(point) {
             dy *= -view.zoom.y / view.minimap.zoom.y;
         }
 
-        const g = div_tree.children[0].children[0];
-        g.setAttribute("transform", `translate(${dx} ${dy})`);
+        Array.from(div_tree.children[0].children).forEach(g =>
+            g.setAttribute("transform", `translate(${dx} ${dy})`));
 
         datgui.updateDisplay();  // update the info box on the top-right
 
