@@ -100,7 +100,8 @@ function on_keydown(event) {
 
 // Mouse wheel -- zoom in/out (instead of scrolling).
 function on_wheel(event) {
-    if (event.target !== div_tree.children[0])
+    const g_panel0 = div_tree.children[0].children[0];
+    if (g_panel0.contains(event.target))
         return;  // it will be done on the nodes instead
 
     event.preventDefault();
