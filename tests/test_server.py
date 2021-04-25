@@ -352,7 +352,7 @@ def test_search():
         'text=%s' % quote('/e is_leaf or d > 1')]
 
     invalid_requests_and_error = [
-        ('', 'missing required arguments: text'),
+        ('', 'missing search text'),
         ('text=/', 'invalid command'),
         ('text=%s' % quote('/e open("/etc/passwd")'), 'invalid use of'),
         ('text=%s' % quote('/e __import__("os").execv("/bin/echo", ["0wN3d"])'),

@@ -1,13 +1,13 @@
 // Search-related functions.
 
-import { view, datgui, get_tid } from "./gui.js";
+import { view, menus, get_tid } from "./gui.js";
 import { draw_tree } from "./draw.js";
 import { api } from "./api.js";
 
 export { search, remove_searches, get_search_class, colorize_searches };
 
 
-// Search nodes and mark them as selected on the tree.
+// Search nodes in the server and redraw the tree (with the results too).
 async function search() {
     let search_text;
 
@@ -16,14 +16,24 @@ async function search() {
         position: "bottom-start",
         inputPlaceholder: "Enter name or /r <regex> or /e <exp>",
         showConfirmButton: false,
-        preConfirm: text => {
+        preConfirm: async text => {
             if (!text)
                 return false;  // prevent popup from closing
 
             search_text = text;  // to be used when checking the result later on
 
             const qs = `text=${encodeURIComponent(text)}`;
-            return api(`/trees/${get_tid()}/search?${qs}`);
+            try {
+                return await api(`/trees/${get_tid()}/search?${qs}`);
+            }
+            catch (exception) {
+                Swal.fire({
+                    position: "bottom-start",
+                    showConfirmButton: false,
+                    html: exception,
+                    icon: "error",
+                });
+            }
         },
     });
 
@@ -43,7 +53,7 @@ async function search() {
                           width: 5},
             };
 
-            add_search_to_datgui(search_text);
+            add_search_to_menu(search_text);
 
             draw_tree();
         }
@@ -65,16 +75,16 @@ function get_search_class(text, type="results") {
 }
 
 
-// Add a folder to the datgui that corresponds to the given search text
+// Add a folder to the menu that corresponds to the given search text
 // and lets you change the result nodes color and so on.
-function add_search_to_datgui(text) {
-    const folder = datgui.__folders.searches.addFolder(text);
+function add_search_to_menu(text) {
+    const folder = menus.tags_searches.__folders.searches.addFolder(text);
 
     const search = view.searches[text];
 
     search.remove = function() {
         delete view.searches[text];
-        datgui.__folders.searches.removeFolder(folder);
+        menus.tags_searches.__folders.searches.removeFolder(folder);
         draw_tree();
     }
 

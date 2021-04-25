@@ -1,6 +1,6 @@
 // Main file for the gui.
 
-import { create_datgui } from "./menu.js";
+import { init_menus } from "./menu.js";
 import { init_events } from "./events.js";
 import { update } from "./draw.js";
 import { download_newick, download_image, download_svg } from "./download.js";
@@ -9,8 +9,9 @@ import { zoom_into_box, zoom_around, zoom_towards_box } from "./zoom.js";
 import { draw_minimap, update_minimap_visible_rect } from "./minimap.js";
 import { api, api_put, escape_html } from "./api.js";
 import { remove_tags } from "./tag.js";
+import { label_expression, label_property } from "./label.js";
 
-export { view, datgui, on_tree_change, on_drawer_change, show_minimap,
+export { view, menus, on_tree_change, on_drawer_change, show_minimap,
          tree_command, get_tid, on_box_click, on_box_wheel, coordinates,
          reset_view, show_help, sort };
 
@@ -23,12 +24,13 @@ document.addEventListener("DOMContentLoaded", main);
 // Most will be shown on the top-right gui (using dat.gui).
 const view = {
     // tree
-    tree: "",
+    tree: null,  // string with the current tree name
     tree_size: {width: 0, height: 0},
-    subtree: "",
+    node_properties: [],  // existing in the current tree
+    subtree: "",  // node id of the current subtree; looks like "0,1,0,0,1"
     sorting: {
         sort: () => sort(),
-        key: '(dy, dx, name)',
+        key: "(dy, dx, name)",
         reverse: false,
     },
     upload: () => window.location.href = "upload_tree.html",
@@ -40,8 +42,12 @@ const view = {
     allow_modifications: true,
 
     // representation
-    drawer: {name: "RectFull", type: "rect", npanels: 1},  // default drawer
-    min_size: 20,
+    drawer: {name: "RectLeafNames", type: "rect", npanels: 1},  // default drawer
+    min_size: 15,
+    label_expression: () => label_expression(),
+    label_property: () => label_property(),
+    current_property: "name",
+    labels: {},  // will contain the labels created
     rmin: 0,
     angle: {min: -180, max: 180},
     align_bar: 80,
@@ -62,7 +68,7 @@ const view = {
     reset_view: () => reset_view(),
     tl: {x: null, y: null},  // top-left of the view (in tree coordinates)
     zoom: {x: null, y: null},  // initially chosen depending on the tree size
-    select_text: false,
+    select_text: false,  // if true, clicking and moving the mouse selects text
 
     // style
     node: {
@@ -78,6 +84,10 @@ const view = {
         color: "#000",
         width: 1,
     },
+    array: {padding: 0.0},
+    font_sizes: {auto: true, scroller: undefined, fixed: 10},
+
+    // TODO: see if the next 3 are better gone if we use labels more.
     name: {
         color: "#00A",
         font: "sans-serif",
@@ -94,8 +104,6 @@ const view = {
         font: "sans-serif",
         max_size: 15,
     },
-    font_sizes: {auto: true, scroller: undefined, fixed: 10},
-    array: {padding: 0.0},
 
     // minimap
     minimap: {
@@ -113,9 +121,13 @@ const view = {
     show_help: () => show_help(),
 };
 
+const menus = {  // will contain the menus on the top
+    main: undefined,
+    representation: undefined,
+    tags_searches: undefined,
+};
 
-const trees = {};  // will contain trees[tree_name] = tree_id
-let datgui;
+const trees = {};  // will translate names to ids (trees[tree_name] = tree_id)
 
 
 async function main() {
@@ -124,9 +136,11 @@ async function main() {
     await set_query_string_values();
 
     const drawers = await api("/drawers");
-    datgui = create_datgui(Object.keys(trees), drawers);
+    init_menus(menus, Object.keys(trees), drawers);
 
     init_events();
+
+    store_node_properties();
 
     draw_minimap();
     update();
@@ -136,29 +150,29 @@ async function main() {
 }
 
 
-// Fill global var trees, and view.tree with the first of the available trees.
+// Fill global var trees, which translates tree names into their database ids.
 async function init_trees() {
     const trees_info = await api("/trees");
-    trees_info.forEach(t => trees[t.name] = t.id);
 
-    view.tree = Object.keys(trees)[0];
-    view.tree_size = await api(`/trees/${get_tid()}/size`);
+    trees_info.forEach(t => trees[t.name] = t.id);
 }
 
 
 // Return current (sub)tree id (its id number followed by its subtree id).
 function get_tid() {
-    if (!trees[view.tree]) {
+    if (view.tree in trees) {
+        return trees[view.tree] + (view.subtree ? "," + view.subtree : "");
+    }
+    else {
         Swal.fire({
             html: `Cannot find tree ${escape_html(view.tree)}<br><br>
                    Opening a default tree.`,
             icon: "error",
         });
-        view.tree = Object.keys(trees)[0];
-        api(`/trees/${trees[view.tree]}/size`).then(s => view.tree_size = s);
-    }
 
-    return trees[view.tree] + (view.subtree ? "," + view.subtree : "");
+        view.tree = Object.keys(trees)[0];  // select a default tree
+        on_tree_change();
+    }
 }
 
 
@@ -181,12 +195,13 @@ async function tree_command(command, params=undefined) {
 }
 
 
-// What happens when the user selects a new tree in the datgui menu.
+// What happens when the user selects a new tree in the menu.
 async function on_tree_change() {
     div_tree.style.cursor = "wait";
     remove_searches();
     remove_tags();
     view.tree_size = await api(`/trees/${get_tid()}/size`);
+    store_node_properties();
     reset_zoom();
     reset_position();
     draw_minimap();
@@ -197,7 +212,7 @@ async function on_tree_change() {
 }
 
 
-// What happens when the user selects a new drawer in the datgui menu.
+// What happens when the user selects a new drawer in the menu.
 async function on_drawer_change() {
     const previous_type = view.drawer.type;
 
@@ -217,6 +232,27 @@ async function on_drawer_change() {
     }
 
     update();
+}
+
+
+async function store_node_properties() {
+    view.node_properties = ["name", "length"].concat(
+        await api(`/trees/${get_tid()}/properties`));
+
+    const folder = menus.representation
+        .__folders.labels.__folders.add.__folders.properties;
+    const select = folder.__controllers[0].__select;
+
+    while (select.length > 0)
+        select.remove(select.length - 1);
+
+    for (const p of view.node_properties) {
+        const opt = document.createElement("option");
+        opt.value = opt.text = p;
+        select.add(opt);
+    }
+
+    view.current_property = "name";
 }
 
 
@@ -266,18 +302,34 @@ async function set_query_string_values() {
 }
 
 async function set_consistent_values() {
+    if (view.tree === null)
+        view.tree = Object.keys(trees)[0];  // select default tree
+
     view.tree_size = await api(`/trees/${get_tid()}/size`);
 
-    const drawer_info = await api(`/drawers/${view.drawer.name}`);
-    view.drawer.type = drawer_info.type;
-    view.drawer.npanels = drawer_info.npanels;
+    let drawer_info;
+    try {
+        drawer_info = await api(`/drawers/${view.drawer.name}`);
+    }
+    catch (ex) {
+        Swal.fire({
+            html: `Cannot find drawer ${escape_html(view.drawer.name)}<br><br>
+                   Opening a default drawer.`,
+            icon: "error",
+        });
+        view.drawer.name = "Rect";
+        drawer_info = {"type": "rect", "npanels": 1};
+    }
+
+    view.drawer.type = drawer_info.type;  // "rect" or "circ"
+    view.drawer.npanels = drawer_info.npanels;  // if > 1, there's aligned stuff
 
     if (drawer_info.type === "rect" && drawer_info.npanels > 1)
-        div_aligned.style.display = "initial";
+        div_aligned.style.display = "initial";  // show div for aligned content
     else
-        div_aligned.style.display = "none";
+        div_aligned.style.display = "none";     // hide div for aligned content
 
-    if (view.drawer.type === "circ") {
+    if (view.drawer.type === "circ") {  // adjust zoom nicely so zx == zy
         if (view.zoom.x !== null && view.zoom.y !== null)
             view.zoom.x = view.zoom.y = Math.min(view.zoom.x, view.zoom.y);
         else if (view.zoom.x !== null)
@@ -315,7 +367,7 @@ function reset_zoom(reset_zx=true, reset_zy=true) {
         if (reset_zy)
             view.zoom.y = 0.9 * div_tree.offsetHeight / size.height;
     }
-    else {
+    else if (view.drawer.type === "circ") {
         const min_w_h = Math.min(div_tree.offsetWidth, div_tree.offsetHeight);
         view.zoom.x = view.zoom.y = min_w_h / (view.rmin + size.width) / 2;
     }
@@ -329,7 +381,7 @@ function reset_position(reset_x=true, reset_y=true) {
         if (reset_y)
             view.tl.y = -0.05 * div_tree.offsetHeight / view.zoom.y;
     }
-    else {
+    else if (view.drawer.type === "circ") {
         if (!(view.angle.min === -180 && view.angle.max === 180)) {
             view.angle.min = -180;
             view.angle.max = 180;
@@ -356,7 +408,9 @@ function get_url_view(x, y, w, h) {
 // Show an alert with information about the current tree and view.
 async function show_tree_info() {
     const info = await api(`/trees/${get_tid()}`);
-    const [name, tid, description] = [info.name, info.id, info.description];
+
+    const props = view.node_properties.map(p =>
+        `<tt>${escape_html(p)}</tt>`).join("<br>");
 
     const w = div_tree.offsetWidth / view.zoom.x,
           h = div_tree.offsetHeight / view.zoom.y;
@@ -365,9 +419,10 @@ async function show_tree_info() {
     const result = await Swal.fire({
         title: "Tree Information",
         icon: "info",
-        html: `<b>Name</b>: ${escape_html(name)}<br><br>` +
-              (description ? `${description}<br><br>` : "") +
-              `(<a href="${url}">current view</a>)`,
+        html: `<b>Name</b>: ${escape_html(info.name)}<br><br>` +
+            (info.description ? `${info.description}<br><br>` : "") +
+            `Node properties:<br>${props}<br><br>` +
+            `(<a href="${url}">current view</a>)`,
         confirmButtonText: navigator.clipboard ? "Copy view to clipboard" : "Ok",
         showCancelButton: true,
     });

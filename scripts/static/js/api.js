@@ -120,7 +120,7 @@ async function assert(condition, message, response=undefined) {
     if (!condition) {
         const response_error = response ? `<br><br>
             <b>Response status:</b> ${response.status}<br>
-            <b>Message:</b> ${await get_error(response)}` : "";
+            <b>Message:</b> ${escape_html(await get_error(response))}` : "";
         throw new Error(message + response_error);
     }
 }

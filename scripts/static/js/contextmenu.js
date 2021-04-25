@@ -1,6 +1,7 @@
 // Functions related to the context menu (right-click menu).
 
-import { view, tree_command, on_tree_change, reset_view, sort } from "./gui.js";
+import { view, tree_command, on_tree_change, reset_view, sort, get_tid }
+    from "./gui.js";
 import { draw_minimap } from "./minimap.js";
 import { update } from "./draw.js";
 import { download_newick } from "./download.js";
@@ -128,6 +129,12 @@ function add_tree_options() {
         add_button("🔃 Sort tree ⚠️", () => sort(),
             "Sort all branches according to the current sorting function. " +
             "Changes the tree structure.");
+        if (!view.subtree) {
+            add_button("🔥 Reload tree ⚠️", async () => {
+                await tree_command("reload", get_tid());
+                on_tree_change();
+            }, "Reload current tree. Restores the original tree structure.");
+        }
     }
 }
 

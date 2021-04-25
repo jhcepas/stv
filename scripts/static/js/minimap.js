@@ -33,8 +33,7 @@ async function draw_minimap() {
 
     draw(div_minimap, items, tl, view.minimap.zoom);
 
-    Array.from(div_minimap.getElementsByClassName("node")).forEach(
-        e => e.remove());
+    remove_nodeboxes();  // we don't want to select or highlight nodes here
 
     view.minimap.uptodate = true;
 
@@ -60,6 +59,15 @@ function adjust_size_and_zoom() {
         view.minimap.zoom.x = view.minimap.zoom.y =
             (div_minimap.offsetWidth - 2*mbw) / (view.rmin + size.width) / 2;
     }
+}
+
+
+// Remove the boxes that represent the nodes.
+function remove_nodeboxes() {
+    Array.from(div_minimap.getElementsByClassName("node")).forEach(
+        e => e.remove());
+    Array.from(div_minimap.getElementsByClassName("fg_node")).forEach(
+        e => e.remove());
 }
 
 

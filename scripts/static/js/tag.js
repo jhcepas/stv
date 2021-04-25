@@ -1,6 +1,6 @@
 // Functions related to tagging.
 
-import { view, datgui } from "./gui.js";
+import { view, menus } from "./gui.js";
 
 export { tag_node, colorize_tags, remove_tags };
 
@@ -16,7 +16,7 @@ function tag_node(node_id, name) {
         return true;
     }
 
-    const folder = datgui.__folders.tags.addFolder(name);
+    const folder = menus.tags_searches.__folders.tags.addFolder(name);
     const colors = ["#FF0", "#F0F", "#0FF", "#F00", "#0F0", "#00F"].reverse();
     const ntags = Object.keys(view.tags).length;
     view.tags[name] = {
@@ -30,7 +30,7 @@ function tag_node(node_id, name) {
         view.tags[name].color = view.node.color;
         colorize_tag(name);
         delete view.tags[name];
-        datgui.__folders.tags.removeFolder(folder);
+        menus.tags_searches.__folders.tags.removeFolder(folder);
     }
 
     folder.add(view.tags[name], "opacity", 0, 1).step(0.01).onChange(

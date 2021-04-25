@@ -43,6 +43,7 @@ from functools import partial
 from datetime import datetime
 from contextlib import contextmanager
 import gzip
+import json
 
 from flask import Flask, request, jsonify, g, redirect, url_for
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth, MultiAuth
@@ -232,6 +233,12 @@ class Trees(Resource):
         elif rule == '/trees/<string:tree_id>/size':
             width, height = load_tree(tree_id).size
             return {'width': width, 'height': height}
+        elif rule == '/trees/<string:tree_id>/properties':
+            t = load_tree(tree_id)
+            properties = set()
+            for node in t:
+                properties |= node.properties.keys()
+            return list(properties)
 
     @auth.login_required
     def post(self):
@@ -252,11 +259,11 @@ class Trees(Resource):
             sort(tree_id, node_id, key_text, reverse)
             return {'message': 'ok'}
         elif rule == '/trees/<string:tree_id>/root_at':
-            t = load_tree(tree_id)
             tid, subtree = get_tid(tree_id)
             if subtree:
                 raise InvalidUsage('operation not allowed with subtree')
             node_id = request.json
+            t = load_tree(tid)
             app.trees[tid] = gardening.root_at(t[node_id])
             return {'message': 'ok'}
         elif rule == '/trees/<string:tree_id>/move':
@@ -282,7 +289,15 @@ class Trees(Resource):
                 t[node_id].name = name
                 return {'message': 'ok'}
             except AssertionError as e:
-                raise InvalidUsage(f'cannot name ${node_id}: {e}')
+                raise InvalidUsage(f'cannot rename ${node_id}: {e}')
+        elif rule == '/trees/<string:tree_id>/reload':
+            tid, subtree = get_tid(tree_id)
+            if subtree:
+                raise InvalidUsage('operation not allowed with subtree')
+            del app.trees[tid]
+            load_tree(tid)
+            return {'message': 'ok'}
+
 
     @auth.login_required
     def delete(self, tree_id):
@@ -353,7 +368,7 @@ def load_tree(tree_id):
 def get_drawer(tree_id, args):
     "Return the drawer initialized as specified in the args"
     valid_keys = ['x', 'y', 'w', 'h', 'panel', 'zx', 'zy', 'drawer', 'min_size',
-                  'rmin', 'amin', 'amax']
+                  'labels', 'rmin', 'amin', 'amax']
 
     try:
         assert all(k in valid_keys for k in args.keys()), 'invalid keys'
@@ -370,7 +385,7 @@ def get_drawer(tree_id, args):
         zoom = (get('zx', 1), get('zy', 1))
         assert zoom[0] > 0 and zoom[1] > 0, 'zoom must be > 0'
 
-        drawer_name = args.get('drawer', 'RectFull')
+        drawer_name = args.get('drawer', 'RectLeafNames')
         drawer_class = next(d for d in draw.get_drawers()
             if d.__name__[len('Drawer'):] == drawer_name)
 
@@ -381,8 +396,12 @@ def get_drawer(tree_id, args):
             (get('rmin', 0), 0,
              get('amin', -180) * pi/180, get('amax', 180) * pi/180))
 
-        return drawer_class(load_tree(tree_id), viewport, panel, zoom, limits,
-                            app.searches.get(tree_id))
+        labels = get_label_fns(json.loads(args.get('labels', '[]')))
+
+        searches = app.searches.get(tree_id)
+
+        return drawer_class(load_tree(tree_id), viewport, panel, zoom,
+                            limits, labels, searches)
     except StopIteration:
         raise InvalidUsage(f'not a valid drawer: {drawer_name}')
     except (ValueError, AssertionError) as e:
@@ -410,12 +429,79 @@ def get_newick(tree_id, max_mb):
     return newick
 
 
+def get_label_fns(labels):
+    "Return a list of functions that when called on a node will label it"
+    positions = set(pos for _,_,pos in labels)
+    label_at = {pos: [label for label in labels if label[2] == pos]
+                    for pos in positions}
+
+    fns = []
+    for pos, labels_pos in label_at.items():
+        for i, label in enumerate(labels_pos):
+            fns.append(get_label_fn(label, i, len(labels_pos)))
+
+    return fns
+
+
+def get_label_fn(label, i, n):
+    "Return a function that given a node will put a label on it"
+    # "label" is the i-th label of n for that postion.
+    expression, nodetype, pos = label
+
+    try:
+        code = compile(expression, '<string>', 'eval')
+    except SyntaxError as e:
+        raise InvalidUsage(f'compiling expression: {e}')
+
+    def label_fn(node, point, bdy, size, fit):
+        box, anchor = (0, 0, 0, 0), (0, 0)
+
+        if ((nodetype == "leaf" and not node.is_leaf) or
+            (nodetype == "internal" and node.is_leaf)):
+            return box, anchor, '', ''
+
+        text = str(safer_eval(code, {
+            'name': node.name, 'is_leaf': node.is_leaf,
+            'length': node.length, 'dist': node.length, 'd': node.length,
+            'support': node.properties.get('support', ''),
+            'properties': node.properties, 'p': node.properties,
+            'get': dict.get,
+            'children': node.children, 'ch': node.children,
+            'regex': re.search,
+            'len': len, 'sum': sum, 'abs': abs, 'float': float, 'pi': pi}))
+
+        x, y = point
+        dx, dy = size
+
+        if pos == 'branch-top':
+            box = (x + i * dx/n, y, dx/n, bdy)  # above the branch
+            anchor = (0.5, 1)  # halfway x, bottom y
+        elif pos == 'branch-bottom':
+            box = (x + i * dx/n, y + bdy, dx/n, dy - bdy)  # below the branch
+            anchor = (0.5, 0)  # halfway x, top y
+        elif pos == 'branch-top-left':
+            box = (x - (i + 1) * dx/n, y, dx/n, bdy)  # left of branch-top
+            anchor = (1, 1)  # right x, bottom y
+        elif pos == 'branch-bottom-left':
+            box = (x - (i + 1) * dx/n, y + bdy, dx/n, dy - bdy)  # etc.
+            anchor = (1, 0)  # right x, top y
+        elif pos == 'float':
+            box = (x + dx, y + i * dy/n, fit(text, dy), dy/n)  # right of node
+            anchor = (0, bdy / dy)  # left x, branch position in y
+        else:
+            raise InvalidUsage(f'unkown position {pos}')
+
+        text_type = 'label_' + expression
+
+        return box, anchor, text, text_type
+
+    return label_fn
+
+
 def store_search(tree_id, args):
     "Store the results and parents of a search and return their numbers"
-    required = ['text']
-    missing = [x for x in required if x not in args]
-    if missing:
-        raise InvalidUsage('missing required arguments: ' + ', '.join(missing))
+    if 'text' not in args:
+        raise InvalidUsage('missing search text')
 
     text = args.pop('text').strip()
     func = get_search_function(text)
@@ -477,6 +563,7 @@ def get_eval_search(expression):
         'name': node.name, 'is_leaf': node.is_leaf,
         'length': node.length, 'dist': node.length, 'd': node.length,
         'properties': node.properties, 'p': node.properties,
+        'get': dict.get,
         'children': node.children, 'ch': node.children,
         'size': node.size, 'dx': node.size[0], 'dy': node.size[1],
         'regex': re.search,
@@ -811,9 +898,9 @@ def configure(app):
     "Set the configuration for the flask app"
     app.root_path = os.path.abspath('.')  # in case we launched from another dir
 
-    CORS(app)  # allows cross-origin resource sharing (requests from other domains)
+    CORS(app)  # allow cross-origin resource sharing (requests from other domains)
 
-    Compress(app)  # sends results using gzip
+    Compress(app)  # send results using gzip
 
     app.config.from_mapping(
         SEND_FILE_MAX_AGE_DEFAULT=0,  # do not cache static files
@@ -836,12 +923,14 @@ def add_resources(api):
         '/trees/<string:tree_id>/newick',
         '/trees/<string:tree_id>/draw',
         '/trees/<string:tree_id>/size',
+        '/trees/<string:tree_id>/properties',
         '/trees/<string:tree_id>/search',
         '/trees/<string:tree_id>/sort',
         '/trees/<string:tree_id>/root_at',
         '/trees/<string:tree_id>/move',
         '/trees/<string:tree_id>/remove',
-        '/trees/<string:tree_id>/rename')
+        '/trees/<string:tree_id>/rename',
+        '/trees/<string:tree_id>/reload')
     add(Info, '/info')
     add(Id, '/id/<path:path>')
 

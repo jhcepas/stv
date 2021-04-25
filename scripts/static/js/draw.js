@@ -1,18 +1,19 @@
 // Functions related to updating (drawing) the view.
 
-import { view, datgui, get_tid, on_box_click, on_box_wheel } from "./gui.js";
+import { view, menus, get_tid, on_box_click, on_box_wheel } from "./gui.js";
 import { update_minimap_visible_rect } from "./minimap.js";
 import { colorize_searches, get_search_class } from "./search.js";
 import { on_box_contextmenu } from "./contextmenu.js";
 import { colorize_tags } from "./tag.js";
+import { colorize_labels } from "./label.js";
 import { api } from "./api.js";
 
-export { update, draw_tree, draw };
+export { update, draw_tree, draw, get_class_name };
 
 
 // Update the view of all elements (gui, tree, minimap).
 function update() {
-    datgui.updateDisplay();  // update the info box on the top-right
+    menus.main.updateDisplay();  // update the info box on the top-right
 
     draw_tree();
 
@@ -29,9 +30,13 @@ async function draw_tree() {
 
     div_tree.style.cursor = "wait";
 
+    const labels = JSON.stringify(Object.keys(view.labels).map(
+        t => [t, view.labels[t].nodetype, view.labels[t].position]));
+
     const params_rect = {  // parameters we have to pass to the drawer
         "drawer": view.drawer.name, "min_size": view.min_size,
         "zx": zx, "zy": zy, "x": x, "y": y, "w": w, "h": h,
+        "labels": labels,
     };
 
     const params_circ = {  // parameters to the drawer, in circular mode
@@ -48,14 +53,19 @@ async function draw_tree() {
         draw(div_tree, items, view.tl, view.zoom);
 
         view.nnodes = div_tree.getElementsByClassName("node").length;
+        colorize_labels();
         colorize_tags();
         colorize_searches();
 
         if (view.drawer.npanels > 1)
             await draw_aligned(params);
 
-        if (view.drawer.type === "circ")
+        if (view.drawer.type === "circ") {
             fix_text_orientations();
+
+            if (view.angle.min < -180 || view.angle.max > 180)
+                draw_negative_xaxis();
+        }
     }
     catch (ex) {
         Swal.fire({
@@ -68,12 +78,25 @@ async function draw_tree() {
 }
 
 
+// Add a line to the svg in div_tree marking the -x axis.
+// Useful when we represent circular trees with angles < -180 or > 180.
+function draw_negative_xaxis() {
+    const x1 = -view.rmin;
+    const x2 = x1 - view.tree_size.width;
+    const item = ["line", [x1, 0], [x2, 0], "negative_xaxis", []];
+    const replace = false;
+    draw(div_tree, [item], view.tl, view.zoom, replace);
+}
+
+
 // Append a svg to the given element, with all the items in the list drawn.
 // The first child of element will be used or replaced as a svg.
 function draw(element, items, tl, zoom, replace=true) {
     const g = create_svg_element("g");
 
     items.forEach(item => g.appendChild(create_item(item, tl, zoom)));
+
+    put_nodes_in_background(g);
 
     if (replace)
         replace_svg(element);
@@ -83,6 +106,24 @@ function draw(element, items, tl, zoom, replace=true) {
 }
 
 
+// Make a copy of the nodeboxes and put them before all the other elements,
+// so if they stop being transparent (because they are tagged, or the result
+// of a search, or the user changes the node opacity), they do not cover the
+// rest of the tree elements.
+// The original elements stay transparent in the foreground so the user can
+// interact with them (highlighting, opening their contextmenu, etc.).
+function put_nodes_in_background(g) {
+    const first = g.children[0];  // first svg element, for reference
+    Array.from(g.getElementsByClassName("node")).forEach(e => {
+        const bg_node = e.cloneNode();
+        e.id = "foreground-" + bg_node.id;  // avoid id collisions
+        e.classList = ["fg_node"];  //
+        g.insertBefore(bg_node, first);
+    });
+}
+
+
+// Replace the svg that is a child of the given element (or just add if none).
 function replace_svg(element) {
     const svg = create_svg_element("svg", {
         "width": element.offsetWidth,
@@ -97,7 +138,6 @@ function replace_svg(element) {
 
 
 // Draw elements that belong to panels above 0.
-// NOTE: Only implemented for panel=1 for the moment.
 async function draw_aligned(params) {
     if (view.drawer.type === "rect") {
         const qs = new URLSearchParams({...params, "panel": 1}).toString();
@@ -105,16 +145,20 @@ async function draw_aligned(params) {
         const items = await api(`/trees/${get_tid()}/draw?${qs}`);
 
         draw(div_aligned, items, {x: 0, y: view.tl.y}, view.zoom);
+        // NOTE: Only implemented for panel=1 for the moment. We just need to
+        //   decide where the graphics would go for panel > 1 (another div? ...)
     }
     else {
-        const qs = new URLSearchParams({
-            ...params, "panel": 1,
-            "rmin": view.rmin + view.tree_size.width}).toString();
+        for (let panel = 1; panel < view.drawer.npanels; panel++) {
+            const qs = new URLSearchParams({
+                ...params, "panel": panel,
+                "rmin": view.rmin + panel * view.tree_size.width}).toString();
 
-        const items = await api(`/trees/${get_tid()}/draw?${qs}`);
+            const items = await api(`/trees/${get_tid()}/draw?${qs}`);
 
-        const replace = false;
-        draw(div_tree, items, view.tl, view.zoom, replace);
+            const replace = false;
+            draw(div_tree, items, view.tl, view.zoom, replace);
+        }
     }
 }
 
@@ -130,7 +174,7 @@ function create_item(item, tl, zoom) {
 
         const b = create_box(box, tl, zx, zy);
 
-        b.id = "node-" + node_id.join("_");
+        b.id = "node-" + node_id.join("_");  // used in tags
 
         b.classList.add("node");
         result_of.forEach(t => b.classList.add(get_search_class(t, "results")));
@@ -165,7 +209,7 @@ function create_item(item, tl, zoom) {
     else if (item[0] === "text") {
         const [ , box, anchor, text, type] = item;
 
-        return create_text(box, anchor, text, tl, zx, zy, type);
+        return create_text(box, anchor, text, tl, zx, zy, get_class_name(type));
     }
     else if (item[0] === "array") {
         const [ , box, array] = item;
@@ -185,6 +229,12 @@ function create_item(item, tl, zoom) {
 
         return g;
     }
+}
+
+
+// Return a valid class name from a description of a type of element.
+function get_class_name(type) {
+    return type.replace(/[^A-Za-z0-9_-]/g, '');
 }
 
 
@@ -337,7 +387,7 @@ function create_arc(p1, p2, large, tl, z, type="") {
 
 
 function create_text(box, anchor, text, tl, zx, zy, type="") {
-    const [x, y, fs] = view.drawer.type === "rect" ?
+    const [x, y, fs, text_anchor] = view.drawer.type === "rect" ?
         get_text_placement_rect(box, anchor, text, tl, zx, zy, type) :
         get_text_placement_circ(box, anchor, text, tl, zx, type);
 
@@ -347,9 +397,7 @@ function create_text(box, anchor, text, tl, zx, zy, type="") {
         "class": "text " + type,
         "x": x + dx, "y": y,
         "font-size": `${fs}px`,
-        "data-x0": x,              // extra data that we save in the element
-        "data-box": box,           // (useful for reprocessing later without
-        "data-anchor": anchor,     // having to do new api calls)
+        "text-anchor": text_anchor,
     });
 
     t.appendChild(document.createTextNode(text));
@@ -363,7 +411,7 @@ function create_text(box, anchor, text, tl, zx, zy, type="") {
 }
 
 
-// Return the position and font size to draw the text when box is a rect.
+// Return position, font size and text anchor to draw text when box is a rect.
 function get_text_placement_rect(box, anchor, text, tl, zx, zy, type="") {
     if (text.length === 0)
         throw new Error("please do not try to place empty texts :)")
@@ -372,21 +420,31 @@ function get_text_placement_rect(box, anchor, text, tl, zx, zy, type="") {
     const [x, y, dx, dy] = box;
 
     const dx_char = dx / text.length;  // ~ width of 1 char (in tree units)
-    const fs_max = Math.min(zx * dx_char * 1.5, zy * dy);
+    const fs_max = Math.min(zx * dx_char * 1.6, zy * dy);
     const fs = font_adjust(fs_max, type);
 
     const shift = 1 - fs / (zy * dy);
     const [ax, ay] = anchor;
-    const x_in_tree = x + ax * shift * dx,
-          y_in_tree = y + ay * shift * dy + 0.9 * fs / zy;
+    let x_in_tree = x + ax * shift * dx,
+        y_in_tree = y + ay * shift * dy + 0.9 * fs / zy;
     // We give the position as the bottom-left point, the same convention as in
     // svgs. We go a bit up (0.9 instead of 1.0) because of the baseline.
 
-    return [zx * (x_in_tree - tl.x), zy * (y_in_tree - tl.y), fs];
+    let text_anchor = "start";
+    if (ax > 0.6) {
+        x_in_tree += (1 - shift) * dx;
+        text_anchor = "end";
+    }
+    else if (ax > 0.3) {
+        x_in_tree += (1 - shift) * dx / 2;
+        text_anchor = "middle";
+    }
+
+    return [zx * (x_in_tree - tl.x), zy * (y_in_tree - tl.y), fs, text_anchor];
 }
 
 
-// Return the position and font size to draw the text when box is an asec.
+// Return position, font size and text anchor to draw text when box is an asec.
 function get_text_placement_circ(box, anchor, text, tl, z, type="") {
     if (text.length === 0)
         throw new Error("please do not try to place empty texts :)");
@@ -397,19 +455,30 @@ function get_text_placement_circ(box, anchor, text, tl, z, type="") {
         throw new Error("r cannot be 0 (text would have 0 font size)");
 
     const dr_char = dr / text.length;  // ~ dr of 1 char (in tree units)
-    const fs_max = z * Math.min(dr_char * 1.5, r * da);
+    const fs_max = z * Math.min(dr_char * 1.6, r * da);
     const fs = font_adjust(fs_max, type);
 
     const shift = 1 - fs / (z * r * da);
     const [ar, aa] = anchor;
-    const r_shifted = r + ar * shift * dr,
-          a_shifted = a + aa * shift * da + 0.8 * (fs / r) / z;
+    let r_shifted = r + ar * shift * dr,
+        a_shifted = a + aa * shift * da + 0.8 * (fs / r) / z;
     // We give the position as the bottom-left point, the same convention as in
     // svgs. We go a bit up (0.8 instead of 1.0) because of the baseline.
+
+    let text_anchor = "start";
+    if (ar > 0.6) {
+        r_shifted += (1 - shift) * dr;
+        text_anchor = "end";
+    }
+    else if (ar > 0.3) {
+        r_shifted += (1 - shift) * dr / 2;
+        text_anchor = "middle";
+    }
+
     const x_in_tree = r_shifted * Math.cos(a_shifted),
           y_in_tree = r_shifted * Math.sin(a_shifted);
 
-    return [z * (x_in_tree - tl.x), z * (y_in_tree - tl.y), fs];
+    return [z * (x_in_tree - tl.x), z * (y_in_tree - tl.y), fs, text_anchor];
 }
 
 
@@ -465,8 +534,13 @@ function font_adjust(fs, type) {
     if (type === "name")
         return Math.min(view.name.max_size,
                         (1 - view.name.padding.vertical) * fs);
-    else if (type === "length" || type === "support")
+
+    if (type === "length" || type === "support")
         return Math.min(view[type].max_size, fs);
-    else
-        return fs;
+
+    for (const expression of Object.keys(view.labels))
+        if (type === get_class_name("label_" + expression))
+            return Math.min(view.labels[expression].max_size, fs);
+
+    return fs;
 }

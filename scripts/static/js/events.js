@@ -1,6 +1,6 @@
 // Handle gui events.
 
-import { view, datgui, coordinates, reset_view, show_minimap, show_help }
+import { view, menus, coordinates, reset_view, show_minimap, show_help }
     from "./gui.js";
 import { zoom_around } from "./zoom.js";
 import { move_minimap_view } from "./minimap.js";
@@ -35,8 +35,11 @@ function on_keydown(event) {
     const key = event.key;  // shortcut
     let is_hotkey = true;  // will set to false if it isn't
 
-    if (div_datgui.contains(event.target))
-        return;  // avoid interfering with writing on a field of the datgui menu
+    const menu_divs = [
+        div_menu_main, div_menu_representation, div_menu_tags_searches];
+    for (const div of menu_divs)
+        if (div.contains(event.target))
+            return;  // avoid interfering with writing on a field of the menus
 
     if (key === "F1") {
         show_help();
@@ -50,7 +53,7 @@ function on_keydown(event) {
     else if (key === "m") {
         view.minimap.show = !view.minimap.show;
         show_minimap(view.minimap.show);
-        datgui.updateDisplay();  // update the info box on the top-right
+        menus.main.updateDisplay();  // update the info box on the top-right
     }
     else if (key === "+") {
         const center = {x: div_tree.offsetWidth / 2,
@@ -101,7 +104,8 @@ function on_keydown(event) {
 // Mouse wheel -- zoom in/out (instead of scrolling).
 function on_wheel(event) {
     const g_panel0 = div_tree.children[0].children[0];
-    if (g_panel0.contains(event.target))
+
+    if (!is_svg(event.target) || g_panel0.contains(event.target))
         return;  // it will be done on the nodes instead
 
     event.preventDefault();
@@ -111,6 +115,10 @@ function on_wheel(event) {
     const do_zoom = {x: !event.ctrlKey, y: !event.altKey};
 
     zoom_around(point, zoom_in, do_zoom);
+}
+
+function is_svg(element) {
+    return element.namespaceURI === "http://www.w3.org/2000/svg";
 }
 
 

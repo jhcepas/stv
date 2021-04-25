@@ -1,43 +1,98 @@
-// Functions related to the top-right menu.
+// Functions related to the top-right menus.
 
 import { view, on_tree_change, on_drawer_change, show_minimap } from "./gui.js";
 import { draw_minimap } from "./minimap.js";
 import { update } from "./draw.js";
 
-export { create_datgui };
+export { init_menus };
 
 
-// Return the top-right box ("gui") with all the options we can see and change.
-function create_datgui(trees, drawers) {
-    const dgui = new dat.GUI({autoPlace: false});
-    div_datgui.appendChild(dgui.domElement);
-
-    add_menu_tree(dgui, trees);
-
-    add_menu_representation(dgui, drawers);
-
-    add_menu_searches(dgui);
-
-    dgui.addFolder("tags");  // filled dynamically with tag_node()
-
-    add_menu_info(dgui);
-
-    add_menu_view(dgui);
-
-    add_menu_style(dgui);
-
-    add_menu_minimap(dgui);
-
-    dgui.add(view, "smart_zoom").name("smart zoom");
-    dgui.add(view, "share_view").name("share view");
-    dgui.add(view, "show_help").name("help");
-
-    return dgui;
+// Init the menus on the top with all the options we can see and change.
+function init_menus(menus, trees, drawers) {
+    menus.main = create_menu_main(trees);
+    menus.representation = create_menu_representation(drawers);
+    menus.tags_searches = create_menu_tags_searches();
 }
 
 
-function add_menu_tree(dgui, trees) {
-    const folder_tree = dgui.addFolder("tree");
+function create_menu_main(trees) {
+    const menu = new dat.GUI({autoPlace: false, closeOnTop: true});
+    div_menu_main.appendChild(menu.domElement);
+
+    add_folder_tree(menu, trees);
+
+    add_folder_info(menu);
+
+    add_folder_view(menu);
+
+    add_folder_minimap(menu);
+
+    menu.add(view, "smart_zoom").name("smart zoom");
+    menu.add(view, "share_view").name("share view");
+    menu.add(view, "show_help").name("help");
+
+    return menu;
+}
+
+
+function create_menu_representation(drawers) {
+    const menu = new dat.GUI({autoPlace: false, closeOnTop: true});
+    menu.close();
+    div_menu_representation.appendChild(menu.domElement);
+
+    menu.add(view.drawer, "name", drawers).name("drawer").onChange(
+        on_drawer_change);
+
+    menu.add(view, "min_size", 1, 100).name("collapse at").onChange(
+        update);
+
+    const folder_circ = menu.addFolder("circular");
+
+    function update_with_minimap() {
+        draw_minimap();
+        update();
+    }
+    folder_circ.add(view, "rmin").name("radius min").onChange(
+        update_with_minimap);
+    folder_circ.add(view.angle, "min", -180, 180).name("angle min").onChange(
+        update_with_minimap);
+    folder_circ.add(view.angle, "max", -180, 180).name("angle max").onChange(
+        update_with_minimap);
+
+    add_folder_style(menu);
+
+    const folder_labels = menu.addFolder("labels");
+
+    const folder_add = folder_labels.addFolder("add");
+
+    const folder_properties = folder_add.addFolder("properties");
+
+    folder_properties.add(view, "current_property", view.node_properties).name("properties");
+    folder_properties.add(view, "label_property").name("add property");
+
+    const folder_expressions = folder_add.addFolder("expressions");
+
+    folder_expressions.add(view, "label_expression").name("add expression");
+
+    return menu;
+}
+
+
+function create_menu_tags_searches() {
+    const menu = new dat.GUI({autoPlace: false, closeOnTop: true});
+    menu.close();
+    div_menu_tags_searches.appendChild(menu.domElement);
+
+    menu.addFolder("tags");  // filled dynamically with tag_node()
+
+    add_folder_searches(menu);
+
+    return menu;
+}
+
+
+function add_folder_tree(menu, trees) {
+    const folder_tree = menu.addFolder("tree");
 
     folder_tree.add(view, "tree", trees).onChange(() => {
         view.subtree = "";
@@ -59,41 +114,15 @@ function add_menu_tree(dgui, trees) {
 }
 
 
-function add_menu_representation(dgui, drawers) {
-    const folder_repr = dgui.addFolder("representation");
-
-    folder_repr.add(view.drawer, "name", drawers).name("drawer").onChange(
-        on_drawer_change);
-    folder_repr.add(view, "align_bar", 0, 100).name("align bar").onChange(
-        (value) => div_aligned.style.width = `${100 - value}%`);
-
-    const folder_circ = folder_repr.addFolder("circular");
-
-    function update_with_minimap() {
-        draw_minimap();
-        update();
-    }
-    folder_circ.add(view, "rmin").name("radius min").onChange(
-        update_with_minimap);
-    folder_circ.add(view.angle, "min", -180, 180).name("angle min").onChange(
-        update_with_minimap);
-    folder_circ.add(view.angle, "max", -180, 180).name("angle max").onChange(
-        update_with_minimap);
-
-    folder_repr.add(view, "min_size", 1, 100).name("collapse at").onChange(
-        update);
-}
-
-
-function add_menu_searches(dgui) {
-    const folder_searches = dgui.addFolder("searches");
+function add_folder_searches(menu) {
+    const folder_searches = menu.addFolder("searches");
 
     folder_searches.add(view, "search").name("new search");
 }
 
 
-function add_menu_info(dgui) {
-    const folder_info = dgui.addFolder("info");
+function add_folder_info(menu) {
+    const folder_info = menu.addFolder("info");
 
     folder_info.add(view, "nnodes").name("visible nodes").listen();
     folder_info.add(view.pos, "cx").step(0.001).listen();
@@ -102,8 +131,8 @@ function add_menu_info(dgui) {
 }
 
 
-function add_menu_view(dgui) {
-    const folder_view = dgui.addFolder("view");
+function add_folder_view(menu) {
+    const folder_view = menu.addFolder("view");
 
     folder_view.add(view, "reset_view").name("reset view");
 
@@ -114,6 +143,10 @@ function add_menu_view(dgui) {
     const folder_zoom = folder_view.addFolder("zoom");
     folder_zoom.add(view.zoom, "x").step(0.001).onChange(update);
     folder_zoom.add(view.zoom, "y").step(0.001).onChange(update);
+
+    const folder_aligned = folder_view.addFolder("align bar");
+    folder_aligned.add(view, "align_bar", 0, 100).name("position").onChange(
+        (value) => div_aligned.style.width = `${100 - value}%`);
 
     folder_view.add(view, "select_text").name("select text").onChange(() => {
         style("font").userSelect = (view.select_text ? "text" : "none");
@@ -130,8 +163,8 @@ function set_boxes_clickable(clickable) {
 }
 
 
-function add_menu_style(dgui) {
-    const folder_style = dgui.addFolder("style");
+function add_folder_style(menu) {
+    const folder_style = menu.addFolder("style");
 
     const folder_node = folder_style.addFolder("node");
 
@@ -221,14 +254,14 @@ function style(name) {
 }
 
 
-function add_menu_minimap(dgui) {
-    const folder_minimap = dgui.addFolder("minimap");
+function add_folder_minimap(menu) {
+    const folder_minimap = menu.addFolder("minimap");
 
     folder_minimap.add(view.minimap, "width", 0, 100).onChange(() => {
         if (view.drawer.type === "circ") {
             view.minimap.height = view.minimap.width * div_tree.offsetWidth
                                                      / div_tree.offsetHeight;
-            dgui.updateDisplay();
+            menu.updateDisplay();
         }
         draw_minimap();
     });
@@ -236,7 +269,7 @@ function add_menu_minimap(dgui) {
         if (view.drawer.type === "circ") {
             view.minimap.width = view.minimap.height * div_tree.offsetHeight
                                                      / div_tree.offsetWidth;
-            dgui.updateDisplay();
+            menu.updateDisplay();
         }
         draw_minimap();
     });

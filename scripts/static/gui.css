@@ -43,7 +43,12 @@
     stroke-width: 0.5;
 }
 
-.node:hover {
+.fg_node {
+    opacity: 0;
+    fill: #222;
+}
+
+.fg_node:hover {
     opacity: 0.05;
 }
 
@@ -95,12 +100,14 @@
     cursor: grab;
 }
 
-.datgui {
+.menu_main,.menu_representation,.menu_tags_searches {
     position: absolute;
     top: 0px;
-    right: 20px;
     z-index: 3;
 }
+.menu_main { right: 10px; }
+.menu_representation { right: 260px; }
+.menu_tags_searches { right: 510px; }
 
 .contextmenu {
     position: absolute;
@@ -130,6 +137,12 @@
     background-color: #EEE;
     font-family: sans-serif;
     font-size: 0.8em;
+}
+
+.negative_xaxis {
+    stroke: #A50A;
+    stroke-width: 4px;
+    stroke-linecap: round;
 }
 
 hr {
