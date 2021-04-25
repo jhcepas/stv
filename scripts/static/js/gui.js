@@ -50,14 +50,14 @@ const view = {
     labels: {},  // will contain the labels created
     rmin: 0,
     angle: {min: -180, max: 180},
-    align_bar: 80,
+    align_bar: 80,  // % of the screen width where the aligned panel starts
 
     // searches
     search: () => search(),
     searches: {},  // will contain the searches done
 
     // tags
-    tags: {},
+    tags: {},  // will contain the tagged nodes
 
     // info
     nnodes: 0,  // number of visible nodeboxes
@@ -210,9 +210,9 @@ async function on_drawer_change() {
     view.drawer.npanels = drawer_info.npanels;
 
     if (drawer_info.type === "rect" && drawer_info.npanels > 1)
-        div_aligned.style.display = "initial";
+        div_aligned.style.display = "initial";  // show aligned panel
     else
-        div_aligned.style.display = "none";
+        div_aligned.style.display = "none";  // hide aligned panel
 
     if (drawer_info.type !== previous_type) {
         reset_zoom();
@@ -224,18 +224,21 @@ async function on_drawer_change() {
 }
 
 
+// Save the available node properties in view.node_properties and the drop-down
+// list of the menu that allows to label based on properties.
 async function store_node_properties() {
-    view.node_properties = ["name", "length"].concat(
-        await api(`/trees/${get_tid()}/properties`));
+    const properties_extra = await api(`/trees/${get_tid()}/properties`);
 
-    const folder = menus.representation
-        .__folders.labels.__folders.add.__folders.properties;
-    const select = folder.__controllers[0].__select;
+    view.node_properties = ["name", "length"].concat(properties_extra);
 
-    while (select.length > 0)
+    const select = menus.representation
+        .__folders.labels.__folders.add.__folders.properties
+        .__controllers[0].__select;  // drop-down list
+
+    while (select.length > 0)  // remove properties that may be in the list
         select.remove(select.length - 1);
 
-    for (const p of view.node_properties) {
+    for (const p of view.node_properties) {  // add new properties to the list
         const opt = document.createElement("option");
         opt.value = opt.text = p;
         select.add(opt);
@@ -421,6 +424,10 @@ async function show_tree_info() {
 }
 
 
+// Open a dialog with a link to the current view of the tree.
+// It is either copied to the clipboard (if possible), or shown as a link.
+// The link can be opened in a different browser by someone else and they
+// would see the same part of the same tree.
 function share_view() {
     const w = div_tree.offsetWidth / view.zoom.x,
           h = div_tree.offsetHeight / view.zoom.y;
