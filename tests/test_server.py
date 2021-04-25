@@ -312,8 +312,8 @@ def test_get_drawers():
     drawers = get('/drawers')
     assert type(drawers) == list
     existing_drawers = [
-        'Rect', 'Circ', 'RectFull', 'CircFull',
-        'AlignNames', 'AlignHeatMap']
+        'Rect', 'Circ', 'RectLabels', 'CircLabels',
+        'RectLeafNames', 'CircLeafNames', 'AlignNames', 'AlignHeatMap']
     assert all(x in drawers for x in existing_drawers)
 
 

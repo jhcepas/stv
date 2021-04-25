@@ -59,51 +59,27 @@ def test_draw_elements():
 def test_draw_node():
     t = tree.Tree('A:10')
 
-    drawer1 = draw.DrawerRectFull(t, zoom=(20, 20))
+    drawer1 = draw.DrawerRectLeafNames(t, zoom=(20, 20))
     assert_equal(list(drawer1.draw_node(t, (0, 0), 0.5)), [
-        ['text', (10.0, 0, 0.6666666666666, 1.0), (0, 0.5), 'A', 'name'],
-        ['text', (0, 0, 10.0, 0.5), (0, 1), '10', 'length']])
+        ['text', (10.0, 0, 0.6666666666666, 1.0), (0, 0.5), 'A', 'name']])
 
-    drawer1 = draw.DrawerRectFull(t, zoom=(20, 20))
+    drawer1 = draw.DrawerRectLeafNames(t, zoom=(20, 20))
     assert_equal(list(drawer1.draw_node(t, (0, 0), 0.5)), [
-        ['text', (10.0, 0, 0.6666666666666, 1.0), (0, 0.5), 'A', 'name'],
-        ['text', (0, 0, 10.0, 0.5), (0, 1), '10', 'length']])
+        ['text', (10.0, 0, 0.6666666666666, 1.0), (0, 0.5), 'A', 'name']])
 
-    drawer2 = draw.DrawerRectFull(t, zoom=(0.1, 0.1))
+    drawer2 = draw.DrawerRectLeafNames(t, zoom=(0.1, 0.1))
     assert_equal(list(drawer2.draw_node(t, (0, 0), 0.5)), [
         ['text', (10.0, 0, 0.66666666666666, 1.0), (0, 0.5), 'A', 'name']])
-
-
-
-def test_draw_node_with_support():
-    t = tree.Tree('A:10')
-    t.properties['support'] = 0.9
-
-    drawer1 = draw.DrawerRectFull(t, zoom=(20, 20))
-    assert_equal(list(drawer1.draw_node(t, (0, 0), 0.5)), [
-        ['text', (10.0, 0, 0.6666666666666, 1.0), (0, 0.5), 'A', 'name'],
-        ['text', (0, 0, 10.0, 0.5), (0, 1), '10', 'length'],
-        ['text', (0, 0.5, 10.0, 0.5), (0, 0), '0.9', 'support']])
-
-    drawer1 = draw.DrawerRectFull(t, zoom=(20, 20))
-    assert_equal(list(drawer1.draw_node(t, (0, 0), 0.5)), [
-        ['text', (10.0, 0, 0.6666666666666, 1.0), (0, 0.5), 'A', 'name'],
-        ['text', (0, 0, 10.0, 0.5), (0, 1), '10', 'length'],
-        ['text', (0, 0.5, 10.0, 0.5), (0, 0), '0.9', 'support']])
-
-    drawer2 = draw.DrawerRectFull(t, zoom=(0.1, 0.1))
-    assert_equal(list(drawer2.draw_node(t, (0, 0), 0.5)), [
-        ['text', (10.0, 0, 0.6666666666666, 1.0), (0, 0.5), 'A', 'name']])
 
 
 def test_draw_collapsed():
     tree_text = '((B:200,(C:250,D:300)E:350)A:100)F;'
     t = tree.Tree(tree_text)
 
-    drawer_z10 = draw.DrawerRectFull(t, zoom=(10, 10))
+    drawer_z10 = draw.DrawerRectLeafNames(t, zoom=(10, 10))
     assert not any(e[0] == 'outline' for e in drawer_z10.draw())
 
-    drawer_z2 = draw.DrawerRectFull(t, zoom=(2, 2))
+    drawer_z2 = draw.DrawerRectLeafNames(t, zoom=(2, 2))
     elements_z2 = list(drawer_z2.draw())
     assert_equal(elements_z2, [
         ['outline', (101.0, 0, 650.0, 3.0)],
@@ -115,7 +91,7 @@ def test_draw_collapsed():
         ['nodebox', (1.0, 0.0, 751.0, 3.0), 'A', {}, [0], []],
         ['nodebox', (101.0, 0, 651.0, 3.0), '(collapsed)', {}, [], []]])
 
-    drawer_z1 = draw.DrawerRectFull(t)
+    drawer_z1 = draw.DrawerRectLeafNames(t)
     elements_z1 = list(drawer_z1.draw())
     assert_equal(elements_z1, [
         ['outline', (0, 0, 751.0, 3.0)],
@@ -127,7 +103,7 @@ def test_draw_tree_rect():
     tree_text = '((A:200,(B:250,C:300)D:350)E:100)F;'
     t = tree.Tree(tree_text)
 
-    drawer = draw.DrawerRectFull(t, zoom=(10, 10))
+    drawer = draw.DrawerRectLeafNames(t, zoom=(10, 10))
     elements = list(drawer.draw())
     assert_equal(elements, [
         ['line', (101.0, 0.5), (301.0, 0.5), '', []],
@@ -138,10 +114,8 @@ def test_draw_tree_rect():
         ['text', (751.0, 2.0, 0.6666666666666, 1.0), (0, 0.5), 'C', 'name'],
         ['line', (101.0, 2.0), (451.0, 2.0), '', []],
         ['line', (451.0, 1.5), (451.0, 2.5), '', []],
-        ['text', (101.0, 1.0, 350.0, 1.0), (0, 1), '3.5e+02', 'length'],
         ['line', (1.0, 1.25), (101.0, 1.25), '', []],
         ['line', (101.0, 0.5), (101.0, 2.0), '', []],
-        ['text', (1.0, 0.0, 100.0, 1.25), (0, 1), '1e+02', 'length'],
         ['line', (0.0, 1.25), (1.0, 1.25), '', []],
         ['nodebox', (0.0, 0.0, 751.66666666666, 3.0), 'F', {}, [], []],
         ['nodebox', (1.0, 0.0, 750.66666666666, 3.0), 'E', {}, [0], []],
@@ -151,59 +125,21 @@ def test_draw_tree_rect():
         ['nodebox', (101.0, 0.0, 200.66666666666, 1.0), 'A', {}, [0, 0], []]])
 
 
-def test_draw_tree_with_support():
-    tree_text = '((A:200,(B:250,C:300)D:350)E:100)F;'
-    t = tree.Tree(tree_text)
-    t['D'].properties['support'] = 0.9
-    t['E'].properties['support'] = 0.8
-    t['F'].properties['support'] = 0.3
-
-    drawer = draw.DrawerRectFull(t, zoom=(10, 10))
-    elements = list(drawer.draw())
-    assert_equal(elements, [
-        ['line', (101.0, 0.5), (301.0, 0.5), '', []],
-        ['text', (301.0, 0.0, 0.6666666666666, 1.0), (0, 0.5), 'A', 'name'],
-        ['line', (451.0, 1.5), (701.0, 1.5), '', []],
-        ['text', (701.0, 1.0, 0.6666666666666, 1.0), (0, 0.5), 'B', 'name'],
-        ['line', (451.0, 2.5), (751.0, 2.5), '', []],
-        ['text', (751.0, 2.0, 0.6666666666666, 1.0), (0, 0.5), 'C', 'name'],
-        ['line', (101.0, 2.0), (451.0, 2.0), '', []],
-        ['line', (451.0, 1.5), (451.0, 2.5), '', []],
-        ['text', (101.0, 1.0, 350.0, 1.0), (0, 1), '3.5e+02', 'length'],
-        ['text', (101.0, 2.0, 350.0, 1.0), (0, 0), '0.9', 'support'],
-        ['line', (1.0, 1.25), (101.0, 1.25), '', []],
-        ['line', (101.0, 0.5), (101.0, 2.0), '', []],
-        ['text', (1.0, 0.0, 100.0, 1.25), (0, 1), '1e+02', 'length'],
-        ['text', (1.0, 1.25, 100.0, 1.75), (0, 0), '0.8', 'support'],
-        ['line', (0.0, 1.25), (1.0, 1.25), '', []],
-        ['text', (0.0, 1.25, 1.0, 1.75), (0, 0), '0.3', 'support'],
-        ['nodebox', (0.0, 0.0, 751.6666666666, 3.0), 'F', {'support': 0.3}, [], []],
-        ['nodebox', (1.0, 0.0, 750.6666666666, 3.0), 'E', {'support': 0.8}, [0], []],
-        ['nodebox', (101.0, 1.0, 650.6666666666, 2.0), 'D', {'support': 0.9}, [0, 1], []],
-        ['nodebox', (451.0, 2.0, 300.66666666666, 1.0), 'C', {}, [0, 1, 1], []],
-        ['nodebox', (451.0, 1.0, 250.66666666666, 1.0), 'B', {}, [0, 1, 0], []],
-        ['nodebox', (101.0, 0.0, 200.66666666666, 1.0), 'A', {}, [0, 0], []]])
-
-
 def test_draw_tree_circ():
     tree_text = '((A:200,(B:250,C:300)D:350)E:100)F;'
     t = tree.Tree(tree_text)
 
-    drawer_circ = draw.DrawerCircFull(t, zoom=(10, 10))
+    drawer_circ = draw.DrawerCircLeafNames(t, zoom=(10, 10))
     elements_circ = list(drawer_circ.draw())
     assert_equal(elements_circ, [
         ['line', (-50.5000000000, -87.4685657822), (-150.5000000000, -260.6736465391), '', []],
         ['text', (301.0, -3.141592653589793, 420.27528388023455, 2.0943951023931953), (0, 0.5), 'A', 'name'],
-        ['text', (101.0, -3.141592653589793, 200.0, 1.0471975511965976), (0, 1), '2e+02', 'length'],
         ['line', (451, -1.00142116821189e-13), (701, -1.55653268052446e-13), '', []],
         ['text', (701.0, -1.0471975511965979, 978.78064451842, 2.0943951023931953), (0, 0.5), 'B', 'name'],
-        ['text', (451.0, -1.0471975511965979, 250.0, 1.0471975511965976), (0, 1), '2.5e+02', 'length'],
         ['line', (-225.4999999999, 390.57745710678194), (-375.4999999999, 650.3850782421137), '', []],
         ['text', (751.0, 1.0471975511965974, 1048.5938145981931, 2.0943951023931953), (0, 0.5), 'C', 'name'],
-        ['text', (451.0, 1.0471975511965974, 300.0, 1.0471975511965976), (0, 1), '3e+02', 'length'],
         ['line', (50.50000000000, 87.4685657822), (225.5000000000, 390.57745710678194), '', []],
         ['arc', (451.0, -1.0014211682118912e-13), (-225.4999999999999, 390.5774571067819), 0, ''],
-        ['text', (101.0, -1.0471975511965979, 350.0, 2.0943951023931953), (0, 1), '3.5e+02', 'length'],
         ['line', (0.866025403784, -0.500000000000), (87.4685657822, -50.50000000000), '', []],
         ['arc', (-50.50000000000002, -87.46856578222828), (50.500000000000064, 87.46856578222827), 0, ''],
         ['line', (0.0, -0.0), (0.8660254037844383, -0.5000000000000007), '', []],
@@ -244,7 +180,7 @@ def test_intersects():
 
 def test_size():
     t = tree.Tree('(a:2,b:3,c:4)d;')
-    drawer = draw.DrawerRectFull(t, zoom=(10, 10))
+    drawer = draw.DrawerRectLeafNames(t, zoom=(10, 10))
     assert drawer.node_size(t) == Size(5, 3)
     assert drawer.content_size(t) == Size(1, 3)
     assert drawer.children_size(t) == Size(4, 3)
@@ -281,6 +217,6 @@ def test_circumshapes():
 def test_in_viewport():
     t = tree.Tree('(a:2,b:3,c:4)d;')
     viewport = Box(-1, -2, 10, 20)
-    drawer = draw.DrawerRectFull(t, viewport, zoom=(10, 10))
+    drawer = draw.DrawerRectLeafNames(t, viewport, zoom=(10, 10))
     assert drawer.in_viewport(Box(0, 0, 1, 1))
     assert not drawer.in_viewport(Box(30, 20, 5, 5))
