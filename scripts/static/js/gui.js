@@ -125,6 +125,8 @@ async function main() {
 
     await set_query_string_values();
 
+    reset_node_count();
+
     const drawers = await api("/drawers");
     datgui = create_datgui(Object.keys(trees), drawers);
 
@@ -145,7 +147,6 @@ async function init_trees() {
 
     view.tree = Object.keys(trees)[0];
     view.tree_size = await api(`/trees/${get_tid()}/size`);
-    reset_node_count();
 }
 
 

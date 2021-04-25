@@ -233,9 +233,9 @@ class Trees(Resource):
             width, height = load_tree(tree_id).size
             return {'width': width, 'height': height}
         elif rule == '/trees/<string:tree_id>/nodecount':
-            tree = load_tree(tree_id)
+            t = load_tree(tree_id)
             tnodes, tleaves = 0, 0
-            for node in tree:
+            for node in t:
                 tnodes += 1
                 if node.is_leaf:
                     tleaves += 1
