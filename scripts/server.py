@@ -465,7 +465,7 @@ def get_label_fn(label, i, n):
             'length': node.length, 'dist': node.length, 'd': node.length,
             'support': node.properties.get('support', ''),
             'properties': node.properties, 'p': node.properties,
-            'get': dict.get,
+            'get': dict.get, 'split': str.split,
             'children': node.children, 'ch': node.children,
             'regex': re.search,
             'len': len, 'sum': sum, 'abs': abs, 'float': float, 'pi': pi}))
