@@ -232,6 +232,14 @@ class Trees(Resource):
         elif rule == '/trees/<string:tree_id>/size':
             width, height = load_tree(tree_id).size
             return {'width': width, 'height': height}
+        elif rule == '/trees/<string:tree_id>/nodecount':
+            t = load_tree(tree_id)
+            tnodes, tleaves = 0, 0
+            for node in t:
+                tnodes += 1
+                if node.is_leaf:
+                    tleaves += 1
+            return {'tnodes': tnodes, 'tleaves': tleaves}
 
     @auth.login_required
     def post(self):
@@ -836,6 +844,7 @@ def add_resources(api):
         '/trees/<string:tree_id>/newick',
         '/trees/<string:tree_id>/draw',
         '/trees/<string:tree_id>/size',
+        '/trees/<string:tree_id>/nodecount',
         '/trees/<string:tree_id>/search',
         '/trees/<string:tree_id>/sort',
         '/trees/<string:tree_id>/root_at',

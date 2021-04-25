@@ -96,6 +96,8 @@ function add_menu_info(dgui) {
     const folder_info = dgui.addFolder("info");
 
     folder_info.add(view, "nnodes").name("visible nodes").listen();
+    folder_info.add(view, "tnodes").name("total nodes").listen();
+    folder_info.add(view, "tleaves").name("total leaves").listen();
     folder_info.add(view.pos, "cx").step(0.001).listen();
     folder_info.add(view.pos, "cy").step(0.001).listen();
     folder_info.add(view, "show_tree_info").name("show details");
