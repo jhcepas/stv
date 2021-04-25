@@ -87,22 +87,11 @@ const view = {
     array: {padding: 0.0},
     font_sizes: {auto: true, scroller: undefined, fixed: 10},
 
-    // TODO: see if the next 3 are better gone if we use labels more.
-    name: {
+    name: {  // this may go away if we can do names nicely with labels
         color: "#00A",
         font: "sans-serif",
         max_size: 100,
         padding: {left: 10, vertical: 0.20},
-    },
-    length: {
-        color: "#888",
-        font: "sans-serif",
-        max_size: 15,
-    },
-    support: {
-        color: "#F08080",
-        font: "sans-serif",
-        max_size: 15,
     },
 
     // minimap

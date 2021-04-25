@@ -535,9 +535,6 @@ function font_adjust(fs, type) {
         return Math.min(view.name.max_size,
                         (1 - view.name.padding.vertical) * fs);
 
-    if (type === "length" || type === "support")
-        return Math.min(view[type].max_size, fs);
-
     for (const expression of Object.keys(view.labels))
         if (type === get_class_name("label_" + expression))
             return Math.min(view.labels[expression].max_size, fs);
