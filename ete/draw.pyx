@@ -396,76 +396,6 @@ def draw_circ_leaf_name(drawer, node, point):
         yield draw_text(box, (0, 0.5), node.name, 'name')
 
 
-# NOTE: The next 4 (drawer_*_{length,support}) can be done by using the
-#   corresponding label, so they may not be necessary.
-
-def draw_rect_length(drawer, node, point, bdy):
-    "Yield node length as text above the branch line"
-    if node.length <= 0:
-        return
-
-    x, y = point
-    dx, dy = drawer.content_size(node)
-    zx, zy = drawer.zoom
-
-    text = '%.2g' % node.length
-
-    box = Box(x, y, dx, bdy)
-    if box.dx * zx > drawer.MIN_SIZE and box.dy * zy > drawer.MIN_SIZE:
-        yield draw_text(box, (0, 1), text, 'length')
-
-
-def draw_circ_length(drawer, node, point, bda):
-    "Yield node length as text above the branch line"
-    if node.length <= 0:
-        return
-
-    r, a = point
-    dr, da = drawer.content_size(node)
-    z = drawer.zoom[0]  # zx == zy
-
-    if is_good_angle_interval(a, a + da):
-        text = '%.2g' % node.length
-
-        box = Box(r, a, dr, bda)
-        if dr * z > drawer.MIN_SIZE and r * bda * z > drawer.MIN_SIZE:
-            yield draw_text(box, (0, 1), text, 'length')
-
-
-def draw_rect_support(drawer, node, point, bdy):
-    "Yield node support as text below the branch line"
-    if 'support' not in node.properties:
-        return
-
-    x, y = point
-    dx, dy = drawer.content_size(node)
-    zx, zy = drawer.zoom
-
-    text = '%.2g' % float(node.properties['support'])
-
-    box = Box(x, y + bdy, dx, dy - bdy)
-    if box.dx * zx > drawer.MIN_SIZE and box.dy * zy > drawer.MIN_SIZE:
-        yield draw_text(box, (0, 0), text, 'support')
-
-
-def draw_circ_support(drawer, node, point, bda):
-    "Yield node support as text below the branch line"
-    if 'support' not in node.properties:
-        return
-
-    r, a = point
-    dr, da = drawer.content_size(node)
-    z = drawer.zoom[0]  # zx == zy
-
-    if is_good_angle_interval(a, a + da):
-        text = '%.2g' % float(node.properties['support'])
-
-        box = Box(r, a + bda, dr, da - bda)
-        if dr * z > drawer.MIN_SIZE and r * bda * z > drawer.MIN_SIZE:
-            yield draw_text(box, (0, 0), text, 'support')
-
-
-
 def draw_rect_collapsed_names(drawer):
     "Yield names of collapsed nodes after their outline"
     x, y, dx, dy = drawer.outline
@@ -501,6 +431,8 @@ def draw_circ_collapsed_names(drawer):
 
     yield from draw_texts(box, (0, 0.5), texts, 'name')
 
+
+# The actual drawers.
 
 class DrawerRectLabels(DrawerRect):
     def draw_node(self, node, point, bdy):
@@ -720,7 +652,7 @@ def get_rect(element):
     eid = element[0]
     if eid in ['nodebox', 'outline', 'array', 'text']:
         return element[1]
-    elif eid in ['line', 'arc']:
+    elif eid in ['line', 'arc']:  # not a great approximation for an arc...
         (x1, y1), (x2, y2) = element[1], element[2]
         return Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
     else:

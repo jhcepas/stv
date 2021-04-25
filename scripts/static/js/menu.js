@@ -206,17 +206,6 @@ function add_folder_style(menu) {
     folder_name.add(view.name, "max_size", 1, 200).name("max size").onChange(
         update);
 
-    const properties = ['length', 'support'];
-    properties.forEach(p => {
-        const folder = folder_text.addFolder(p);
-
-        folder.addColor(view[p], "color").onChange(
-            () => style(p).fill = view[p].color);
-        folder.add(view[p], "font", ["sans-serif", "serif", "monospace"])
-            .onChange(() => style(p).fontFamily = view[p].font);
-        folder.add(view[p], "max_size", 1, 100).name("max size").onChange(update);
-    });
-
     folder_text.add(view.font_sizes, "auto").name("automatic size").onChange(
         () => {
             style("font").fontSize =
@@ -245,10 +234,8 @@ function style(name) {
         "line": 1,
         "font": 3,
         "name": 4,
-        "length": 5,
-        "support": 6,
-        "node": 7,
-        "outline": 8,
+        "node": 5,
+        "outline": 6,
     };
     return document.styleSheets[0].cssRules[pos[name]].style;
 }
