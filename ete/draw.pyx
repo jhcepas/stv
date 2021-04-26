@@ -400,7 +400,7 @@ def draw_rect_collapsed_names(drawer):
     "Yield names of collapsed nodes after their outline"
     x, y, dx, dy = drawer.outline
 
-    names = [first_name(node) for node in drawer.collapsed]
+    names = list(set(first_name(node) for node in drawer.collapsed))
     if all(name == '' for name in names):
         return
 
@@ -419,7 +419,7 @@ def draw_circ_collapsed_names(drawer):
     if not (-pi <= a <= pi and -pi <= a + da <= pi):
         return
 
-    names = [first_name(node) for node in drawer.collapsed]
+    names = list(set(first_name(node) for node in drawer.collapsed))
     if all(name == '' for name in names):
         return
 
@@ -501,7 +501,7 @@ class DrawerAlignNames(DrawerRectLabels):
             yield from draw_rect_leaf_name(self, node, point)
 
     def draw_collapsed(self):
-        names = [first_name(node) for node in self.collapsed]
+        names = list(set(first_name(node) for node in self.collapsed))
         if all(name == '' for name in names):
             return
 
