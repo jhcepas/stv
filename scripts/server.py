@@ -386,7 +386,7 @@ def get_drawer(tree_id, args):
         viewport = ([get(k, 0) for k in ['x', 'y', 'w', 'h']]
             if all(k in args for k in ['x', 'y', 'w', 'h']) else None)
         assert viewport is None or (viewport[2] > 0 and viewport[3] > 0), \
-            'invalid viewport'  # None=all plane, width and height must be > 0
+            'invalid viewport'  # width and height must be > 0
 
         panel = get('panel', 0)
 
@@ -862,6 +862,16 @@ def get_fields(required=None, valid_extra=None):
 
 # App initialization.
 
+def create_example_database():
+    db_path = app.config['DATABASE']
+
+    os.system(f'sqlite3 {db_path} < create_tables.sql')
+    os.system(f'sqlite3 {db_path} < sample_data.sql')
+
+    for tfile in ['HmuY.aln2.tree', 'aves.tree', 'GTDB_bact_r95.tree']:
+        os.system(f'./add_tree.py --db {db_path} ../examples/{tfile}')
+
+
 def initialize():
     "Initialize the database and the flask app"
     global db, serializer
@@ -948,14 +958,9 @@ def add_resources(api):
 app = initialize()
 
 if __name__ == '__main__':
-    db_path = app.config['DATABASE']
-    add = lambda x: os.system(f'./add_tree.py --db {db_path} ../examples/{x}')
-    if not os.path.exists(db_path):
-        os.system(f'sqlite3 {db_path} < create_tables.sql')
-        os.system(f'sqlite3 {db_path} < sample_data.sql')
-        add('HmuY.aln2.tree')
-        add('aves.tree')
-        add('GTDB_bact_r95.tree')
+    if not os.path.exists(app.config['DATABASE']):
+        create_example_database()
+
     app.run(debug=True, use_reloader=False)
 
 # But for production it's better if we serve it with something like:
