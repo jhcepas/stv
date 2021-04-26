@@ -9,6 +9,7 @@ import { zoom_into_box, zoom_around, zoom_towards_box } from "./zoom.js";
 import { draw_minimap, update_minimap_visible_rect } from "./minimap.js";
 import { api, api_put, escape_html } from "./api.js";
 import { remove_tags } from "./tag.js";
+import { remove_collapsed } from "./collapse.js";
 import { label_expression, label_property } from "./label.js";
 
 export { view, menus, on_tree_change, on_drawer_change, show_minimap,
@@ -51,6 +52,7 @@ const view = {
     rmin: 0,
     angle: {min: -180, max: 180},
     align_bar: 80,  // % of the screen width where the aligned panel starts
+    collapsed_ids: {},
 
     // searches
     search: () => search(),
@@ -192,6 +194,7 @@ async function tree_command(command, params=undefined) {
 async function on_tree_change() {
     div_tree.style.cursor = "wait";
     remove_searches();
+    remove_collapsed();
     remove_tags();
     view.tree_size = await api(`/trees/${get_tid()}/size`);
     store_node_properties();

@@ -7,6 +7,7 @@ import { update } from "./draw.js";
 import { download_newick } from "./download.js";
 import { zoom_into_box } from "./zoom.js";
 import { tag_node } from "./tag.js";
+import { collapse_node } from "./collapse.js";
 
 export { on_box_contextmenu };
 
@@ -68,6 +69,8 @@ function add_node_options(box, name, properties, node_id) {
             preConfirm: name => tag_node(node_id, name),
         });
     });
+    add_button("🗞️ Collapse node", () => collapse_node(name, node_id),
+               "Do not show nodes below the current one.");
 
     if (view.allow_modifications)
         add_node_modifying_options(box, name, properties, node_id);

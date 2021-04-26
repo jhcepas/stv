@@ -194,16 +194,16 @@ def test_walk():
     for it in t.walk():
          steps.append((it.node.name, it.node_id, it.first_visit))
     assert steps == [
-        ('a', [], True),
-        ('b', [0], True),  # first time visiting internal node b
-        ('d', [0,0], True),  # first (and only) time visiting leaf node d
-        ('e', [0,1], True),
-        ('b', [0], False),  # last time visiting b
-        ('c', [1], True),
-        ('f', [1,0], True),
-        ('g', [1,1], True),
-        ('c', [1], False),
-        ('a', [], False)]
+        ('a', (), True),
+        ('b', (0,), True),  # first time visiting internal node b
+        ('d', (0,0), True),  # first (and only) time visiting leaf node d
+        ('e', (0,1), True),
+        ('b', (0,), False),  # last time visiting b
+        ('c', (1,), True),
+        ('f', (1,0), True),
+        ('g', (1,1), True),
+        ('c', (1,), False),
+        ('a', (), False)]
 
     # Prunning the tree while we walk.
     steps = []
@@ -212,13 +212,13 @@ def test_walk():
         if it.node.name == 'b':
             it.descend = False  # do not follow the descendants of b
     assert steps == [
-        ('a', [], True),
-        ('b', [0], True),  # it.descend has been set to False in the loop
-        ('c', [1], True),  # so we skip all the descendants of b
-        ('f', [1,0], True),
-        ('g', [1,1], True),
-        ('c', [1], False),
-        ('a', [], False)]
+        ('a', (), True),
+        ('b', (0,), True),  # it.descend has been set to False in the loop
+        ('c', (1,), True),  # so we skip all the descendants of b
+        ('f', (1,0), True),
+        ('g', (1,1), True),
+        ('c', (1,), False),
+        ('a', (), False)]
 
 
 def test_parent():

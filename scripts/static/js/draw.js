@@ -36,6 +36,7 @@ async function draw_tree() {
     const params_rect = {  // parameters we have to pass to the drawer
         "drawer": view.drawer.name, "min_size": view.min_size,
         "zx": zx, "zy": zy, "x": x, "y": y, "w": w, "h": h,
+        "collapsed_ids": JSON.stringify(Object.keys(view.collapsed_ids)),
         "labels": labels,
     };
 

@@ -83,6 +83,8 @@ function create_menu_tags_searches() {
     menu.close();
     div_menu_tags_searches.appendChild(menu.domElement);
 
+    menu.addFolder("collapsed");  // filled dynamically
+
     menu.addFolder("tags");  // filled dynamically with tag_node()
 
     add_folder_searches(menu);

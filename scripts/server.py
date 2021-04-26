@@ -376,7 +376,7 @@ def load_tree(tree_id):
 def get_drawer(tree_id, args):
     "Return the drawer initialized as specified in the args"
     valid_keys = ['x', 'y', 'w', 'h', 'panel', 'zx', 'zy', 'drawer', 'min_size',
-                  'labels', 'rmin', 'amin', 'amax']
+                  'collapsed_ids', 'labels', 'rmin', 'amin', 'amax']
 
     try:
         assert all(k in valid_keys for k in args.keys()), 'invalid keys'
@@ -404,12 +404,15 @@ def get_drawer(tree_id, args):
             (get('rmin', 0), 0,
              get('amin', -180) * pi/180, get('amax', 180) * pi/180))
 
+        collapsed_ids = set(tuple(int(i) for i in node_id.split(','))
+            for node_id in json.loads(args.get('collapsed_ids', '[]')))
+
         labels = get_label_fns(json.loads(args.get('labels', '[]')))
 
         searches = app.searches.get(tree_id)
 
         return drawer_class(load_tree(tree_id), viewport, panel, zoom,
-                            limits, labels, searches)
+                            limits, collapsed_ids, labels, searches)
     except StopIteration:
         raise InvalidUsage(f'not a valid drawer: {drawer_name}')
     except (ValueError, AssertionError) as e:

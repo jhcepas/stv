@@ -45,12 +45,13 @@ class Drawer:
     TYPE = 'base'  # can be 'rect' or 'circ' for working drawers
 
     def __init__(self, tree, viewport=None, panel=0, zoom=(1, 1),
-                 limits=None, labels=None, searches=None):
+                 limits=None, collapsed_ids=None, labels=None, searches=None):
         self.tree = tree
         self.viewport = Box(*viewport) if viewport else None
         self.panel = panel
         self.zoom = zoom
         self.xmin, self.xmax, self.ymin, self.ymax = limits or (0, 0, 0, 0)
+        self.collapsed_ids = collapsed_ids or set()  # nodes collapsed
         self.labels = labels or []
         self.searches = searches or {}  # looks like {text: (results, parents)}
 
@@ -87,7 +88,8 @@ class Drawer:
             it.descend = False  # skip children
             return x, y + box_node.dy
 
-        if self.is_small(box_node):
+        if ((it.node_id in self.collapsed_ids or self.is_small(box_node)) and
+                not it.node.is_leaf):
             self.node_dxs[-1].append(box_node.dx)
             self.collapsed.append(it.node)
             self.outline = stack(self.outline, box_node)
@@ -270,8 +272,9 @@ class DrawerCirc(Drawer):
     TYPE = 'circ'
 
     def __init__(self, tree, viewport=None, panel=0, zoom=(1, 1),
-                 limits=None, labels=None, searches=None):
-        super().__init__(tree, viewport, panel, zoom, limits, labels, searches)
+                 limits=None, collapsed_ids=None, labels=None, searches=None):
+        super().__init__(tree, viewport, panel, zoom,
+                         limits, collapsed_ids, labels, searches)
 
         assert self.zoom[0] == self.zoom[1], 'zoom must be equal in x and y'
 
