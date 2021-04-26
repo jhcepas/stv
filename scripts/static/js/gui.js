@@ -92,7 +92,7 @@ const view = {
     name: {  // this may go away if we can do names nicely with labels
         color: "#00A",
         font: "sans-serif",
-        max_size: 100,
+        max_size: 25,
         padding: {left: 10, vertical: 0.20},
     },
 
