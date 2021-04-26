@@ -61,6 +61,8 @@ const view = {
 
     // info
     nnodes: 0,  // number of visible nodeboxes
+    tnodes: 0,  // number of total nodeboxes
+    tleaves: 0,  // number of total leaves (outer nodeboxes)
     pos: {cx: 0, cy: 0},  // in-tree current pointer position
     show_tree_info: () => show_tree_info(),
 
@@ -123,6 +125,8 @@ async function main() {
     await init_trees();
 
     await set_query_string_values();
+
+    reset_node_count();
 
     const drawers = await api("/drawers");
     init_menus(menus, Object.keys(trees), drawers);
@@ -191,6 +195,7 @@ async function on_tree_change() {
     remove_tags();
     view.tree_size = await api(`/trees/${get_tid()}/size`);
     store_node_properties();
+    reset_node_count();
     reset_zoom();
     reset_position();
     draw_minimap();
@@ -343,6 +348,14 @@ function show_minimap(show) {
             draw_minimap();
         update_minimap_visible_rect();
     }
+}
+
+
+function reset_node_count() {
+    api(`/trees/${get_tid()}/nodecount`).then(n => {
+        view.tnodes = n.tnodes;
+        view.tleaves = n.tleaves;
+    });
 }
 
 
