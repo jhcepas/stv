@@ -82,17 +82,16 @@ def test_draw_collapsed():
     drawer_z2 = draw.DrawerRectLeafNames(t, zoom=(2, 2))
     elements_z2 = list(drawer_z2.draw())
     assert_equal(elements_z2, [
-        ['line', (101.0, 0.5), (301.0, 0.5), '', []],
-        ['text', (301.0, 0.0, 0.66666666666666, 1.0), (0, 0.5), 'B', 'name'],
-        ['outline', (101.0, 1.0, 650.0, 2.0)],
-        ['text', (751.0, 1.0, 1.33333333333333, 2.0), (0, 0.5), 'E', 'name'],
-        ['line', (1.0, 1.25), (101.0, 1.25), '', []],
-        ['line', (101.0, 0.5), (101.0, 2.0), '', []],
-        ['line', (0.0, 1.25), (1.0, 1.25), '', []],
-        ['nodebox', (0.0, 0.0, 752.33333333333, 3.0), 'F', {}, [], []],
-        ['nodebox', (1.0, 0.0, 751.33333333333, 3.0), 'A', {}, (0,), []],
-        ['nodebox', (101.0, 1.0, 651.33333333333, 2.0), '(collapsed)', {}, [], []],
-        ['nodebox', (101.0, 0.0, 200.666666666666, 1.0), 'B', {}, (0, 0), []]])
+        ['outline', Box(x=101.0, y=0, dx=650.0, dy=3.0)],
+        ['text', Box(x=751.0, y=0, dx=1.0, dy=1.5), (0, 0.5), 'B', 'name'],
+        ['text', Box(x=751.0, y=1.5, dx=1.0, dy=1.5), (0, 0.5), 'E', 'name'],
+        ['line', (1.0, 1.5), (101.0, 1.5), '', []],
+        ['line', (0.0, 1.5), (1.0, 1.5), '', []],
+        ['nodebox', Box(x=0.0, y=0.0, dx=752.0, dy=3.0), 'F', {}, [], []],
+        ['nodebox', Box(x=1.0, y=0.0, dx=751.0, dy=3.0), 'A', {}, (0,), []],
+        ['nodebox', Box(x=101.0, y=0, dx=651.0, dy=3.0), '(collapsed)', {}, [], []]])
+    # TODO: The order of 'B' and 'E' may be inverted. Find a way to test it
+    #   well without making draw.pyx:summary much slower.
 
     drawer_z1 = draw.DrawerRectLeafNames(t)
     elements_z1 = list(drawer_z1.draw())

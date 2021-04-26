@@ -51,7 +51,7 @@ class Drawer:
         self.panel = panel
         self.zoom = zoom
         self.xmin, self.xmax, self.ymin, self.ymax = limits or (0, 0, 0, 0)
-        self.collapsed_ids = collapsed_ids or set()  # nodes collapsed
+        self.collapsed_ids = collapsed_ids or set()  # manually collapsed
         self.labels = labels or []
         self.searches = searches or {}  # looks like {text: (results, parents)}
 
@@ -88,8 +88,7 @@ class Drawer:
             it.descend = False  # skip children
             return x, y + box_node.dy
 
-        if ((it.node_id in self.collapsed_ids or self.is_small(box_node)) and
-                not it.node.is_leaf):
+        if it.node_id in self.collapsed_ids or self.is_small(box_node):
             self.node_dxs[-1].append(box_node.dx)
             self.collapsed.append(it.node)
             self.outline = stack(self.outline, box_node)
@@ -169,13 +168,17 @@ class Drawer:
 
         graphics = []
 
-        if self.panel == 0:
-            graphics += self.draw_outline()
+        if len(self.collapsed) == 1 and self.collapsed[0].is_leaf:
+            self.bdy_dys.append([])
+            x, y, _, _ = self.outline
+            graphics += self.draw_content(self.collapsed[0], (x, y))
+        else:
+            self.bdy_dys[-1].append( (self.outline.dy / 2, self.outline.dy) )
+            if self.panel == 0:
+                graphics += self.draw_outline()
+            graphics += self.draw_collapsed()
 
-        graphics += self.draw_collapsed()
         self.collapsed = []
-
-        self.bdy_dys[-1].append( (self.outline.dy / 2, self.outline.dy) )
 
         ndx = drawn_size(graphics, self.get_box).dx
         self.node_dxs[-1].append(ndx)
@@ -403,7 +406,7 @@ def draw_rect_collapsed_names(drawer):
     "Yield names of collapsed nodes after their outline"
     x, y, dx, dy = drawer.outline
 
-    names = list(set(first_name(node) for node in drawer.collapsed))
+    names = summary(drawer.collapsed)
     if all(name == '' for name in names):
         return
 
@@ -422,7 +425,7 @@ def draw_circ_collapsed_names(drawer):
     if not (-pi <= a <= pi and -pi <= a + da <= pi):
         return
 
-    names = list(set(first_name(node) for node in drawer.collapsed))
+    names = summary(drawer.collapsed)
     if all(name == '' for name in names):
         return
 
@@ -504,7 +507,7 @@ class DrawerAlignNames(DrawerRectLabels):
             yield from draw_rect_leaf_name(self, node, point)
 
     def draw_collapsed(self):
-        names = list(set(first_name(node) for node in self.collapsed))
+        names = summary(self.collapsed)
         if all(name == '' for name in names):
             return
 
@@ -597,6 +600,13 @@ def get_drawers():
         DrawerRectLeafNames, DrawerCircLeafNames,
         DrawerAlignNames, DrawerCircAlignNames,
         DrawerAlignHeatMap, DrawerCircAlignHeatMap]
+
+
+def summary(nodes):
+    "Return a list of names summarizing the given list of nodes"
+    return list(set(first_name(node) for node in nodes))
+    # NOTE: This doesn't preserve the order, but it is *much* faster than
+    #   iterating in a list and saving only if they are not already there.
 
 
 def first_name(tree):
