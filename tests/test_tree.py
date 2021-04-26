@@ -164,8 +164,8 @@ def test_getitem():
     assert t['z'] is None
 
     assert t['b'] == t[0] == t[[0]] == t[0,]
-    assert t['d'] == t[0,0] == t[[0,0]] == t[0][0] == t[lambda n: n.length == 8]
-    assert t['g'] == t[1,1] == t[lambda n: n.is_leaf and n.length < 5]
+    assert t['d'] == t[0,0] == t[[0,0]] == t[0][0]
+    assert t['g'] == t[1,1]
     assert t['f'] == t[-1,0] == t[-1,-2]
 
     with pytest.raises(IndexError):

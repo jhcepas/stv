@@ -80,9 +80,7 @@ cdef class Tree:
 
     def __getitem__(self, node_id):
         "Return the node that matches the given node_id, or None"
-        if callable(node_id):       # node_id can be a True/False function
-            return next((node for node in self if node_id(node)), None)
-        elif type(node_id) == str:  # or the name of a node
+        if type(node_id) == str:  # node_id can be the name of a node
             return next((node for node in self if node.name == node_id), None)
         elif type(node_id) == int:  # or the index of a child
             return self.children[node_id]
