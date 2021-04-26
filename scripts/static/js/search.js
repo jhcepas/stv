@@ -22,8 +22,11 @@ async function search() {
 
             search_text = text;  // to be used when checking the result later on
 
-            const qs = `text=${encodeURIComponent(text)}`;
             try {
+                if (text in view.searches)
+                    throw new Error("Search already exists.");
+
+                const qs = `text=${encodeURIComponent(text)}`;
                 return await api(`/trees/${get_tid()}/search?${qs}`);
             }
             catch (exception) {
