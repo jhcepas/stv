@@ -311,11 +311,13 @@ function create_outline(sbox, tl, zx, zy) {
 function create_rect_outline(sbox, tl, zx, zy) {
     const [x, y, dx_min, dx_max, dy] = transform(sbox, tl, zx, zy);
 
+    const dx = view.outline.slanted ? dx_min : dx_max;
+
     return create_svg_element("path", {
         "class": "outline",
         "d": `M ${x} ${y + dy/2}
               L ${x + dx_max} ${y}
-              L ${x + dx_min} ${y + dy}
+              L ${x + dx} ${y + dy}
               L ${x} ${y + dy/2}`,
     });
 }
@@ -330,16 +332,19 @@ function transform(sbox, tl, zx, zy) {
 // Return a svg outline in the direction of an annular sector.
 function create_circ_outline(sbox, tl, z) {
     const [r, a, dr_min, dr_max, da] = sbox;
+
+    const dr = view.outline.slanted ? dr_min : dr_max;
+
     const large = da > Math.PI ? 1 : 0;
     const p0 = cartesian_shifted(r, a + da/2, tl, z),
           p10 = cartesian_shifted(r + dr_max, a, tl, z),
-          p11 = cartesian_shifted(r + dr_min, a + da, tl, z);
+          p11 = cartesian_shifted(r + dr, a + da, tl, z);
 
     return create_svg_element("path", {
         "class": "outline",
         "d": `M ${p0.x} ${p0.y}
               L ${p10.x} ${p10.y}
-              A ${z * (r + dr_max)} ${z * (r + dr_min)} 0 ${large} 1 ${p11.x} ${p11.y}
+              A ${z * (r + dr_max)} ${z * (r + dr)} 0 ${large} 1 ${p11.x} ${p11.y}
               L ${p0.x} ${p0.y}`,
     });
 }

@@ -83,6 +83,7 @@ const view = {
         opacity: 0.1,
         color: "#A50",
         width: 0.5,
+        slanted: true,
     },
     line: {
         color: "#000",
