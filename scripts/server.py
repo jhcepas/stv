@@ -421,17 +421,9 @@ def get_drawer(tree_id, args):
 
 def get_newick(tree_id, max_mb):
     "Return the newick representation of the given tree"
-    try:
-        tid, subtree = get_tid(tree_id)
+    t = load_tree(tree_id)
 
-        if subtree and tid in app.trees:
-            newick = tree.dumps(app.trees[tid][subtree])
-        else:
-            newicks = dbget0('newick', 'trees WHERE id=?', tid)
-            assert len(newicks) == 1
-            newick = newicks[0]
-    except (AssertionError, IndexError) as e:
-        raise InvalidUsage(f'unknown tree id {tree_id}: {e}', 404)
+    newick = tree.dumps(t)
 
     size_mb = len(newick) / 1e6
     if size_mb > max_mb:
