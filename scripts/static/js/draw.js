@@ -193,9 +193,9 @@ function create_item(item, tl, zoom) {
         return b;
     }
     else if (item[0] === "outline") {
-        const [ , box] = item;
+        const [ , sbox] = item;
 
-        return create_outline(box, tl, zx, zy);
+        return create_outline(sbox, tl, zx, zy);
     }
     else if (item[0] === "line") {
         const [ , p1, p2, type, parent_of] = item;
@@ -299,47 +299,47 @@ function cartesian_shifted(r, a, tl, z) {
 
 
 // Return an outline (collapsed version of a box).
-function create_outline(box, tl, zx, zy) {
+function create_outline(sbox, tl, zx, zy) {
     if (view.drawer.type === "rect")
-        return create_rect_outline(box, tl, zx, zy);
+        return create_rect_outline(sbox, tl, zx, zy);
     else
-        return create_circ_outline(box, tl, zx);
+        return create_circ_outline(sbox, tl, zx);
 }
 
 
 // Return a svg horizontal outline.
-function create_rect_outline(box, tl, zx, zy) {
-    const [x, y, w, h] = transform(box, tl, zx, zy);
+function create_rect_outline(sbox, tl, zx, zy) {
+    const [x, y, dx_min, dx_max, dy] = transform(sbox, tl, zx, zy);
 
     return create_svg_element("path", {
         "class": "outline",
-        "d": `M ${x} ${y + h/2}
-              L ${x + w} ${y}
-              L ${x + w} ${y + h}
-              L ${x} ${y + h/2}`,
+        "d": `M ${x} ${y + dy/2}
+              L ${x + dx_max} ${y}
+              L ${x + dx_min} ${y + dy}
+              L ${x} ${y + dy/2}`,
     });
 }
 
-// Return the box translated (from tl) and scaled.
-function transform(box, tl, zx, zy) {
-    const [x, y, w, h] = box;
-    return [zx * (x - tl.x), zy * (y - tl.y), zx * w, zy * h];
+// Return the sbox translated (from tl) and scaled.
+function transform(sbox, tl, zx, zy) {
+    const [x, y, dx_min, dx_max, dy] = sbox;
+    return [zx * (x - tl.x), zy * (y - tl.y), zx * dx_min, zx * dx_max, zy * dy];
 }
 
 
 // Return a svg outline in the direction of an annular sector.
-function create_circ_outline(box, tl, z) {
-    const [r, a, dr, da] = box;
+function create_circ_outline(sbox, tl, z) {
+    const [r, a, dr_min, dr_max, da] = sbox;
     const large = da > Math.PI ? 1 : 0;
     const p0 = cartesian_shifted(r, a + da/2, tl, z),
-          p10 = cartesian_shifted(r + dr, a, tl, z),
-          p11 = cartesian_shifted(r + dr, a + da, tl, z);
+          p10 = cartesian_shifted(r + dr_max, a, tl, z),
+          p11 = cartesian_shifted(r + dr_min, a + da, tl, z);
 
     return create_svg_element("path", {
         "class": "outline",
         "d": `M ${p0.x} ${p0.y}
               L ${p10.x} ${p10.y}
-              A ${z * (r + dr)} ${z * (r + dr)} 0 ${large} 1 ${p11.x} ${p11.y}
+              A ${z * (r + dr_max)} ${z * (r + dr_min)} 0 ${large} 1 ${p11.x} ${p11.y}
               L ${p0.x} ${p0.y}`,
     });
 }

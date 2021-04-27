@@ -8,6 +8,7 @@ import random
 
 Size = namedtuple('Size', 'dx dy')  # size of a 2D shape (sizes are always >= 0)
 Box = namedtuple('Box', 'x y dx dy')  # corner and size of a 2D shape
+SBox = namedtuple('SBox', 'x y dx_min dx_max dy')  # slanted box
 # They are all "generalized coordinates" (can be radius and angle, say).
 
 
@@ -57,7 +58,7 @@ class Drawer:
 
     def draw(self):
         "Yield graphic elements to draw the tree"
-        self.outline = None  # box surrounding the current collapsed nodes
+        self.outline = None  # sbox surrounding the current collapsed nodes
         self.collapsed = []  # nodes that are curretly collapsed together
         self.nodeboxes = []  # boxes surrounding all nodes and collapsed boxes
         self.node_dxs = [[]]  # lists of nodes dx (to find the max)
@@ -173,7 +174,7 @@ class Drawer:
 
         if uncollapse:
             self.bdy_dys.append([])
-            x, y, _, _ = self.outline
+            x, y, _, _, _ = self.outline
             graphics += self.draw_content(node0, (x, y))
         else:
             self.bdy_dys[-1].append( (self.outline.dy / 2, self.outline.dy) )
@@ -198,9 +199,9 @@ class Drawer:
 
     def flush_outline(self, minimum_dx=0):
         "Return box outlining the collapsed nodes and reset the current outline"
-        x, y, dx, dy = self.outline
+        x, y, dx_min, dx_max, dy = self.outline
         self.outline = None
-        return Box(x, y, max(dx, minimum_dx), dy)
+        return Box(x, y, max(dx_max, minimum_dx), dy)
 
     def dx_fitting_texts(self, texts, dy):
         "Return a dx wide enough on the screen to fit all texts in the given dy"
@@ -302,9 +303,9 @@ class DrawerCirc(Drawer):
             return intersects_angles(self.viewport, box)
 
     def draw_outline(self):
-        r, a, dr, da = self.outline
+        r, a, dr_min, dr_max, da = self.outline
         a1, a2 = clip_angles(a, a + da)
-        self.outline = Box(r, a1, dr, a2 - a1)
+        self.outline = SBox(r, a1, dr_min, dr_max, a2 - a1)
         yield draw_outline(self.outline)
 
     def flush_outline(self, minimum_dr=0):
@@ -409,7 +410,7 @@ def draw_circ_leaf_name(drawer, node, point):
 
 def draw_rect_collapsed_names(drawer):
     "Yield names of collapsed nodes after their outline"
-    x, y, dx, dy = drawer.outline
+    x, y, dx_min, dx_max, dy = drawer.outline
 
     names = summary(drawer.collapsed)
     if all(name == '' for name in names):
@@ -417,7 +418,7 @@ def draw_rect_collapsed_names(drawer):
 
     texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
 
-    x_text = (x + dx) if drawer.panel == 0 else drawer.xmin
+    x_text = (x + dx_max) if drawer.panel == 0 else drawer.xmin
     dx_fit = drawer.dx_fitting_texts(texts, dy)
     box = Box(x_text, y, dx_fit, dy)
 
@@ -426,7 +427,7 @@ def draw_rect_collapsed_names(drawer):
 
 def draw_circ_collapsed_names(drawer):
     "Yield names of collapsed nodes after their outline"
-    r, a, dr, da = drawer.outline
+    r, a, dr_min, dr_max, da = drawer.outline
     if not (-pi <= a <= pi and -pi <= a + da <= pi):
         return
 
@@ -436,8 +437,8 @@ def draw_circ_collapsed_names(drawer):
 
     texts = names if len(names) < 6 else (names[:3] + ['...'] + names[-2:])
 
-    r_text = (r + dr) if drawer.panel == 0 else drawer.xmin
-    dr_fit = drawer.dx_fitting_texts(texts, (r + dr) * da)
+    r_text = (r + dr_max) if drawer.panel == 0 else drawer.xmin
+    dr_fit = drawer.dx_fitting_texts(texts, (r + dr_max) * da)
     box = Box(r_text, a, dr_fit, da)
 
     yield from draw_texts(box, (0, 0.5), texts, 'name')
@@ -518,8 +519,8 @@ class DrawerAlignNames(DrawerRectLabels):
 
         if self.panel == 0:
             if self.viewport:
-                x, y, dx, dy = self.outline
-                p1 = (x + dx, y + dy/2)
+                x, y, dx_min, dx_max, dy = self.outline
+                p1 = (x + dx_max, y + dy/2)
                 p2 = (self.viewport.x + self.viewport.dx, y + dy/2)
                 yield draw_line(p1, p2, 'dotted')
         elif self.panel == 1:
@@ -563,7 +564,7 @@ class DrawerAlignHeatMap(DrawerRectLabels):
         if self.panel == 0:
             yield from draw_rect_collapsed_names(self)
         elif self.panel == 1:
-            x, y, dx, dy = self.outline
+            x, y, dx_min, dx_max, dy = self.outline
             text = ''.join(first_name(node) for node in self.collapsed)
             random.seed(text)
             array = [random.randint(1, 360) for i in range(300)]
@@ -590,7 +591,7 @@ class DrawerCircAlignHeatMap(DrawerCircLabels):
         if self.panel == 0:
             yield from draw_circ_collapsed_names(self)
         elif self.panel == 1:
-            r, a, dr, da = self.outline
+            r, a, dr_min, dr_max, da = self.outline
             text = ''.join(first_name(node) for node in self.collapsed)
             random.seed(text)
             array = [random.randint(1, 360) for i in range(50)]
@@ -633,8 +634,8 @@ def draw_texts(box, anchor, texts, text_type):
 def draw_nodebox(box, name='', properties=None, node_id=None, result_of=None):
     return ['nodebox', box, name, properties or {}, node_id or [], result_of or []]
 
-def draw_outline(box):
-    return ['outline', box]
+def draw_outline(sbox):
+    return ['outline', sbox]
 
 def draw_line(p1, p2, line_type='', parent_of=None):
     return ['line', p1, p2, line_type, parent_of or []]
@@ -668,8 +669,11 @@ def get_ys(box):
 def get_rect(element):
     "Return the rectangle that contains the given graphic element"
     eid = element[0]
-    if eid in ['nodebox', 'outline', 'array', 'text']:
+    if eid in ['nodebox', 'array', 'text']:
         return element[1]
+    elif eid == 'outline':
+        x, y, dx_min, dx_max, dy = element[1]
+        return Box(x, y, dx_max, dy)
     elif eid in ['line', 'arc']:  # not a great approximation for an arc...
         (x1, y1), (x2, y2) = element[1], element[2]
         return Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
@@ -680,8 +684,11 @@ def get_rect(element):
 def get_asec(element):
     "Return the annular sector that contains the given graphic element"
     eid = element[0]
-    if eid in ['nodebox', 'outline', 'array', 'text']:
+    if eid in ['nodebox', 'array', 'text']:
         return element[1]
+    elif eid == 'outline':
+        r, a, dr_min, dr_max, da = element[1]
+        return Box(r, a, dr_max, da)
     elif eid in ['line', 'arc']:
         (x1, y1), (x2, y2) = element[1], element[2]
         rect = Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
@@ -743,14 +750,15 @@ def split_thru_negative_xaxis(rect):
         return [Box(x, y, dx, -y-EPSILON), Box(x, EPSILON, dx, dy + y)]
 
 
-def stack(b1, b2):
-    "Return the box resulting from stacking boxes b1 and b2"
-    if not b1:
-        return b2
+def stack(sbox, box):
+    "Return the sbox resulting from stacking the given sbox and box"
+    if not sbox:
+        x, y, dx, dy = box
+        return SBox(x, y, dx, dx, dy)
     else:
-        x, y, dx1, dy1 = b1
-        _, _, dx2, dy2 = b2
-        return Box(x, y, max(dx1, dx2), dy1 + dy2)
+        x, y, dx_min, dx_max, dy = sbox
+        _, _, dx_box, dy_box = box
+        return SBox(x, y, min(dx_min, dx_box), max(dx_max, dx_box), dy + dy_box)
 
 
 def circumrect(asec):
