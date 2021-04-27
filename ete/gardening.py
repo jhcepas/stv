@@ -21,17 +21,45 @@ def root_at(node):
     "Return the tree of which node is part of, rerooted at the given node"
     root, node_id = get_root_id(node)
 
-    current_root = root
-    for i in node_id:
-        new_root = current_root.children.pop(i)
-        new_root.parent = None
-        new_root.children.append(current_root)
-        current_root.parent = new_root
-        update_size(current_root)
-        update_size(new_root)
-        current_root = new_root
+    parent = node.parent
+    if not parent:
+        return node
 
-    return current_root
+    # Add an empty parent to the node.
+    i = parent.children.index(node)
+    parent.children.pop(i)
+    intermediate_node = Tree(':0', children=[node])
+    parent.children.insert(i, intermediate_node)
+    intermediate_node.parent = parent
+
+    # Go from the actual root towards the goal node, switching contents.
+    current = root
+    for i in node_id:
+        new = current.children.pop(i)
+
+        new.parent, current.parent = None, new
+        new.length, current.length = current.length, new.length
+
+        new_support = new.properties.get('support')
+        current_support = current.properties.get('support')
+        if current_support:
+            new.properties['support'] = current_support
+        elif 'support' in new.properties:
+            del new.properties['support']
+
+        if new_support:
+            current.properties['support'] = new_support
+        elif 'support' in current.properties:
+            del current.properties['support']
+
+        new.children.append(current)
+
+        update_size(current)
+        update_size(new)
+
+        current = new
+
+    return current
 
 
 def get_root_id(node):
@@ -69,7 +97,7 @@ def remove(node):
 
 def standardize(tree):
     "Transform from a tree not following strict newick conventions"
-    if tree.length == -1 and not tree.name:
+    if tree.length == -1:
         tree.length = 0
         update_size(tree)
 
