@@ -9,7 +9,7 @@ sys.path.insert(0, f'{abspath(dirname(__file__))}/..')
 from math import pi, sqrt
 
 from ete import tree, draw
-Size, Box = draw.Size, draw.Box
+Size, Box, SBox = draw.Size, draw.Box, draw.SBox
 
 
 # Helper functions to avoid rounding problems when comparing graphic elements.
@@ -82,21 +82,21 @@ def test_draw_collapsed():
     drawer_z2 = draw.DrawerRectLeafNames(t, zoom=(2, 2))
     elements_z2 = list(drawer_z2.draw())
     assert_equal(elements_z2, [
-        ['outline', Box(x=101.0, y=0, dx=650.0, dy=3.0)],
-        ['text', Box(x=751.0, y=0, dx=1.0, dy=1.5), (0, 0.5), 'B', 'name'],
-        ['text', Box(x=751.0, y=1.5, dx=1.0, dy=1.5), (0, 0.5), 'E', 'name'],
+        ['outline', (101.0, 0, 200, 650.0, 3.0)],
+        ['text', (751.0, 0, 1.0, 1.5), (0, 0.5), 'B', 'name'],
+        ['text', (751.0, 1.5, 1.0, 1.5), (0, 0.5), 'E', 'name'],
         ['line', (1.0, 1.5), (101.0, 1.5), '', []],
         ['line', (0.0, 1.5), (1.0, 1.5), '', []],
-        ['nodebox', Box(x=0.0, y=0.0, dx=752.0, dy=3.0), 'F', {}, [], []],
-        ['nodebox', Box(x=1.0, y=0.0, dx=751.0, dy=3.0), 'A', {}, (0,), []],
-        ['nodebox', Box(x=101.0, y=0, dx=651.0, dy=3.0), '(collapsed)', {}, [], []]])
+        ['nodebox', (0.0, 0.0, 752.0, 3.0), 'F', {}, [], []],
+        ['nodebox', (1.0, 0.0, 751.0, 3.0), 'A', {}, (0,), []],
+        ['nodebox', (101.0, 0, 651.0, 3.0), '(collapsed)', {}, [], []]])
     # TODO: The order of 'B' and 'E' may be inverted. Find a way to test it
     #   well without making draw.pyx:summary much slower.
 
     drawer_z1 = draw.DrawerRectLeafNames(t)
     elements_z1 = list(drawer_z1.draw())
     assert_equal(elements_z1, [
-        ['outline', (0, 0, 751.0, 3.0)],
+        ['outline', (0, 0, 751.0, 751.0, 3.0)],
         ['text', (751.0, 0, 2.0, 3.0), (0, 0.5), 'F', 'name'],
         ['nodebox', (0, 0, 753.0, 3.0), '(collapsed)', {}, [], []]])
 
@@ -191,15 +191,21 @@ def test_size():
 
 def test_stack():
     b1 = Box(x=0, y= 0, dx=10, dy=5)
-    b2 = Box(x=0, y= 5, dx=20, dy=10)
-    b3 = Box(x=0, y=15, dx= 5, dy=3)
-    b4 = Box(x=5, y=15, dx= 5, dy=3)
+    sb1 = draw.stack(None, b1)
 
-    assert draw.stack(None, b1) == b1
-    assert draw.stack(b1, b2) == Box(0, 0, 20, 15)
-    assert draw.stack(b2, b3) == Box(0, 5, 20, 13)
-    assert draw.stack(b1, draw.stack(b2, b3)) == Box(0, 0, 20, 18)
-    assert draw.stack(draw.stack(b1, b2), b3) == Box(0, 0, 20, 18)
+    b2 = Box(x=0, y= 5, dx=20, dy=10)
+    sb2 = draw.stack(None, b2)
+
+    b3 = Box(x=0, y=15, dx= 5, dy=3)
+    sb3 = draw.stack(None, b3)
+
+    b4 = Box(x=5, y=15, dx= 5, dy=3)
+    sb4 = draw.stack(None, b4)
+
+    assert draw.stack(sb1, b2) == SBox(0, 0, 10, 20, 15)
+    assert draw.stack(sb2, b3) == SBox(0, 5, 5, 20, 13)
+    assert draw.stack(draw.stack(sb1, b2), b3) == SBox(0, 0, 5, 20, 18)
+    assert draw.stack(draw.stack(sb2, b3), b4) == SBox(0, 5, 5, 20, 16)
 
 
 def test_circumshapes():
