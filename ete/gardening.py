@@ -19,6 +19,8 @@ def sort(tree, key=None, reverse=False):
 
 def root_at(node):
     "Return the tree of which node is part of, rerooted at the given node"
+    # TODO: Decide whether to fix or remove this function. It doesn't seem to
+    # work properly, and we probably don't need it, since we can use ete's.
     root, node_id = get_root_id(node)
 
     parent = node.parent
