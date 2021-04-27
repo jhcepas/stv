@@ -168,10 +168,13 @@ class Drawer:
 
         graphics = []
 
-        if len(self.collapsed) == 1 and self.collapsed[0].is_leaf:
+        node0 = self.collapsed[0]
+        uncollapse = len(self.collapsed) == 1 and node0.is_leaf
+
+        if uncollapse:
             self.bdy_dys.append([])
             x, y, _, _ = self.outline
-            graphics += self.draw_content(self.collapsed[0], (x, y))
+            graphics += self.draw_content(node0, (x, y))
         else:
             self.bdy_dys[-1].append( (self.outline.dy / 2, self.outline.dy) )
             if self.panel == 0:
@@ -183,7 +186,9 @@ class Drawer:
         ndx = drawn_size(graphics, self.get_box).dx
         self.node_dxs[-1].append(ndx)
 
-        box = draw_nodebox(self.flush_outline(ndx), '(collapsed)', {}, [], result_of)
+        name, properties = ((node0.name, node0.properties) if uncollapse else
+                            ('(collapsed)', {}))
+        box = draw_nodebox(self.flush_outline(ndx), name, properties, [], result_of)
         self.nodeboxes.append(box)
 
         yield from graphics
