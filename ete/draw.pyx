@@ -89,7 +89,12 @@ class Drawer:
             it.descend = False  # skip children
             return x, y + box_node.dy
 
-        if it.node_id in self.collapsed_ids or self.is_small(box_node):
+        is_manually_collapsed = it.node_id in self.collapsed_ids
+
+        if is_manually_collapsed and self.outline:
+            graphics += self.get_outline()  # so we won't stack with its outline
+
+        if is_manually_collapsed or self.is_small(box_node):
             self.node_dxs[-1].append(box_node.dx)
             self.collapsed.append(it.node)
             self.outline = stack(self.outline, box_node)
