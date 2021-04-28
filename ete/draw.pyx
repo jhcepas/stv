@@ -199,7 +199,7 @@ class Drawer:
 
         yield from graphics
 
-    def draw_outline(self):
+    def draw_outline(self):  # member function so it can be overloaded
         yield draw_outline(self.outline)
 
     def flush_outline(self, minimum_dx=0):
