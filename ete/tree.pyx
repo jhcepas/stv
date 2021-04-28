@@ -233,8 +233,7 @@ def read_nodes(nodes_text, int pos=0):
         if pos >= len(nodes_text):
             raise NewickError('nodes text ends missing a matching ")"')
 
-        while nodes_text[pos] in ' \t\r\n':
-            pos += 1  # skip whitespace
+        pos = skip_spaces_and_comments(nodes_text, pos)
 
         if nodes_text[pos] == '(':
             children, pos = read_nodes(nodes_text, pos)
@@ -246,6 +245,18 @@ def read_nodes(nodes_text, int pos=0):
         nodes.append(Tree(content, children))
 
     return nodes, pos+1
+
+
+def skip_spaces_and_comments(text, int pos):
+    "Return position in text after pos and after all whitespaces and comments"
+    while pos < len(text) and text[pos] in ' \t\r\n[':
+        if text[pos] == '[':
+            if text[pos+1] == '&':  # special annotation
+                return pos
+            else:
+                pos = text.find(']', pos+1)  # skip comment
+        pos += 1  # skip whitespace and comment endings
+    return pos
 
 
 def read_content(str text, int pos, endings=',);'):
@@ -269,7 +280,7 @@ def read_quoted_name(str text, int pos):
         if text[pos] == "'":
             # Newick format escapes ' as ''
             if pos+1 >= len(text) or text[pos+1] != "'":
-                return text[start:pos].replace("''", "'"), pos+1
+                return text[start:pos].replace("''", "'"), pos
             pos += 2
         else:
             pos += 1
@@ -286,11 +297,13 @@ def get_content_fields(content):
     cdef double length
     if content.startswith("'"):
         name, pos = read_quoted_name(content, 0)
+        pos = skip_spaces_and_comments(content, pos+1)
     else:
         name, pos = read_content(content, 0, endings=':[')
 
     if pos < len(content) and content[pos] == ':':
-        length_txt, pos = read_content(content, pos+1, endings='[')
+        pos = skip_spaces_and_comments(content, pos+1)
+        length_txt, pos = read_content(content, pos, endings='[ ')
         try:
             length = float(length_txt)
         except ValueError:
@@ -298,8 +311,11 @@ def get_content_fields(content):
     else:
         length = -1
 
+    pos = skip_spaces_and_comments(content, pos)
+
     if pos < len(content) and content[pos] == '[':
-        properties = get_properties(content[pos:])
+        pos_end = content.find(']', pos+1)
+        properties = get_properties(content[pos+1:pos_end])
     elif pos >= len(content):
         properties = {}
     else:
@@ -311,13 +327,11 @@ def get_content_fields(content):
 def get_properties(text):
     """Return a dict with the properties extracted from the text in NHX format
 
-    Example: '[&&NHX:x=foo:y=bar]' -> {'x': 'foo', 'y': 'bar'}
+    Example: '&&NHX:x=foo:y=bar' -> {'x': 'foo', 'y': 'bar'}
     """
     try:
-        assert text.startswith('[&&NHX:') and text.endswith(']'), \
-            'properties not contained between "[&&NHX:" and "]"'
-        pairs = text[len('[&&NHX:'):-1].split(':')
-        return dict(pair.split('=') for pair in pairs)
+        assert text.startswith('&&NHX:'), 'unknown annotation (not "&&NHX")'
+        return dict(pair.split('=') for pair in text[len('&&NHX:'):].split(':'))
     except (AssertionError, ValueError) as e:
         raise NewickError('invalid NHX format (%s) in text %r' % (e, text))
 

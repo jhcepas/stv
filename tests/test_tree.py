@@ -34,18 +34,21 @@ a;
 ([&&NHX:p1=v1:p2=v2],c);
 ((G001575.1:0.243,G002335.1:0.2)42:0.041,G001615.1:0.246)'100.0:d__Bacteria';
 (a,(b)'the_answer_is_''yes''');
+(((One:0.2,Two:0.3):0.3,(Three:0.5,Four:0.3):0.2):0.3,Five:0.7):0;
+((C,D)1,(A,(B,X)3)2,E)R;
+([]);
+((C,D)[1],(A,(B,X)[3])[2],E)[R];
+( a a : 3[comment here] [comment there]);
+( 'a a' : 3[comment here] [comment there]);
 """.splitlines()
 
 bad_trees = """\
 ()
 (();
 )(;
-(a,[(b,c)]);
-(d,[]]);
 (()());
 (()a());
 ((),a());
-([]);
 ([&&NHX:a,b]);
 ([&&NHX:a)b];
 ([&&NX:p1=v1:p2=v2],c);
@@ -302,10 +305,10 @@ def test_read_content():
 
 
 def test_read_quoted_name():
-    assert tree.read_quoted_name("'one two'", 0) == ('one two', 9)
-    assert tree.read_quoted_name("'one ''or'' two'", 0) == ("one 'or' two", 16)
+    assert tree.read_quoted_name("'one two'", 0) == ('one two', 8)
+    assert tree.read_quoted_name("'one ''or'' two'", 0) == ("one 'or' two", 15)
     assert tree.read_quoted_name("pre-quote 'start end' post-quote", 10) == \
-        ('start end', 21)
+        ('start end', 20)
     with pytest.raises(tree.NewickError):
         tree.read_quoted_name('i do not start with quote', 0)
     with pytest.raises(tree.NewickError):
@@ -350,12 +353,20 @@ def test_quote():
 
 def test_dumps():
     for tree_text in good_trees:
-        if ' ' in tree_text:
+        if ' ' in tree_text or has_comments(tree_text):
             continue  # representation of whitespaces may change and that's okay
         t = tree.loads(tree_text)
         t_text = tree.dumps(t)
         assert t_text == tree_text
         # NOTE: we could relax this, it is asking a bit too much really
+
+def has_comments(text):
+    pos = 0
+    while pos < len(text):
+        if text[pos] == '[' and text[pos+1] != '&':
+            return True
+        pos += 1
+    return False
 
 
 def test_load_dump():
