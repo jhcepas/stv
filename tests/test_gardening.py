@@ -11,8 +11,8 @@ from ete import gardening
 
 
 def load_sample_tree():
-    return Tree('((d,e)b,(f,g)c)a;')
-    # a
+    return Tree('((d,e)b,(f,g)c):0;')
+    # :0
     # ├─b
     # │ ├─d
     # │ └─e
@@ -38,7 +38,7 @@ def test_sort():
 
     gardening.sort(t2, reverse=True)
     assert str(t2) == strip("""
-        a
+        :0
         ├─c
         │ ├─g
         │ └─f
@@ -69,41 +69,41 @@ def test_root_at():
 
     t = gardening.root_at(t[0,1])
     assert str(t) == strip("""
-        e
+        :0
+        ├─e
         └─b
           ├─d
-          └─a
-            └─c
-              ├─f
-              └─g
+          └─c
+            ├─f
+            └─g
     """)
 
 
     t = gardening.root_at(t['d'])
     assert str(t) == strip("""
-        d
+        :0
+        ├─d
         └─b
-          ├─a
-          │ └─c
-          │   ├─f
-          │   └─g
+          ├─c
+          │ ├─f
+          │ └─g
           └─e
     """)
 
     t = gardening.root_at(t['c'])
     assert str(t) == strip("""
-        c
-        ├─f
-        ├─g
-        └─a
-          └─b
-            ├─e
-            └─d
+        :0
+        ├─c
+        │ ├─f
+        │ └─g
+        └─b
+          ├─e
+          └─d
     """)
 
-    t = gardening.root_at(t['a'])
+    t = gardening.root_at(t['b'])
     assert str(t) == strip("""
-        a
+        :0
         ├─b
         │ ├─e
         │ └─d
@@ -117,7 +117,7 @@ def test_get_root_id():
     t = load_sample_tree()
 
     for node_name, node_id in [
-            ('a', []),
+            ('', []),
             ('b', [0]),
             ('c', [1]),
             ('d', [0,0]),
@@ -134,7 +134,7 @@ def test_move():
 
     gardening.move(t['b'])
     assert str(t) == strip("""
-        a
+        :0
         ├─c
         │ ├─f
         │ └─g
@@ -149,7 +149,7 @@ def test_remove():
 
     gardening.remove(t['c'])
     assert str(t) == strip("""
-        a
+        :0
         └─b
           ├─d
           └─e
@@ -157,7 +157,7 @@ def test_remove():
 
     gardening.remove(t['d'])
     assert str(t) == strip("""
-        a
+        :0
         └─b
           └─e
     """)

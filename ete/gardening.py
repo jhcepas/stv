@@ -19,40 +19,21 @@ def sort(tree, key=None, reverse=False):
 
 def root_at(node):
     "Return the tree of which node is part of, rerooted at the given node"
-    # TODO: Decide whether to fix or remove this function. It doesn't seem to
-    # work properly, and we probably don't need it, since we can use ete's.
-    root, node_id = get_root_id(node)
-
-    parent = node.parent
-    if not parent:
+    if not node.parent:
         return node
 
-    # Add an empty parent to the node.
-    i = parent.children.index(node)
-    parent.children.pop(i)
-    intermediate_node = Tree(':0', children=[node])
-    parent.children.insert(i, intermediate_node)
-    intermediate_node.parent = parent
+    future_root = add_intermediate(node)
 
-    # Go from the actual root towards the goal node, switching contents.
-    current = root
+    # Go from the current root towards the goal node, switching relations.
+    old_root, node_id = get_root_id(future_root)
+
+    current = old_root
     for i in node_id:
         new = current.children.pop(i)
 
         new.parent, current.parent = None, new
-        new.length, current.length = current.length, new.length
-
-        new_support = new.properties.get('support')
-        current_support = current.properties.get('support')
-        if current_support:
-            new.properties['support'] = current_support
-        elif 'support' in new.properties:
-            del new.properties['support']
-
-        if new_support:
-            current.properties['support'] = new_support
-        elif 'support' in current.properties:
-            del current.properties['support']
+        new.length, current.length = 0, new.length
+        switch_property(current, new, 'support')
 
         new.children.append(current)
 
@@ -61,7 +42,29 @@ def root_at(node):
 
         current = new
 
+    if len(old_root.children) == 1:
+        substitute(old_root, old_root.children[0])
+
     return current
+
+
+def add_intermediate(node):
+    "Add an intermediate parent to the given node and return it"
+    parent = node.parent
+
+    pos = parent.children.index(node)  # position of node in parent's children
+
+    parent.children.pop(pos)  # detach from parent
+
+    intermediate = Tree('', children=[node])  # create intermediate node
+    intermediate.parent = parent
+
+    if node.length >= 0:  # split length between the new and old nodes
+        node.length = intermediate.length = node.length / 2
+
+    parent.children.insert(pos, intermediate)  # add at previous position
+
+    return intermediate
 
 
 def get_root_id(node):
@@ -73,6 +76,33 @@ def get_root_id(node):
         positions.append(parent.children.index(current_root))
         current_root, parent = parent, parent.parent
     return current_root, positions[::-1]
+
+
+def switch_property(n1, n2, pname='support'):
+    "Switch for nodes n1 and n2 the values of property pname"
+    p1 = n1.properties.get(pname)
+    p2 = n2.properties.get(pname)
+
+    if p1:
+        n2.properties[pname] = p1  # update it from the value in n1
+    elif pname in n2.properties:
+        del n2.properties[pname]  # or delete it if n1 doesn't have it
+
+    if p2:
+        n1.properties[pname] = p2
+    elif pname in n1.properties:
+        del n1.properties[pname]
+
+
+def substitute(old, new):
+    "Substitute old node for new node in the tree where the old node was"
+    if old.length > 0:
+        new.length += old.length  # add its length to the new if it has any
+
+    parent = old.parent
+    parent.children.remove(old)
+    parent.children.append(new)
+    new.parent = parent
 
 
 def move(node, shift=1):
