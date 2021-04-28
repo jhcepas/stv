@@ -355,7 +355,7 @@ def quote(name, escaped_chars=" \t\r\n()[]':;,"):
 def dumps(tree):
     "Return newick representation from tree"
     children_text = ','.join(dumps(node).rstrip(';') for node in tree.children)
-    return (f'({children_text})' if children_text else '') + tree.content + ';'
+    return (f'({children_text})' if tree.children else '') + tree.content + ';'
 
 
 def dump(tree, fp):
