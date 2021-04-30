@@ -553,7 +553,7 @@ function coordinates(point) {
     if (view.drawer.type === "rect") {
         return [x, y];
     }
-    else {
+    else if (view.drawer.type === "circ") {
         const r = Math.sqrt(x*x + y*y);
         const a = Math.atan2(y, x) * 180 / Math.PI;
         return [r, a];
@@ -580,10 +580,10 @@ function on_box_wheel(event, box) {
     const zoom_in = event.deltaY < 0;
     const do_zoom = {x: !event.ctrlKey, y: !event.altKey};
 
-    if (view.drawer.type === "circ" || !view.smart_zoom)
-        zoom_around(point, zoom_in, do_zoom);
-    else
+    if (view.drawer.type === "rect" && view.smart_zoom)
         zoom_towards_box(box, point, zoom_in, do_zoom);
+    else
+        zoom_around(point, zoom_in, do_zoom);
 }
 
 
