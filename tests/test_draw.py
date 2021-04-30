@@ -90,8 +90,6 @@ def test_draw_collapsed():
         ['nodebox', (0.0, 0.0, 752.0, 3.0), 'F', {}, [], []],
         ['nodebox', (1.0, 0.0, 751.0, 3.0), 'A', {}, (0,), []],
         ['nodebox', (101.0, 0, 651.0, 3.0), '(collapsed)', {}, [], []]])
-    # TODO: The order of 'B' and 'E' may be inverted. Find a way to test it
-    #   well without making draw.pyx:summary much slower.
 
     drawer_z1 = draw.DrawerRectLeafNames(t)
     elements_z1 = list(drawer_z1.draw())
