@@ -99,7 +99,7 @@ const view = {
         children: {
             color: "#000",
             width: 1,
-            pattern: "solid",
+            pattern: "dotted",
         },
     },
     array: {padding: 0.0},
