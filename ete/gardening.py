@@ -33,7 +33,7 @@ def root_at(node):
     if len(old_root.children) == 1:
         join_branch(old_root)
 
-    return current
+    return current  # which is now future_root
 
 
 def split_branch(node):
@@ -97,10 +97,8 @@ def swap_branch_properties(n1, n2):
 
 def swap_property(n1, n2, pname):
     "Swap property pname between nodes n1 and n2"
-    p1 = n1.properties.get(pname)
-    p2 = n2.properties.get(pname)
-    n1.properties.pop(pname, None)
-    n2.properties.pop(pname, None)
+    p1 = n1.properties.pop(pname, None)
+    p2 = n2.properties.pop(pname, None)
     if p1:
         n2.properties[pname] = p1
     if p2:
@@ -109,7 +107,7 @@ def swap_property(n1, n2, pname):
 
 def join_branch(node):
     "Substitute node for its only child"
-    assert len(node.children) == 1, 'cannot join branch if multiple children'
+    assert len(node.children) == 1, 'cannot join branch with multiple children'
 
     child = node.children[0]
 
