@@ -81,7 +81,7 @@ cdef class Tree:
             return node
 
     def __repr__(self):
-        children_reprs = ', '.join(repr(c) for c in self.children)
+        children_reprs = ', '.join(repr(node) for node in self.children)
         return 'Tree(%r, [%s])' % (self.content, children_reprs)
 
     def __str__(self):
@@ -114,8 +114,8 @@ def to_str(tree, are_last=None):
     are_last = are_last or []
     line = get_branches_repr(are_last) + (tree.content or '<empty>')
     return '\n'.join([line] +
-        [to_str(n, are_last + [False]) for n in tree.children[:-1]] +
-        [to_str(n, are_last + [True])  for n in tree.children[-1:]])
+        [to_str(node, are_last + [False]) for node in tree.children[:-1]] +
+        [to_str(node, are_last + [True])  for node in tree.children[-1:]])
 
 
 def get_branches_repr(are_last):
