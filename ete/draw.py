@@ -695,8 +695,8 @@ def get_rect(element):
         (x1, y1), (x2, y2) = element[1], element[2]
         return Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
     elif eid == 'circle':
-        (x, y), r = element[1:3]
-        return Box(x - r, y - r, 2*r, 2*r)
+        (x, y), r = element[1], element[2]
+        return Box(x, y, 0, 0)
     else:
         raise ValueError(f'unrecognized element: {element!r}')
 
@@ -714,8 +714,8 @@ def get_asec(element):
         rect = Box(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
         return circumasec(rect)
     elif eid == 'circle':
-        (x, y), r = element[1:3]
-        rect = Box(x - r, y - r, 2*r, 2*r)
+        (x, y), r = element[1], element[2]
+        rect = Box(x, y, 0, 0)
         return circumasec(rect)
     else:
         raise ValueError(f'unrecognized element: {element!r}')
