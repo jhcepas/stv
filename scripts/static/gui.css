@@ -5,8 +5,19 @@
 
 .line {
     stroke: #000;
-    stroke-width: 1;
     fill-opacity: 0;
+}
+
+.lengthline {
+    stroke-width: 1;
+}
+
+.childrenline {
+    stroke-width: 1;
+}
+
+.nodedot {
+    opacity: 1;
 }
 
 .box {

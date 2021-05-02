@@ -76,8 +76,14 @@ const view = {
 
     // style
     node: {
-        opacity: 0,
-        color: "#222",
+        box: {
+            opacity: 0,
+            color: "#222",
+        },
+        dot: {
+            radius: 2,
+            opacity: 1,
+        },
     },
     outline: {
         opacity: 0.1,
@@ -86,8 +92,15 @@ const view = {
         slanted: true,
     },
     line: {
-        color: "#000",
-        width: 1,
+        length: {
+            color: "#000",
+            width: 1,
+        },
+        children: {
+            color: "#000",
+            width: 1,
+            pattern: "solid",
+        },
     },
     array: {padding: 0.0},
     font_sizes: {auto: true, scroller: undefined, fixed: 10},
