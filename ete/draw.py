@@ -359,7 +359,9 @@ class DrawerCirc(Drawer):
                                      is_large, 'childrenline')
 
     def draw_nodedot(self, center):
-        yield draw_circle(cartesian(center), radius=1, circle_type='nodedot')
+        r, a = center
+        if -pi < a < pi:
+            yield draw_circle(cartesian(center), radius=1, circle_type='nodedot')
 
     def draw_nodebox(self, node, node_id, box, result_of):
         r, a, dr, da = box
