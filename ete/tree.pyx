@@ -191,7 +191,7 @@ class Walker:
 
     @property
     def node_id(self):
-        return tuple([branch.nch for branch in self.visiting[:-1]])
+        return tuple(branch.nch for branch in self.visiting[:-1])
 
     @property
     def first_visit(self):
