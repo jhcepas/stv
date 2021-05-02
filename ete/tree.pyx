@@ -22,15 +22,12 @@ cdef class Tree:
     cdef public str name
     cdef public double length
     cdef public dict properties
-    cdef public list children
+    cdef public Children children
     cdef public Tree parent
     cdef public (double, double) size  # sum of lenghts, number of leaves
 
     def __init__(self, content='', children=None):
         self.parent = None
-        self.name = ''
-        self.length = -1
-        self.properties = {}
         if not content.startswith('('):
             self.init_normal(content.rstrip(';'), children)
             # the rstrip() avoids ambiguity when the full tree is just ";"
@@ -41,17 +38,13 @@ cdef class Tree:
 
     def init_normal(self, content, children):
         self.content = content
-        self.children = children or []
-        for node in self.children:
-            node.parent = self
+        self.children = Children(self, children or [])
         update_size(self)
 
     def init_from_newick(self, tree_text):
         tree = loads(tree_text)
         self.content = tree.content
-        self.children = tree.children
-        for node in self.children:
-            node.parent = self
+        self.children = Children(self, tree.children)
         self.size = tree.size
 
     @property
@@ -96,6 +89,27 @@ cdef class Tree:
 
     def __str__(self):
         return to_str(self)
+
+
+cdef class Children(list):
+    "A list that automatically sets the parent of its elements"
+
+    cdef public Tree parent
+
+    def __init__(self, parent, nodes=()):
+        super().__init__(nodes)
+        self.parent = parent
+        for node in nodes:
+            node.parent = self.parent
+
+    def append(self, node):
+        super().append(node)
+        node.parent = self.parent
+
+    def __iadd__(self, nodes):
+        for node in nodes:
+            node.parent = self.parent
+        return super().__iadd__(nodes)
 
 
 def to_str(tree, are_last=None):
