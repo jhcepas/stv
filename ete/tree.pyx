@@ -8,9 +8,6 @@ https://en.wikipedia.org/wiki/Newick_format
 
 from collections import namedtuple
 
-TreePos = namedtuple('TreePos', 'node nch')
-# Position on the tree: current node, number of visited children.
-
 
 class NewickError(Exception):
     pass
@@ -171,6 +168,9 @@ def walk(tree):
             yield it
             it.go_back()
 
+
+# Position on the tree: current node, number of visited children.
+TreePos = namedtuple('TreePos', 'node nch')
 
 class Walker:
     def __init__(self, root):
