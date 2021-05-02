@@ -153,8 +153,9 @@ def standardize(tree):
         update_size(tree)
 
     for node in tree:
-        try:
-            node.properties['support'] = float(node.name)
-            node.name = ''
-        except ValueError:
-            pass
+        if not node.is_leaf:
+            try:
+                node.properties['support'] = float(node.name)
+                node.name = ''
+            except ValueError:
+                pass
