@@ -94,6 +94,7 @@
     bottom: 10px;
     z-index: 1;
     background: #FFF;
+    visibility: hidden;
     touch-action: none;
 }
 

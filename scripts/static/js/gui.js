@@ -152,6 +152,8 @@ async function main() {
     store_node_properties();
 
     draw_minimap();
+    show_minimap("visible");
+
     update();
 
     const sample_trees = ["ncbi", "GTDB_bact_r95"];  // hardcoded for the moment
