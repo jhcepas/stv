@@ -1,0 +1,7 @@
+site_name: Tree Explorer
+repo_url: https://github.com/jhcepas/stv/tree/minimalist/
+nav:
+    - Home: index.md
+    - Overview: overview.md
+    - Detailed layout: detailed_layout.md
+    - About: about.md
