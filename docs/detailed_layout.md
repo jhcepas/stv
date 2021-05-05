@@ -21,11 +21,17 @@ The server also provides access to `gui.html`, which shows a gui on
 the browser to explore the trees. It uses the code in `gui.js` and all
 the other imported js modules in the same directory.
 
+![gui](img/gui_small.jpg)
+
 It also server an entry page with a short description and an easy way
 to upload new trees, `upload_tree.html` (which uses `upload_tree.js`).
 
+![upload](img/upload_small.jpg)
+
 Finally, there are test for the different python code in `tests`, and
 examples of trees in `examples`.
+
+The complete layout is:
 
 ```sh
 readme.rst
