@@ -104,11 +104,11 @@ The `node_id` is a tuple that looks like `(0, 1, 0)` for the node that
 comes from the root's 1st child, then its 2nd child, and then its 1st
 child.
 
-A tree can be accessed as if it is a list to access directly one of
-its nodes. The syntax `tree[name]`, where `name` is a string, will
-return the first node whose name matches the given one. And
-`tree[node_id]`, where `node_id` is a tuple as described before, will
-return the corresponding node at that position.
+A tree can be used as a list to access directly one of its nodes. The
+syntax `tree[name]`, where `name` is a string, will return the first
+node whose name matches the given one. And `tree[node_id]`, where
+`node_id` is a tuple as described before, will return the
+corresponding node at that position.
 
 ![node_id](img/node_id.png)
 
@@ -122,7 +122,7 @@ tree[0,1,0] == tree[0][1,0] \
 ```
 
 This simplifies working with subtrees, since they can be treated as
-independen trees and are easily recovered from the original tree at
+independent trees and are easily recovered from the original tree at
 any moment.
 
 <!--
